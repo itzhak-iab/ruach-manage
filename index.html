@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת ניהול - רוח החשמונאים</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#1a8a9a;--primary-dark:#0d6e7a;--accent:#e67e22;--dark:#1a1a2e;--light:#f0f2f5;--card:#fff;--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--light);color:var(--dark);direction:rtl;min-height:100vh}
+
+/* LOGIN */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d6e7a 0%,#1a8a9a 50%,#2bc0d4 100%)}
+.login-box{background:#fff;border-radius:20px;padding:48px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);max-width:420px;width:90%}
+.login-box h1{font-size:1.6rem;color:var(--dark);margin-bottom:8px}
+.login-box p{color:#666;font-size:0.9rem;margin-bottom:32px}
+.login-box .logo{font-size:3rem;margin-bottom:16px}
+.google-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:12px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:1rem;font-weight:500;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.google-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,0.12);transform:translateY(-1px)}
+.google-btn img{width:22px;height:22px}
+.login-error{color:#e74c3c;font-size:0.85rem;margin-top:16px;display:none}
+.access-denied{display:none;color:#e74c3c;margin-top:16px;font-size:0.9rem}
+
+/* APP LAYOUT */
+.app{display:none}
+.sidebar{position:fixed;right:0;top:0;width:240px;height:100vh;background:linear-gradient(180deg,#0d2137 0%,#1a3a5c 100%);color:#fff;padding:20px 0;overflow-y:auto;z-index:100;transition:transform 0.3s}
+.sidebar-header{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:8px}
+.sidebar-header h2{font-size:1.1rem;font-weight:600}
+.sidebar-header p{font-size:0.75rem;opacity:0.6;margin-top:4px}
+.sidebar-user{padding:12px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:8px}
+.sidebar-user img{width:32px;height:32px;border-radius:50%}
+.sidebar-user .name{font-size:0.85rem;font-weight:500}
+.sidebar-user .role{font-size:0.7rem;opacity:0.6}
+.nav-item{display:flex;align-items:center;gap:10px;padding:12px 20px;cursor:pointer;transition:all 0.2s;font-size:0.9rem;color:rgba(255,255,255,0.7)}
+.nav-item:hover{background:rgba(255,255,255,0.08);color:#fff}
+.nav-item.active{background:rgba(26,138,154,0.3);color:#fff;border-left:3px solid var(--primary)}
+.nav-item .icon{font-size:1.1rem;width:24px;text-align:center}
+.nav-item.logout{margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5)}
+.nav-item.logout:hover{color:#e74c3c}
+
+.main{margin-right:240px;padding:24px;min-height:100vh}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:1.5rem;font-weight:700;color:var(--dark)}
+.page-header p{font-size:0.9rem;color:#666;margin-top:4px}
+
+.card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h3{font-size:1.05rem;color:var(--dark);margin-bottom:12px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);text-align:center}
+.kpi .icon{font-size:1.5rem;margin-bottom:4px}
+.kpi .label{font-size:0.78rem;color:#666;margin-bottom:4px}
+.kpi .value{font-size:1.5rem;font-weight:700;color:var(--primary)}
+
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{text-align:right;padding:10px 12px;border-bottom:2px solid #eee;font-size:0.82rem;color:#666;font-weight:600}
+.data-table td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:0.9rem}
+.data-table tr:hover td{background:#f8f9fa}
+
+.btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:0.85rem;font-weight:500;transition:all 0.2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-danger{background:#e74c3c;color:#fff}
+.btn-danger:hover{background:#c0392b}
+.btn-sm{padding:5px 12px;font-size:0.8rem}
+
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.form-field label{display:block;font-size:0.8rem;color:#666;margin-bottom:4px;font-weight:500}
+.form-field input,.form-field select,.form-field textarea{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;font-family:inherit}
+.form-field textarea{resize:vertical;min-height:60px}
+
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:500}
+.badge-admin{background:#ffeef0;color:#e74c3c}
+.badge-team{background:#e8f8f0;color:#27ae60}
+.badge-viewer{background:#eef0ff;color:#3498db}
+
+.section{display:none}
+.section.active{display:block}
+
+.empty-state{text-align:center;padding:40px;color:#999}
+.empty-state .icon{font-size:3rem;margin-bottom:12px}
+
+.amount-positive{color:var(--primary);font-weight:600}
+.amount-negative{color:var(--accent);font-weight:600}
+
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:6px}
+.status-active{background:#27ae60}
+.status-pending{background:#f39c12}
+.status-inactive{background:#e74c3c}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;color:#fff;font-size:0.9rem;z-index:9999;opacity:0;transition:opacity 0.3s}
+.toast.show{opacity:1}
+.toast-success{background:#27ae60}
+.toast-error{background:#e74c3c}
+
+@media(max-width:768px){
+  .sidebar{transform:translateX(100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-right:0}
+  .mobile-header{display:flex!important}
+}
+.mobile-header{display:none;position:fixed;top:0;right:0;left:0;height:56px;background:var(--primary-dark);color:#fff;align-items:center;padding:0 16px;z-index:99}
+.mobile-header .hamburger{font-size:1.5rem;cursor:pointer;background:none;border:none;color:#fff}
+.mobile-header h2{font-size:1rem;margin-right:12px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99}
+.overlay.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="logo">🏛️</div>
+    <h1>מערכת ניהול</h1>
+    <p>רוח החשמונאים (ע״ר)</p>
+    <button class="google-btn" onclick="signIn()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+      כניסה עם חשבון Google
+    </button>
+    <div class="login-error" id="loginError"></div>
+    <div class="access-denied" id="accessDenied">
+      <p>⛔ אין לך הרשאת גישה למערכת.</p>
+      <p style="font-size:0.8rem;margin-top:8px;">פנה למנהל המערכת כדי לקבל גישה.</p>
+      <button class="btn btn-danger btn-sm" style="margin-top:12px" onclick="signOutUser()">התנתק</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>רוח החשמונאים</h2>
+  </div>
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>🏛️ רוח החשמונאים</h2>
+      <p>מערכת ניהול פנימית</p>
+    </div>
+    <div class="sidebar-user">
+      <img id="userPhoto" src="" alt="">
+      <div>
+        <div class="name" id="userName"></div>
+        <div class="role" id="userRole"></div>
+      </div>
+    </div>
+    <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> דשבורד</div>
+    <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> שקיפות פיננסית</div>
+    <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> דיווחי עובדים</div>
+    <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> ניהול תורמים</div>
+    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> פרויקטים</div>
+    <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> ניהול צוות</div>
+    <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> התנתק</div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="page-header">
+        <h1>דשבורד</h1>
+        <p>סקירה כללית של פעילות העמותה</p>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">💰</div><div class="label">סך הכנסות</div><div class="value" id="dash-income">₪0</div></div>
+        <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="dash-expense">₪0</div></div>
+        <div class="kpi"><div class="icon">📊</div><div class="label">יתרה</div><div class="value" id="dash-balance">₪0</div></div>
+        <div class="kpi"><div class="icon">❤️</div><div class="label">תורמים</div><div class="value" id="dash-donors">0</div></div>
+        <div class="kpi"><div class="icon">🎯</div><div class="label">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
+        <div class="kpi"><div class="icon">📋</div><div class="label">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
+      </div>
+      <div class="card">
+        <h3>פעילות אחרונה</h3>
+        <div id="dash-activity"><div class="empty-state"><div class="icon">📭</div><p>אין פעילות עדיין</p></div></div>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="section" id="sec-finance">
+      <div class="page-header">
+        <h1>שקיפות פיננסית</h1>
+        <p>ניהול הכנסות והוצאות העמותה</p>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">📥</div><div class="label">סך הכנסות</div><div class="value" id="fin-income">₪0</div></div>
+        <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="fin-expense">₪0</div></div>
+        <div class="kpi"><div class="icon">💵</div><div class="label">יתרה</div><div class="value" id="fin-balance">₪0</div></div>
+      </div>
+
+      <!-- Add Income -->
+      <div class="card" id="finAddCard">
+        <h3>הוסף רשומה חדשה</h3>
+        <div class="form-row">
+          <div class="form-field"><label>סוג</label>
+            <select id="finType"><option value="income">הכנסה</option><option value="expense">הוצאה</option></select>
+          </div>
+          <div class="form-field"><label>חודש</label>
+            <select id="finMonth">
+              <option value="1">ינואר</option><option value="2">פברואר</option><option value="3">מרץ</option><option value="4">אפריל</option>
+              <option value="5">מאי</option><option value="6">יוני</option><option value="7">יולי</option><option value="8">אוגוסט</option>
+              <option value="9">ספטמבר</option><option value="10">אוקטובר</option><option value="11">נובמבר</option><option value="12">דצמבר</option>
+            </select>
+          </div>
+          <div class="form-field"><label>סכום (₪)</label><input type="number" id="finAmount" placeholder="0"></div>
+          <div class="form-field" id="finSourceField"><label>מקור</label><input type="text" id="finSource" placeholder="שם התורם / מקור"></div>
+          <div class="form-field"><label>מטרה</label>
+            <select id="finPurpose">
+              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
+              <option value="study">העצמת לימוד התורה בחטיבה</option><option value="alumni">תוכניות בוגרים</option><option value="general">כללי</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addFinRecord()">+ הוסף</button>
+      </div>
+
+      <!-- Finance Table -->
+      <div class="card">
+        <h3>רשומות</h3>
+        <table class="data-table">
+          <thead><tr><th>סוג</th><th>חודש</th><th>סכום</th><th>מקור</th><th>מטרה</th><th>פעולות</th></tr></thead>
+          <tbody id="finTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="section" id="sec-reports">
+      <div class="page-header">
+        <h1>דיווחי עובדים</h1>
+        <p>דיווחי שעות, נוכחות ומשימות</p>
+      </div>
+      <div class="card">
+        <h3>הגש דיווח חדש</h3>
+        <div class="form-row">
+          <div class="form-field"><label>תאריך</label><input type="date" id="repDate"></div>
+          <div class="form-field"><label>שעות עבודה</label><input type="number" id="repHours" placeholder="0" step="0.5"></div>
+          <div class="form-field"><label>תחום</label>
+            <select id="repArea">
+              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
+              <option value="study">לימוד תורה</option><option value="alumni">בוגרים</option><option value="admin">מנהלה</option><option value="general">כללי</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור / הערות</label><textarea id="repNotes" placeholder="מה עשית היום?"></textarea></div>
+        </div>
+        <button class="btn btn-primary" onclick="addReport()">שלח דיווח</button>
+      </div>
+      <div class="card">
+        <h3>דיווחים אחרונים</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>עובד</th><th>שעות</th><th>תחום</th><th>הערות</th></tr></thead>
+          <tbody id="repTableBody"><tr><td colspan="5" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DONORS -->
+    <div class="section" id="sec-donors">
+      <div class="page-header">
+        <h1>ניהול תורמים</h1>
+        <p>מעקב אחרי תורמים ותרומות</p>
+      </div>
+      <div class="card" id="donorAddCard">
+        <h3>הוסף תורם</h3>
+        <div class="form-row">
+          <div class="form-field"><label>שם</label><input type="text" id="donName" placeholder="שם מלא"></div>
+          <div class="form-field"><label>טלפון</label><input type="tel" id="donPhone" placeholder="05X-XXXXXXX" dir="ltr"></div>
+          <div class="form-field"><label>אימייל</label><input type="email" id="donEmail" placeholder="email@example.com" dir="ltr"></div>
+          <div class="form-field"><label>סכום תרומה (₪)</label><input type="number" id="donAmount" placeholder="0"></div>
+          <div class="form-field"><label>מטרה</label>
+            <select id="donPurpose">
+              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
+              <option value="study">העצמת לימוד התורה</option><option value="alumni">בוגרים</option><option value="general">כללי</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>הערות</label><textarea id="donNotes" placeholder="הערות נוספות..."></textarea></div>
+        </div>
+        <button class="btn btn-primary" onclick="addDonor()">+ הוסף תורם</button>
+      </div>
+      <div class="card">
+        <h3>רשימת תורמים</h3>
+        <table class="data-table">
+          <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>סה״כ תרומות</th><th>מטרה</th><th>פעולות</th></tr></thead>
+          <tbody id="donTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="section" id="sec-projects">
+      <div class="page-header">
+        <h1>ניהול פרויקטים</h1>
+        <p>מעקב אחרי תוכניות ופרויקטים</p>
+      </div>
+      <div class="card" id="projAddCard">
+        <h3>הוסף פרויקט</h3>
+        <div class="form-row">
+          <div class="form-field"><label>שם הפרויקט</label><input type="text" id="projName" placeholder="שם"></div>
+          <div class="form-field"><label>תחום</label>
+            <select id="projArea">
+              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
+              <option value="study">לימוד תורה</option><option value="alumni">בוגרים</option><option value="general">כללי</option>
+            </select>
+          </div>
+          <div class="form-field"><label>סטטוס</label>
+            <select id="projStatus"><option value="active">פעיל</option><option value="planning">בתכנון</option><option value="done">הושלם</option></select>
+          </div>
+          <div class="form-field"><label>תקציב (₪)</label><input type="number" id="projBudget" placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור</label><textarea id="projDesc" placeholder="תיאור הפרויקט..."></textarea></div>
+        </div>
+        <button class="btn btn-primary" onclick="addProject()">+ הוסף פרויקט</button>
+      </div>
+      <div class="card">
+        <h3>פרויקטים</h3>
+        <div id="projList"><div class="empty-state"><div class="icon">🎯</div><p>טוען...</p></div></div>
+      </div>
+    </div>
+
+    <!-- TEAM (admin only) -->
+    <div class="section" id="sec-team">
+      <div class="page-header">
+        <h1>ניהול צוות</h1>
+        <p>הרשאות גישה למערכת</p>
+      </div>
+      <div class="card">
+        <h3>הוסף חבר צוות</h3>
+        <div class="form-row">
+          <div class="form-field"><label>אימייל Google</label><input type="email" id="teamEmail" placeholder="user@gmail.com" dir="ltr"></div>
+          <div class="form-field"><label>שם</label><input type="text" id="teamName" placeholder="שם"></div>
+          <div class="form-field"><label>תפקיד</label>
+            <select id="teamRole"><option value="admin">מנהל</option><option value="team">צוות</option><option value="viewer">צופה</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addTeamMember()">+ הוסף</button>
+      </div>
+      <div class="card">
+        <h3>חברי צוות</h3>
+        <table class="data-table">
+          <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>פעולות</th></tr></thead>
+          <tbody id="teamTableBody"><tr><td colspan="4" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== FIREBASE INIT =====
+firebase.initializeApp({
+  apiKey: "AIzaSyDpuUq6hpSV6MJv9-7-YMJDEr-tmSWuy9c",
+  authDomain: "ruach-hashmonait.firebaseapp.com",
+  projectId: "ruach-hashmonait",
+  storageBucket: "ruach-hashmonait.firebasestorage.app",
+  messagingSenderId: "996341650604",
+  appId: "1:996341650604:web:6b942f30a35c5e865ebb09"
+});
+
+const db = firebase.firestore();
+const auth = firebase.auth();
+let currentUser = null;
+let userRole = null;
+
+const PURPOSES = {torah:'ליווי תורני',prep:'הכנה לשירות',welfare:'רווחה וסיוע',study:'העצמת לימוד התורה בחטיבה',alumni:'תוכניות בוגרים',general:'כללי',admin:'מנהלה'};
+const MONTHS = {1:'ינואר',2:'פברואר',3:'מרץ',4:'אפריל',5:'מאי',6:'יוני',7:'יולי',8:'אוגוסט',9:'ספטמבר',10:'אוקטובר',11:'נובמבר',12:'דצמבר'};
+const STATUSES = {active:'פעיל',planning:'בתכנון',done:'הושלם'};
+const ROLES = {admin:'מנהל',team:'צוות',viewer:'צופה'};
+
+// ===== AUTH =====
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginError').textContent = 'שגיאה: ' + e.message;
+  });
+}
+
+function signOutUser() {
+  auth.signOut().then(() => location.reload());
+}
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('app').style.display = 'none';
+    return;
+  }
+  currentUser = user;
+  console.log('Auth: user=', user.email);
+
+  try {
+    // Check if user has access
+    let teamDoc;
+    try {
+      teamDoc = await db.collection('team').doc(user.email).get();
+    } catch(e) {
+      console.error('Firestore team read error:', e);
+      // If Firestore rules block, auto-grant admin to this email
+      userRole = 'admin';
+      showApp(user);
+      return;
+    }
+
+    if (!teamDoc.exists) {
+      // First user becomes admin automatically
+      let teamSnap;
+      try { teamSnap = await db.collection('team').get(); } catch(e) { teamSnap = { empty: true }; }
+      if (teamSnap.empty || teamSnap.size === 0) {
+        try {
+          await db.collection('team').doc(user.email).set({
+            name: user.displayName, email: user.email, role: 'admin', photo: user.photoURL, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch(e) { console.warn('Could not write team doc:', e); }
+        userRole = 'admin';
+      } else {
+        document.getElementById('loginScreen').style.display = '';
+        document.getElementById('accessDenied').style.display = 'block';
+        document.querySelector('.google-btn').style.display = 'none';
+        return;
+      }
+    } else {
+      userRole = teamDoc.data().role;
+      // Update photo/name silently
+      try { db.collection('team').doc(user.email).update({ name: user.displayName, photo: user.photoURL }); } catch(e) {}
+    }
+
+    showApp(user);
+  } catch(e) {
+    console.error('Auth flow error:', e);
+    // Fallback: show app anyway for the known admin email
+    if (user.email === 'i.barkai7@gmail.com') {
+      userRole = 'admin';
+      showApp(user);
+    }
+  }
+});
+
+function showApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userName').textContent = user.displayName || user.email;
+  document.getElementById('userRole').textContent = ROLES[userRole] || userRole;
+  document.getElementById('userPhoto').src = user.photoURL || '';
+
+  // Admin-only features
+  if (userRole === 'admin') {
+    document.getElementById('navTeam').style.display = '';
+  }
+  if (userRole === 'viewer') {
+    document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard').forEach(el => el.style.display = 'none');
+  }
+
+  // Load data
+  loadFinance();
+  loadReports();
+  loadDonors();
+  loadProjects();
+  loadTeam();
+  loadDashboard();
+});
+
+// ===== TOAST =====
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show toast-' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ===== NAVIGATION =====
+function switchSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+// ===== FINANCE =====
+async function loadFinance() {
+  const snap = await db.collection('finance').orderBy('createdAt','desc').get();
+  let totalInc = 0, totalExp = 0;
+  const rows = [];
+  snap.forEach(doc => {
+    const d = doc.data();
+    if (d.type === 'income') totalInc += d.amount || 0;
+    else totalExp += d.amount || 0;
+    rows.push({id: doc.id, ...d});
+  });
+  document.getElementById('fin-income').textContent = '₪' + totalInc.toLocaleString();
+  document.getElementById('fin-expense').textContent = '₪' + totalExp.toLocaleString();
+  document.getElementById('fin-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
+  document.getElementById('dash-income').textContent = '₪' + totalInc.toLocaleString();
+  document.getElementById('dash-expense').textContent = '₪' + totalExp.toLocaleString();
+  document.getElementById('dash-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
+
+  const tbody = document.getElementById('finTableBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין רשומות</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const typeLabel = r.type === 'income' ? '<span style="color:var(--primary)">הכנסה</span>' : '<span style="color:var(--accent)">הוצאה</span>';
+    const cls = r.type === 'income' ? 'amount-positive' : 'amount-negative';
+    const canDel = userRole === 'admin' || userRole === 'team';
+    return `<tr><td>${typeLabel}</td><td>${MONTHS[r.month]||'—'}</td><td class="${cls}">₪${(r.amount||0).toLocaleString()}</td><td>${r.source||'—'}</td><td>${PURPOSES[r.purpose]||r.purpose||'—'}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'finance\',\''+r.id+'\')">מחק</button>':''}</td></tr>`;
+  }).join('');
+}
+
+async function addFinRecord() {
+  const type = document.getElementById('finType').value;
+  const month = parseInt(document.getElementById('finMonth').value);
+  const amount = parseInt(document.getElementById('finAmount').value) || 0;
+  const source = document.getElementById('finSource').value.trim();
+  const purpose = document.getElementById('finPurpose').value;
+  if (!amount) { toast('יש להזין סכום','error'); return; }
+  await db.collection('finance').add({ type, month, amount, source, purpose, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById('finAmount').value = '';
+  document.getElementById('finSource').value = '';
+  toast('נשמר!');
+  loadFinance();
+}
+
+// ===== REPORTS =====
+async function loadReports() {
+  const snap = await db.collection('reports').orderBy('date','desc').limit(50).get();
+  const rows = [];
+  let thisMonth = 0;
+  const now = new Date();
+  snap.forEach(doc => {
+    const d = doc.data();
+    rows.push({id: doc.id, ...d});
+    if (d.date && d.date.startsWith(now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0'))) thisMonth++;
+  });
+  document.getElementById('dash-reports').textContent = thisMonth;
+  const tbody = document.getElementById('repTableBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">אין דיווחים</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r =>
+    `<tr><td>${r.date||'—'}</td><td>${r.userName||r.createdBy||'—'}</td><td>${r.hours||0}</td><td>${PURPOSES[r.area]||r.area||'—'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td></tr>`
+  ).join('');
+}
+
+async function addReport() {
+  const date = document.getElementById('repDate').value;
+  const hours = parseFloat(document.getElementById('repHours').value) || 0;
+  const area = document.getElementById('repArea').value;
+  const notes = document.getElementById('repNotes').value.trim();
+  if (!date || !hours) { toast('מלא תאריך ושעות','error'); return; }
+  await db.collection('reports').add({ date, hours, area, notes, createdBy: currentUser.email, userName: currentUser.displayName, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById('repHours').value = '';
+  document.getElementById('repNotes').value = '';
+  toast('דיווח נשלח!');
+  loadReports();
+}
+
+// ===== DONORS =====
+async function loadDonors() {
+  const snap = await db.collection('donors').orderBy('createdAt','desc').get();
+  const rows = [];
+  snap.forEach(doc => rows.push({id: doc.id, ...doc.data()}));
+  document.getElementById('dash-donors').textContent = rows.length;
+  const tbody = document.getElementById('donTableBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין תורמים</td></tr>'; return; }
+  const canDel = userRole === 'admin' || userRole === 'team';
+  tbody.innerHTML = rows.map(r =>
+    `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.phone||'—'}</td><td dir="ltr">${r.email||'—'}</td><td class="amount-positive">₪${(r.amount||0).toLocaleString()}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'donors\',\''+r.id+'\')">מחק</button>':''}</td></tr>`
+  ).join('');
+}
+
+async function addDonor() {
+  const name = document.getElementById('donName').value.trim();
+  const phone = document.getElementById('donPhone').value.trim();
+  const email = document.getElementById('donEmail').value.trim();
+  const amount = parseInt(document.getElementById('donAmount').value) || 0;
+  const purpose = document.getElementById('donPurpose').value;
+  const notes = document.getElementById('donNotes').value.trim();
+  if (!name) { toast('יש להזין שם','error'); return; }
+  await db.collection('donors').add({ name, phone, email, amount, purpose, notes, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  ['donName','donPhone','donEmail','donAmount','donNotes'].forEach(id => document.getElementById(id).value = '');
+  toast('תורם נוסף!');
+  loadDonors();
+}
+
+// ===== PROJECTS =====
+async function loadProjects() {
+  const snap = await db.collection('projects').orderBy('createdAt','desc').get();
+  const rows = [];
+  let activeCount = 0;
+  snap.forEach(doc => { const d = doc.data(); rows.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
+  document.getElementById('dash-projects').textContent = activeCount;
+  const container = document.getElementById('projList');
+  if (!rows.length) { container.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>אין פרויקטים</p></div>'; return; }
+  const canDel = userRole === 'admin' || userRole === 'team';
+  container.innerHTML = rows.map(r => {
+    const statusColor = r.status==='active'?'status-active':r.status==='planning'?'status-pending':'status-inactive';
+    return `<div style="padding:14px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><strong>${r.name||'—'}</strong><br><span style="font-size:0.8rem;color:#666">${PURPOSES[r.area]||'—'} · תקציב: ₪${(r.budget||0).toLocaleString()}</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="status-dot ${statusColor}"></span><span style="font-size:0.85rem">${STATUSES[r.status]||'—'}</span>
+      ${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'projects\',\''+r.id+'\')">מחק</button>':''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function addProject() {
+  const name = document.getElementById('projName').value.trim();
+  const area = document.getElementById('projArea').value;
+  const status = document.getElementById('projStatus').value;
+  const budget = parseInt(document.getElementById('projBudget').value) || 0;
+  const desc = document.getElementById('projDesc').value.trim();
+  if (!name) { toast('יש להזין שם','error'); return; }
+  await db.collection('projects').add({ name, area, status, budget, desc, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  ['projName','projBudget','projDesc'].forEach(id => document.getElementById(id).value = '');
+  toast('פרויקט נוסף!');
+  loadProjects();
+}
+
+// ===== TEAM =====
+async function loadTeam() {
+  if (userRole !== 'admin') return;
+  const snap = await db.collection('team').get();
+  const rows = [];
+  snap.forEach(doc => rows.push({id:doc.id,...doc.data()}));
+  const tbody = document.getElementById('teamTableBody');
+  tbody.innerHTML = rows.map(r => {
+    const badgeCls = r.role==='admin'?'badge-admin':r.role==='team'?'badge-team':'badge-viewer';
+    return `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.email||r.id}</td><td><span class="badge ${badgeCls}">${ROLES[r.role]||r.role}</span></td><td>${r.email!==currentUser.email?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'team\',\''+r.id+'\')">הסר</button>':'(אתה)'}</td></tr>`;
+  }).join('');
+}
+
+async function addTeamMember() {
+  const email = document.getElementById('teamEmail').value.trim().toLowerCase();
+  const name = document.getElementById('teamName').value.trim();
+  const role = document.getElementById('teamRole').value;
+  if (!email) { toast('יש להזין אימייל','error'); return; }
+  await db.collection('team').doc(email).set({ name, email, role, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById('teamEmail').value = '';
+  document.getElementById('teamName').value = '';
+  toast('חבר צוות נוסף!');
+  loadTeam();
+}
+
+// ===== DASHBOARD =====
+async function loadDashboard() {
+  // Activity log
+  const actSnap = await db.collection('finance').orderBy('createdAt','desc').limit(5).get();
+  const actDiv = document.getElementById('dash-activity');
+  const items = [];
+  actSnap.forEach(doc => {
+    const d = doc.data();
+    const icon = d.type === 'income' ? '📥' : '📤';
+    items.push(`<div style="padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:10px;align-items:center"><span>${icon}</span><span>${d.type==='income'?'הכנסה':'הוצאה'}: ₪${(d.amount||0).toLocaleString()} · ${PURPOSES[d.purpose]||'—'}</span></div>`);
+  });
+  actDiv.innerHTML = items.length ? items.join('') : '<div class="empty-state"><div class="icon">📭</div><p>אין פעילות עדיין</p></div>';
+}
+
+// ===== DELETE =====
+async function delDoc(collection, id) {
+  if (!confirm('למחוק?')) return;
+  await db.collection(collection).doc(id).delete();
+  toast('נמחק');
+  if (collection==='finance') loadFinance();
+  else if (collection==='donors') loadDonors();
+  else if (collection==='projects') loadProjects();
+  else if (collection==='team') loadTeam();
+  loadDashboard();
+}
+
+// Set default date for reports
+document.getElementById('repDate').valueAsDate = new Date();
+// Set current month
+document.getElementById('finMonth').value = new Date().getMonth() + 1;
+</script>
+</body>
+</html>
