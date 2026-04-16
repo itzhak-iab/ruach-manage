@@ -261,9 +261,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div class="kpi"><div class="icon">📋</div><div class="label">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
         <div class="kpi"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg,#f0f9ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
+        <div>
+          <h3 style="margin:0 0 4px">📊 דוח פעילות מסכם</h3>
+          <p style="margin:0;color:#475569;font-size:0.9rem">הפק דוח חודשי או שנתי המאחד הכנסות, הוצאות ודיווחי עובדים</p>
+        </div>
+        <button class="btn btn-primary" onclick="openActivityReport()">📊 הפק דוח</button>
+      </div>
       <div class="card">
         <h3>פעילות אחרונה</h3>
         <div id="dash-activity"><div class="empty-state"><div class="icon">📭</div><p>אין פעילות עדיין</p></div></div>
+      </div>
+      <div class="card" id="dash-diagnostics-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">🔍 אבחון מערכת — מצב הדאטאבייס</h3>
+          <button class="btn btn-secondary" onclick="runDiagnostics()">🔄 רענן אבחון</button>
+        </div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:6px">ספירת רשומות בכל אוסף ב-Firestore + בדיקת גישה ל-Storage. אם מספר עולה אחרי שמירה חדשה — הרשומה נכתבה בהצלחה.</p>
+        <div id="dash-diag-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px"></div>
+        <div id="dash-diag-storage" style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:6px;font-size:0.9rem"></div>
       </div>
     </div>
 
@@ -349,6 +365,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="page-header">
         <h1>דיווחי עובדים</h1>
         <p>דיווחי שעות, נוכחות ומשימות</p>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#eef2ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
+        <h3>📊 דוח פעילות מסכם</h3>
+        <p style="margin:8px 0 12px;color:#475569">הפק דוח מקיף המאחד את כל ההכנסות, ההוצאות, התפוקות ודיווחי העובדים — לפי חודש או שנה. כולל תצוגת הדפסה, הורדה ושליחה.</p>
+        <button class="btn btn-primary" onclick="openActivityReport()">📊 הפק דוח חודשי / שנתי</button>
       </div>
       <div class="card">
         <h3>הגש דיווח חדש</h3>
@@ -870,6 +891,8 @@ function showApp(user) {
   if (userRole === 'admin') {
     document.getElementById('navTeam').style.display = '';
     document.getElementById('tkTemplatesCard').style.display = '';
+    document.getElementById('dash-diagnostics-card').style.display = '';
+    runDiagnostics();
   }
   if (userRole === 'viewer') {
     document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
@@ -1112,11 +1135,17 @@ async function addReport() {
   const area = document.getElementById('repArea').value;
   const notes = document.getElementById('repNotes').value.trim();
   if (!date || !hours) { toast('מלא תאריך ושעות','error'); return; }
-  await db.collection('reports').add({ date, hours, area, notes, createdBy: currentUser.email, userName: currentUser.displayName, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  document.getElementById('repHours').value = '';
-  document.getElementById('repNotes').value = '';
-  toast('דיווח נשלח!');
-  loadReports();
+  try {
+    const docRef = await db.collection('reports').add({ date, hours, area, notes, createdBy: currentUser.email, userName: currentUser.displayName, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    console.log('[SAVE OK] reports doc id:', docRef.id);
+    document.getElementById('repHours').value = '';
+    document.getElementById('repNotes').value = '';
+    toast('דיווח נשלח ונשמר (ID: ' + docRef.id.substring(0,8) + ')');
+    loadReports();
+  } catch(e) {
+    console.error('[SAVE FAIL] reports:', e);
+    toast('שגיאה בשמירה: ' + (e.message||e), 'error');
+  }
 }
 
 // ===== DONORS =====
@@ -1141,10 +1170,16 @@ async function addDonor() {
   const purpose = document.getElementById('donPurpose').value;
   const notes = document.getElementById('donNotes').value.trim();
   if (!name) { toast('יש להזין שם','error'); return; }
-  await db.collection('donors').add({ name, phone, email, amount, purpose, notes, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  ['donName','donPhone','donEmail','donAmount','donNotes'].forEach(id => document.getElementById(id).value = '');
-  toast('תורם נוסף!');
-  loadDonors();
+  try {
+    const docRef = await db.collection('donors').add({ name, phone, email, amount, purpose, notes, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    console.log('[SAVE OK] donors doc id:', docRef.id);
+    ['donName','donPhone','donEmail','donAmount','donNotes'].forEach(id => document.getElementById(id).value = '');
+    toast('תורם נוסף (ID: ' + docRef.id.substring(0,8) + ')');
+    loadDonors();
+  } catch(e) {
+    console.error('[SAVE FAIL] donors:', e);
+    toast('שגיאה בשמירת תורם: ' + (e.message||e), 'error');
+  }
 }
 
 // ===== PROJECTS =====
@@ -1174,10 +1209,16 @@ async function addProject() {
   const budget = parseInt(document.getElementById('projBudget').value) || 0;
   const desc = document.getElementById('projDesc').value.trim();
   if (!name) { toast('יש להזין שם','error'); return; }
-  await db.collection('projects').add({ name, area, status, budget, desc, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  ['projName','projBudget','projDesc'].forEach(id => document.getElementById(id).value = '');
-  toast('פרויקט נוסף!');
-  loadProjects();
+  try {
+    const docRef = await db.collection('projects').add({ name, area, status, budget, desc, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    console.log('[SAVE OK] projects doc id:', docRef.id);
+    ['projName','projBudget','projDesc'].forEach(id => document.getElementById(id).value = '');
+    toast('פרויקט נוסף (ID: ' + docRef.id.substring(0,8) + ')');
+    loadProjects();
+  } catch(e) {
+    console.error('[SAVE FAIL] projects:', e);
+    toast('שגיאה בשמירת פרויקט: ' + (e.message||e), 'error');
+  }
 }
 
 // ===== VEHICLES =====
@@ -1537,11 +1578,17 @@ async function addTeamMember() {
   const name = document.getElementById('teamName').value.trim();
   const role = document.getElementById('teamRole').value;
   if (!email) { toast('יש להזין אימייל','error'); return; }
-  await db.collection('team').doc(email).set({ name, email, role, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  document.getElementById('teamEmail').value = '';
-  document.getElementById('teamName').value = '';
-  toast('חבר צוות נוסף!');
-  loadTeam();
+  try {
+    await db.collection('team').doc(email).set({ name, email, role, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    console.log('[SAVE OK] team doc:', email);
+    document.getElementById('teamEmail').value = '';
+    document.getElementById('teamName').value = '';
+    toast('חבר צוות נוסף!');
+    loadTeam();
+  } catch(e) {
+    console.error('[SAVE FAIL] team:', e);
+    toast('שגיאה בשמירת חבר צוות: ' + (e.message||e), 'error');
+  }
 }
 
 // ===== DASHBOARD =====
@@ -2873,6 +2920,383 @@ renderTemplates = function() {
     </div>`;
   }
   wrap.innerHTML = html;
+};
+
+// ============================================================
+// ===== SYSTEM DIAGNOSTICS ==================================
+// ============================================================
+const COLLECTIONS_TO_CHECK = [
+  {name:'finance', label:'💰 כספים', icon:'💰'},
+  {name:'reports', label:'📋 דיווחי עובדים', icon:'📋'},
+  {name:'donors', label:'❤️ תורמים', icon:'❤️'},
+  {name:'projects', label:'🎯 פרויקטים', icon:'🎯'},
+  {name:'tasks', label:'✅ משימות', icon:'✅'},
+  {name:'vehicles', label:'🚗 רכבים', icon:'🚗'},
+  {name:'trips', label:'🛣️ נסיעות', icon:'🛣️'},
+  {name:'vehicleEvents', label:'🔧 טיפולים', icon:'🔧'},
+  {name:'team', label:'👥 צוות', icon:'👥'}
+];
+
+async function runDiagnostics() {
+  const grid = document.getElementById('dash-diag-grid');
+  const storageDiv = document.getElementById('dash-diag-storage');
+  if (!grid) return;
+  grid.innerHTML = COLLECTIONS_TO_CHECK.map(c =>
+    `<div class="kpi" style="padding:10px"><div style="font-size:0.8rem;color:var(--muted)">${c.label}</div><div id="diag-${c.name}" style="font-size:1.3rem;font-weight:600">...</div></div>`
+  ).join('');
+  storageDiv.innerHTML = '🔄 בודק גישה ל-Firebase Storage...';
+
+  // Check each collection
+  for (const c of COLLECTIONS_TO_CHECK) {
+    try {
+      const snap = await db.collection(c.name).get();
+      const el = document.getElementById('diag-' + c.name);
+      if (el) { el.textContent = snap.size + ' רשומות'; el.style.color = snap.size > 0 ? 'var(--success)' : '#999'; }
+    } catch(e) {
+      const el = document.getElementById('diag-' + c.name);
+      if (el) { el.textContent = '❌ שגיאה'; el.style.color = 'var(--danger)'; }
+      console.error('[DIAG]', c.name, e);
+    }
+  }
+
+  // Check Storage
+  try {
+    const rootRef = storage.ref();
+    let totalFiles = 0;
+    const folders = ['receipts','quotes','tasks','vehicle-trips','vehicle-events'];
+    const perFolder = [];
+    for (const f of folders) {
+      try {
+        const result = await rootRef.child(f).listAll();
+        const count = (result.items || []).length + (result.prefixes || []).reduce((s,p)=>s+0,0);
+        totalFiles += result.items.length;
+        if (result.items.length > 0) perFolder.push(`${f}: ${result.items.length}`);
+      } catch(e) { /* folder may not exist yet */ }
+    }
+    storageDiv.innerHTML = `<strong>✅ Firebase Storage פעיל</strong> · סה"כ ${totalFiles} קבצים${perFolder.length?' ('+perFolder.join(' · ')+')':''}`;
+    storageDiv.style.color = 'var(--success)';
+  } catch(e) {
+    storageDiv.innerHTML = `<strong>⚠️ בעיה בגישה ל-Storage:</strong> ${e.message}<br><small>ייתכן שה-Storage לא הופעל או שה-Rules חוסמים. ראה firebase-storage-setup.md</small>`;
+    storageDiv.style.color = 'var(--danger)';
+  }
+}
+
+// ============================================================
+// ===== ACTIVITY REPORT (monthly / annual) ===================
+// ============================================================
+
+// Helpers
+function monthLabel(m) { return CAL_MONTHS[m-1] || '?'; }
+function inPeriod(dateStr, period) {
+  if (!dateStr) return false;
+  const y = dateStr.substring(0,4);
+  const m = dateStr.substring(5,7);
+  if (period.mode === 'year') return y === String(period.year);
+  if (period.mode === 'month') return y === String(period.year) && m === String(period.month).padStart(2,'0');
+  return false;
+}
+
+async function buildActivityReportData(period) {
+  const out = {
+    period,
+    finance: {income:0, expense:0, balance:0, byPurpose:{}, incomeRows:[], expenseRows:[]},
+    reports: {totalHours:0, byUser:{}, byArea:{}, rows:[]},
+    projects: [],
+    tasks: {completed:0, overdue:0, open:0, rows:[]},
+    trips: {count:0, totalKm:0, totalFuel:0, rows:[]},
+    donors: {count:0, total:0, rows:[]}
+  };
+
+  // Finance
+  try {
+    const snap = await db.collection('finance').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      const dateStr = d.date || d.purchaseDate;
+      if (!inPeriod(dateStr, period)) return;
+      const amt = parseFloat(d.amount) || 0;
+      if (d.type === 'income') {
+        out.finance.income += amt;
+        out.finance.incomeRows.push({date:dateStr, amount:amt, source:d.source, purpose:d.purpose, receiptIssued:d.receiptIssued});
+      } else if (d.type === 'expense') {
+        out.finance.expense += amt;
+        out.finance.expenseRows.push({date:dateStr, paymentDate:d.paymentDate, amount:amt, source:d.source, purpose:d.purpose, description:d.description, hasReceipt:!!(d.receiptFiles && d.receiptFiles.length), hasQuote:!!(d.quoteFiles && d.quoteFiles.length)});
+      }
+      out.finance.byPurpose[d.purpose] = out.finance.byPurpose[d.purpose] || {income:0,expense:0};
+      if (d.type === 'income') out.finance.byPurpose[d.purpose].income += amt;
+      else out.finance.byPurpose[d.purpose].expense += amt;
+    });
+    out.finance.balance = out.finance.income - out.finance.expense;
+  } catch(e) { console.warn('Activity: finance read', e); }
+
+  // Reports (employee activity)
+  try {
+    const snap = await db.collection('reports').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (!inPeriod(d.date, period)) return;
+      const h = parseFloat(d.hours) || 0;
+      out.reports.totalHours += h;
+      const userKey = d.userName || d.createdBy || '—';
+      out.reports.byUser[userKey] = (out.reports.byUser[userKey] || 0) + h;
+      out.reports.byArea[d.area] = (out.reports.byArea[d.area] || 0) + h;
+      out.reports.rows.push({date:d.date, user:userKey, hours:h, area:d.area, notes:d.notes});
+    });
+    out.reports.rows.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  } catch(e) { console.warn('Activity: reports read', e); }
+
+  // Projects (status snapshot; include all)
+  try {
+    const snap = await db.collection('projects').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      out.projects.push({name:d.name, status:d.status, area:d.area, budget:d.budget||0});
+    });
+  } catch(e) { console.warn('Activity: projects read', e); }
+
+  // Tasks (completed in period + open overdue)
+  try {
+    const snap = await db.collection('tasks').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      let include = false;
+      if (d.status === 'done' && d.completedAt) {
+        const ca = d.completedAt.toDate ? d.completedAt.toDate() : new Date(d.completedAt);
+        const y = ca.getFullYear(), m = ca.getMonth() + 1;
+        if (period.mode === 'year' && y === period.year) include = true;
+        if (period.mode === 'month' && y === period.year && m === period.month) include = true;
+        if (include) {
+          out.tasks.completed++;
+          out.tasks.rows.push({title:d.title, category:d.category, completedAt:ca.toISOString().split('T')[0], assignees:(d.assigneeNames||[]).join(', ')});
+        }
+      }
+      if (d.status !== 'done' && d.status !== 'cancelled') {
+        const delta = daysDelta(d.dueDate);
+        if (delta < 0) out.tasks.overdue++;
+        else out.tasks.open++;
+      }
+    });
+  } catch(e) { console.warn('Activity: tasks read', e); }
+
+  // Trips in period
+  try {
+    const snap = await db.collection('trips').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      const s = d.startAt || d.date;
+      if (!s) return;
+      const dateStr = typeof s === 'string' ? s.substring(0,10) : (s.toDate ? s.toDate().toISOString().substring(0,10) : null);
+      if (!inPeriod(dateStr, period)) return;
+      out.trips.count++;
+      const km = (parseFloat(d.kmEnd)||0) - (parseFloat(d.kmStart)||0);
+      if (km > 0) out.trips.totalKm += km;
+      out.trips.totalFuel += parseFloat(d.fuelCost)||0;
+      out.trips.rows.push({date:dateStr, driver:d.driver, destination:d.destination, km, passengers:(d.passengers||'')});
+    });
+    out.trips.rows.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  } catch(e) { console.warn('Activity: trips read', e); }
+
+  // Donors summary (total all-time count + sum of amounts; donations in period tracked via finance)
+  try {
+    const snap = await db.collection('donors').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      out.donors.count++;
+      out.donors.total += parseFloat(d.amount)||0;
+      out.donors.rows.push({name:d.name, amount:d.amount||0, purpose:d.purpose});
+    });
+  } catch(e) { console.warn('Activity: donors read', e); }
+
+  return out;
+}
+
+function renderActivityReport(data) {
+  const p = data.period;
+  const periodLabel = p.mode === 'month' ? `${monthLabel(p.month)} ${p.year}` : `שנת ${p.year}`;
+  const purposeRows = Object.entries(data.finance.byPurpose).map(([k,v]) =>
+    `<tr><td>${PURPOSES[k]||k}</td><td>₪${v.income.toLocaleString()}</td><td>₪${v.expense.toLocaleString()}</td><td><strong>₪${(v.income-v.expense).toLocaleString()}</strong></td></tr>`
+  ).join('');
+  const userRows = Object.entries(data.reports.byUser).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+    `<tr><td>${k}</td><td>${v.toFixed(1)} שעות</td></tr>`
+  ).join('');
+  const areaRows = Object.entries(data.reports.byArea).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+    `<tr><td>${PURPOSES[k]||k}</td><td>${v.toFixed(1)} שעות</td></tr>`
+  ).join('');
+  const reportDetailRows = data.reports.rows.map(r =>
+    `<tr><td>${fmtDate(r.date)}</td><td>${r.user}</td><td>${r.hours}</td><td>${PURPOSES[r.area]||r.area||'—'}</td><td>${(r.notes||'—').substring(0,80)}</td></tr>`
+  ).join('');
+  const incomeDetailRows = data.finance.incomeRows.map(r =>
+    `<tr><td>${fmtDate(r.date)}</td><td>₪${r.amount.toLocaleString()}</td><td>${r.source||'—'}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${r.receiptIssued?'✓':'—'}</td></tr>`
+  ).join('');
+  const expenseDetailRows = data.finance.expenseRows.map(r =>
+    `<tr><td>${fmtDate(r.date)}</td><td>${r.paymentDate?fmtDate(r.paymentDate):'—'}</td><td>₪${r.amount.toLocaleString()}</td><td>${r.source||'—'}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${(r.description||'—').substring(0,60)}</td><td>${r.hasReceipt?'קבלה':''} ${r.hasQuote?'הצעה':''}</td></tr>`
+  ).join('');
+  const taskRows = data.tasks.rows.map(r =>
+    `<tr><td>${fmtDate(r.completedAt)}</td><td>${r.title}</td><td>${TASK_CATEGORIES[r.category]||r.category||'—'}</td><td>${r.assignees||'—'}</td></tr>`
+  ).join('');
+  const projectRows = data.projects.map(p =>
+    `<tr><td>${p.name}</td><td>${PURPOSES[p.area]||'—'}</td><td>${STATUSES[p.status]||p.status}</td><td>₪${(p.budget||0).toLocaleString()}</td></tr>`
+  ).join('');
+  const tripRows = data.trips.rows.map(r =>
+    `<tr><td>${fmtDate(r.date)}</td><td>${r.driver||'—'}</td><td>${r.destination||'—'}</td><td>${r.km||'—'} ק"מ</td><td>${r.passengers||'—'}</td></tr>`
+  ).join('');
+
+  return `
+    <div class="rpt-header">
+      <h1>דוח פעילות ${p.mode==='month'?'חודשי':'שנתי'} — ${periodLabel}</h1>
+      <div class="sub">${ORG_INFO.name} · הופק ב-${fmtDate(todayISO())}</div>
+    </div>
+
+    <h2>📊 סיכום כללי</h2>
+    <table>
+      <tr><th>מדד</th><th>ערך</th></tr>
+      <tr><td>סך הכנסות</td><td><strong>₪${data.finance.income.toLocaleString()}</strong></td></tr>
+      <tr><td>סך הוצאות</td><td><strong>₪${data.finance.expense.toLocaleString()}</strong></td></tr>
+      <tr><td>יתרה</td><td><strong style="color:${data.finance.balance>=0?'green':'red'}">₪${data.finance.balance.toLocaleString()}</strong></td></tr>
+      <tr><td>שעות עבודה מדווחות</td><td>${data.reports.totalHours.toFixed(1)}</td></tr>
+      <tr><td>מדווחים ייחודיים</td><td>${Object.keys(data.reports.byUser).length}</td></tr>
+      <tr><td>משימות שהושלמו</td><td>${data.tasks.completed}</td></tr>
+      <tr><td>נסיעות רכב</td><td>${data.trips.count} (${data.trips.totalKm} ק"מ)</td></tr>
+    </table>
+
+    <h2>💰 פירוט כספים לפי מטרה</h2>
+    ${purposeRows ? `<table><tr><th>מטרה</th><th>הכנסות</th><th>הוצאות</th><th>נטו</th></tr>${purposeRows}</table>` : '<p>אין נתונים כספיים בתקופה זו.</p>'}
+
+    <h2>👥 שעות עבודה לפי עובד</h2>
+    ${userRows ? `<table><tr><th>עובד/ת</th><th>שעות</th></tr>${userRows}</table>` : '<p>אין דיווחי עובדים בתקופה זו.</p>'}
+
+    <h2>🎯 שעות לפי תחום</h2>
+    ${areaRows ? `<table><tr><th>תחום</th><th>שעות</th></tr>${areaRows}</table>` : '<p>—</p>'}
+
+    ${incomeDetailRows ? `<h2>📥 פירוט הכנסות (${data.finance.incomeRows.length})</h2>
+    <table><tr><th>תאריך</th><th>סכום</th><th>מקור</th><th>מטרה</th><th>קבלה</th></tr>${incomeDetailRows}</table>` : ''}
+
+    ${expenseDetailRows ? `<h2>📤 פירוט הוצאות (${data.finance.expenseRows.length})</h2>
+    <table style="font-size:0.8rem"><tr><th>רכישה</th><th>תשלום</th><th>סכום</th><th>ספק</th><th>מטרה</th><th>תיאור</th><th>מסמכים</th></tr>${expenseDetailRows}</table>` : ''}
+
+    ${reportDetailRows ? `<h2>📋 פירוט דיווחי עובדים (${data.reports.rows.length})</h2>
+    <table style="font-size:0.85rem"><tr><th>תאריך</th><th>עובד/ת</th><th>שעות</th><th>תחום</th><th>הערות</th></tr>${reportDetailRows}</table>` : ''}
+
+    ${taskRows ? `<h2>✅ משימות שהושלמו בתקופה</h2>
+    <table><tr><th>תאריך סגירה</th><th>כותרת</th><th>קטגוריה</th><th>משויכים</th></tr>${taskRows}</table>` : ''}
+
+    ${tripRows ? `<h2>🚗 נסיעות רכב בתקופה</h2>
+    <table><tr><th>תאריך</th><th>נהג</th><th>יעד</th><th>ק"מ</th><th>נוסעים</th></tr>${tripRows}</table>` : ''}
+
+    ${projectRows ? `<h2>🎯 מצב פרויקטים (תצלום נוכחי)</h2>
+    <table><tr><th>שם</th><th>תחום</th><th>סטטוס</th><th>תקציב</th></tr>${projectRows}</table>` : ''}
+
+    <h2>📌 מצב משימות ותזכורות (תצלום נוכחי)</h2>
+    <table>
+      <tr><th>משימות פתוחות</th><td>${data.tasks.open}</td></tr>
+      <tr><th style="color:red">משימות באיחור</th><td>${data.tasks.overdue}</td></tr>
+    </table>
+
+    <p style="margin-top:30px;font-size:0.8rem;color:#666"><strong>הערה:</strong> הדוח מבוסס על נתוני המערכת בלבד. יש לצלב מול דו"ח הכספי המבוקר לפני הגשה רשמית לרשם העמותות / רואה החשבון.</p>
+
+    <div class="rpt-sigs">
+      <div class="rpt-sig">_________________<br><small>יו"ר ועד מנהל</small></div>
+      <div class="rpt-sig">_________________<br><small>מנהל תפעולי</small></div>
+    </div>
+  `;
+}
+
+// Open activity report generator modal (period picker + auto-load)
+async function openActivityReport() {
+  currentReportKey = '__activity__';
+  currentReportData = {};
+  currentReportAuto = {};
+
+  const now = new Date();
+  const defYear = now.getFullYear();
+  const defMonth = now.getMonth() + 1;
+
+  // Build simple form
+  const formEl = document.getElementById('reportForm');
+  formEl.innerHTML = `
+    <h4>בחירת תקופה</h4>
+    <div class="form-field"><label>סוג דוח</label>
+      <select id="ar_mode" onchange="updateActivityReport()">
+        <option value="month">חודשי</option>
+        <option value="year">שנתי</option>
+      </select>
+    </div>
+    <div class="form-field"><label>שנה</label>
+      <input type="number" id="ar_year" value="${defYear}" oninput="updateActivityReport()">
+    </div>
+    <div class="form-field" id="ar_month_field"><label>חודש</label>
+      <select id="ar_month" onchange="updateActivityReport()">
+        ${CAL_MONTHS.map((n,i) => `<option value="${i+1}"${i+1===defMonth?' selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    <div class="report-auto-note">
+      📊 הדוח נבנה אוטומטית מכל אוספי הנתונים:<br>
+      💰 כספים · 📋 דיווחי עובדים · ✅ משימות · 🚗 נסיעות · 🎯 פרויקטים
+    </div>
+  `;
+
+  document.getElementById('reportModalTitle').textContent = '📊 דוח פעילות';
+  document.getElementById('reportModal').style.display = 'flex';
+
+  // Initial load
+  await updateActivityReport();
+}
+
+async function updateActivityReport() {
+  const mode = document.getElementById('ar_mode').value;
+  const year = parseInt(document.getElementById('ar_year').value) || new Date().getFullYear();
+  const month = parseInt(document.getElementById('ar_month').value) || new Date().getMonth() + 1;
+  document.getElementById('ar_month_field').style.display = mode === 'month' ? '' : 'none';
+  const period = {mode, year, month};
+  document.getElementById('reportPreview').innerHTML = '<div style="padding:20px;text-align:center;color:#666">⏳ טוען נתונים מהדאטאבייס...</div>';
+  const data = await buildActivityReportData(period);
+  // Store for print/download
+  currentActivityData = data;
+  document.getElementById('reportPreview').innerHTML = `<div class="report-doc">${renderActivityReport(data)}</div>`;
+}
+
+let currentActivityData = null;
+
+// Override printReport / downloadReport to handle activity report special case
+const _origPrintReport = printReport;
+printReport = function() {
+  if (currentReportKey === '__activity__' && currentActivityData) {
+    document.getElementById('printArea').innerHTML = `<div class="report-doc">${renderActivityReport(currentActivityData)}</div>`;
+    window.print();
+    return;
+  }
+  _origPrintReport();
+};
+
+const _origDownloadReport = downloadReportHTML;
+downloadReportHTML = function() {
+  if (currentReportKey === '__activity__' && currentActivityData) {
+    const body = renderActivityReport(currentActivityData);
+    const p = currentActivityData.period;
+    const name = p.mode === 'month' ? `דוח_פעילות_${p.year}_${String(p.month).padStart(2,'0')}` : `דוח_פעילות_${p.year}`;
+    const fullHTML = `<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>${name}</title>
+<style>
+body{font-family:'David','Times New Roman',serif;max-width:21cm;margin:0 auto;padding:2cm;background:#fff;color:#000;direction:rtl;line-height:1.6}
+.rpt-header{text-align:center;border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:24px}
+.rpt-header h1{margin:0 0 6px;font-size:1.6rem}
+h2{font-size:1.1rem;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{border:1px solid #999;padding:6px;text-align:right;font-size:0.9rem}
+th{background:#f0f0f0}
+.rpt-sigs{margin-top:60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:30px}
+.rpt-sig{border-top:1px solid #000;padding-top:6px;text-align:center;font-size:0.9rem}
+@page{size:A4;margin:1.5cm}
+</style>
+</head><body>${body}</body></html>`;
+    const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name + '.html'; a.click();
+    URL.revokeObjectURL(url);
+    toast('הקובץ הורד');
+    return;
+  }
+  _origDownloadReport();
 };
 
 // Set default date for reports
