@@ -159,6 +159,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> דיווחי עובדים</div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> ניהול תורמים</div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> פרויקטים</div>
+    <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> ניהול רכבים</div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> ניהול צוות</div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> התנתק</div>
   </aside>
@@ -361,6 +362,142 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
     </div>
 
+    <!-- VEHICLES -->
+    <div class="section" id="sec-vehicles">
+      <div class="page-header">
+        <h1>🚗 ניהול רכבים</h1>
+        <p>מעקב, נסיעות, טיפולים ובירוקרטיה של רכבי העמותה</p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">🚗</div><div class="label">רכבים</div><div class="value" id="veh-count">0</div></div>
+        <div class="kpi"><div class="icon">📅</div><div class="label">נסיעות החודש</div><div class="value" id="veh-trips-month">0</div></div>
+        <div class="kpi"><div class="icon">⚠️</div><div class="label">חידושים קרובים</div><div class="value" id="veh-alerts-count" style="color:var(--accent)">0</div></div>
+        <div class="kpi"><div class="icon">💰</div><div class="label">עלות החודש (₪)</div><div class="value" id="veh-cost-month">0</div></div>
+      </div>
+
+      <!-- Alerts banner -->
+      <div class="card" id="vehicleAlertsCard" style="display:none;border-right:4px solid var(--accent)">
+        <h3>⚠️ תזכורות לחידוש</h3>
+        <div id="vehicleAlertsList"></div>
+      </div>
+
+      <!-- Vehicle cards -->
+      <div id="vehicleCardsWrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:20px"></div>
+
+      <!-- Add Vehicle -->
+      <div class="card" id="vehicleAddCard">
+        <h3>הוסף רכב חדש</h3>
+        <div class="form-row">
+          <div class="form-field"><label>יצרן</label><input type="text" id="vehMake" placeholder="יונדאי / מזדה"></div>
+          <div class="form-field"><label>דגם</label><input type="text" id="vehModel" placeholder="i30 / 3"></div>
+          <div class="form-field"><label>שנה</label><input type="number" id="vehYear" placeholder="2022"></div>
+          <div class="form-field"><label>צבע</label><input type="text" id="vehColor" placeholder="לבן"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>מספר רישוי</label><input type="text" id="vehPlate" placeholder="12-345-67"></div>
+          <div class="form-field"><label>קילומטרז' נוכחי</label><input type="number" id="vehOdometer" placeholder="0"></div>
+          <div class="form-field"><label>סוג דלק</label>
+            <select id="vehFuel">
+              <option value="gasoline">בנזין 95</option>
+              <option value="diesel">סולר</option>
+              <option value="hybrid">היברידי</option>
+              <option value="electric">חשמלי</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>תוקף רישיון רכב</label><input type="date" id="vehLicenseExp"></div>
+          <div class="form-field"><label>תוקף ביטוח חובה</label><input type="date" id="vehInsuranceCompExp"></div>
+          <div class="form-field"><label>תוקף ביטוח מקיף/צד ג'</label><input type="date" id="vehInsuranceFullExp"></div>
+          <div class="form-field"><label>תוקף טסט</label><input type="date" id="vehTestExp"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="flex:1"><label>הערות</label><input type="text" id="vehNotes" placeholder="פרטים נוספים..."></div>
+        </div>
+        <button class="btn btn-primary" onclick="addVehicle()" id="vehAddBtn">+ הוסף רכב</button>
+      </div>
+
+      <!-- Add Trip -->
+      <div class="card" id="tripAddCard">
+        <h3>📋 רישום נסיעה חדשה</h3>
+        <div class="form-row">
+          <div class="form-field"><label>רכב</label><select id="tripVehicle"></select></div>
+          <div class="form-field"><label>נהג</label><input type="text" id="tripDriver" placeholder="שם הנהג"></div>
+          <div class="form-field"><label>יציאה</label><input type="datetime-local" id="tripStart"></div>
+          <div class="form-field"><label>חזרה (בפועל)</label><input type="datetime-local" id="tripEnd"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="flex:2"><label>יעד / מטרת הנסיעה</label><input type="text" id="tripDestination" placeholder="למשל: ביקור חיילים בבסיס באר שבע"></div>
+          <div class="form-field" style="flex:2"><label>נוסעים נוספים</label><input type="text" id="tripPassengers" placeholder="שמות מופרדים בפסיק"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>ק"מ ביציאה</label><input type="number" id="tripKmStart" placeholder="0"></div>
+          <div class="form-field"><label>ק"מ בחזרה</label><input type="number" id="tripKmEnd" placeholder="0"></div>
+          <div class="form-field"><label>תדלוק (₪)</label><input type="number" id="tripFuelCost" placeholder="0"></div>
+          <div class="form-field"><label>הוצאות נוספות (₪)</label><input type="number" id="tripExtraCost" placeholder="חניון, כבישי אגרה"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="flex:1"><label>הערות</label><input type="text" id="tripNotes" placeholder="הערות לנסיעה..."></div>
+          <div class="form-field" style="flex:1"><label>🧾 צרף קבלות</label><input type="file" id="tripReceipts" multiple accept="image/*,application/pdf"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addTrip()" id="tripAddBtn">+ הוסף נסיעה</button>
+      </div>
+
+      <!-- Trips Table -->
+      <div class="card">
+        <h3>📊 יומן נסיעות</h3>
+        <table class="data-table">
+          <thead><tr><th>יציאה</th><th>רכב</th><th>נהג</th><th>יעד</th><th>נוסעים</th><th>ק"מ</th><th>עלויות</th><th>מסמכים</th><th>פעולות</th></tr></thead>
+          <tbody id="tripsTableBody"><tr><td colspan="9" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Add Event -->
+      <div class="card" id="vehEventAddCard">
+        <h3>🔧 רישום אירוע (טיפול / תיקון / דו"ח / תאונה)</h3>
+        <div class="form-row">
+          <div class="form-field"><label>רכב</label><select id="eventVehicle"></select></div>
+          <div class="form-field"><label>סוג אירוע</label>
+            <select id="eventType">
+              <option value="service">טיפול תקופתי</option>
+              <option value="repair">תיקון</option>
+              <option value="test">טסט שנתי</option>
+              <option value="insurance">חידוש ביטוח</option>
+              <option value="license">חידוש רישיון רכב</option>
+              <option value="tire">החלפת צמיגים</option>
+              <option value="ticket">דו"ח / קנס</option>
+              <option value="accident">תאונה</option>
+              <option value="other">אחר</option>
+            </select>
+          </div>
+          <div class="form-field"><label>תאריך</label><input type="date" id="eventDate"></div>
+          <div class="form-field"><label>עלות (₪)</label><input type="number" id="eventCost" placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>ספק / מוסך / גורם</label><input type="text" id="eventProvider" placeholder="שם המוסך / חברת הביטוח"></div>
+          <div class="form-field"><label>ק"מ בעת האירוע</label><input type="number" id="eventOdometer" placeholder="0"></div>
+          <div class="form-field"><label>תוקף עד</label><input type="date" id="eventValidUntil"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="flex:1"><label>פירוט</label><input type="text" id="eventNotes" placeholder="לדוגמה: החלפת שמן, פילטר אוויר, ברקסים"></div>
+          <div class="form-field" style="flex:1"><label>🧾 צרף מסמכים</label><input type="file" id="eventFiles" multiple accept="image/*,application/pdf"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addVehicleEvent()" id="eventAddBtn">+ הוסף אירוע</button>
+        <small style="color:#666;display:block;margin-top:8px">💡 אם זה חידוש רישיון/ביטוח/טסט - "תוקף עד" יעדכן אוטומטית את כרטיס הרכב.</small>
+      </div>
+
+      <!-- Events Table -->
+      <div class="card">
+        <h3>📜 היסטוריית אירועים</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>רכב</th><th>סוג</th><th>פירוט</th><th>ספק</th><th>עלות</th><th>מסמכים</th><th>פעולות</th></tr></thead>
+          <tbody id="eventsTableBody"><tr><td colspan="8" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- TEAM (admin only) -->
     <div class="section" id="sec-team">
       <div class="page-header">
@@ -506,6 +643,7 @@ function showApp(user) {
   loadReports();
   loadDonors();
   loadProjects();
+  loadVehicles();
   loadTeam();
   loadDashboard();
 }
@@ -796,6 +934,345 @@ async function addProject() {
   loadProjects();
 }
 
+// ===== VEHICLES =====
+let vehiclesCache = [];
+
+const EVENT_TYPES = {
+  service:'🛢️ טיפול תקופתי', repair:'🔧 תיקון', test:'✅ טסט', insurance:'🛡️ חידוש ביטוח',
+  license:'📄 חידוש רישיון', tire:'🛞 צמיגים', ticket:'🚨 דו"ח/קנס', accident:'💥 תאונה', other:'📌 אחר'
+};
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((d - today) / (1000*60*60*24));
+}
+
+function expBadge(label, dateStr) {
+  const days = daysUntil(dateStr);
+  if (days === null) return '';
+  let color = '#666', icon = '';
+  if (days < 0) { color = '#c00'; icon = '❌'; }
+  else if (days <= 30) { color = 'var(--accent)'; icon = '⚠️'; }
+  else if (days <= 90) { color = '#d4a017'; icon = '⏰'; }
+  else { color = 'var(--primary)'; icon = '✓'; }
+  return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eee">
+    <span>${label}</span>
+    <span style="color:${color};font-weight:600">${icon} ${fmtDate(dateStr)}${days>=0?` (${days} ימים)`:` (פג לפני ${Math.abs(days)} ימים)`}</span>
+  </div>`;
+}
+
+async function loadVehicles() {
+  const snap = await db.collection('vehicles').orderBy('createdAt','desc').get();
+  vehiclesCache = [];
+  snap.forEach(doc => vehiclesCache.push({id: doc.id, ...doc.data()}));
+
+  // KPI: count
+  document.getElementById('veh-count').textContent = vehiclesCache.length;
+
+  // Render cards
+  const wrap = document.getElementById('vehicleCardsWrap');
+  if (!vehiclesCache.length) {
+    wrap.innerHTML = '<div class="card empty-state"><div class="icon">🚗</div><p>אין רכבים רשומים עדיין. הוסף רכב חדש למטה.</p></div>';
+  } else {
+    const canDel = userRole === 'admin';
+    wrap.innerHTML = vehiclesCache.map(v => {
+      const title = `${v.make||''} ${v.model||''}`.trim() || 'רכב';
+      return `<div class="card" style="margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <h3 style="margin:0">🚗 ${title}</h3>
+            <div style="color:#666;font-size:0.9rem;margin-top:4px">${v.year||''} ${v.color?'• '+v.color:''} ${v.fuel?'• '+({gasoline:'בנזין',diesel:'סולר',hybrid:'היברידי',electric:'חשמלי'}[v.fuel]||v.fuel):''}</div>
+            <div style="font-family:monospace;background:#f0f2f5;padding:4px 8px;border-radius:4px;display:inline-block;margin-top:6px">${v.plate||'—'}</div>
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:0.85rem;color:#666">קילומטרז'</div>
+            <div style="font-weight:600">${(v.odometer||0).toLocaleString()} ק"מ</div>
+          </div>
+        </div>
+        <div style="font-size:0.9rem">
+          ${expBadge('רישיון רכב', v.licenseExp)}
+          ${expBadge('ביטוח חובה', v.insuranceCompExp)}
+          ${expBadge('ביטוח מקיף', v.insuranceFullExp)}
+          ${expBadge('טסט', v.testExp)}
+        </div>
+        ${v.notes?`<div style="margin-top:8px;padding:8px;background:#f8f9fa;border-radius:6px;font-size:0.9rem">${v.notes}</div>`:''}
+        ${canDel?`<button class="btn btn-danger btn-sm" style="margin-top:12px" onclick="delVehicle('${v.id}')">מחק רכב</button>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // Populate dropdowns
+  const options = vehiclesCache.map(v => `<option value="${v.id}">${[v.make,v.model,v.plate].filter(Boolean).join(' ')}</option>`).join('');
+  const tripSel = document.getElementById('tripVehicle');
+  const evSel = document.getElementById('eventVehicle');
+  if (tripSel) tripSel.innerHTML = options || '<option value="">(אין רכבים)</option>';
+  if (evSel) evSel.innerHTML = options || '<option value="">(אין רכבים)</option>';
+
+  // Alerts
+  const alerts = [];
+  vehiclesCache.forEach(v => {
+    const title = `${v.make||''} ${v.model||''}`.trim();
+    [['רישיון רכב','licenseExp'],['ביטוח חובה','insuranceCompExp'],['ביטוח מקיף','insuranceFullExp'],['טסט','testExp']].forEach(([label,field]) => {
+      const days = daysUntil(v[field]);
+      if (days !== null && days <= 30) alerts.push({ veh: title, label, days, date: v[field] });
+    });
+  });
+  document.getElementById('veh-alerts-count').textContent = alerts.length;
+  const alertsCard = document.getElementById('vehicleAlertsCard');
+  if (alerts.length) {
+    alertsCard.style.display = 'block';
+    document.getElementById('vehicleAlertsList').innerHTML = alerts
+      .sort((a,b) => a.days - b.days)
+      .map(a => `<div style="padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+        <span><strong>${a.veh}</strong> - ${a.label}</span>
+        <span style="color:${a.days<0?'#c00':'var(--accent)'};font-weight:600">${a.days<0?`פג לפני ${Math.abs(a.days)} ימים`:`בעוד ${a.days} ימים`} (${fmtDate(a.date)})</span>
+      </div>`).join('');
+  } else {
+    alertsCard.style.display = 'none';
+  }
+
+  // Hide add card for viewer
+  if (userRole === 'viewer') {
+    ['vehicleAddCard','tripAddCard','vehEventAddCard'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
+  if (userRole !== 'admin') {
+    const ac = document.getElementById('vehicleAddCard'); if (ac) ac.style.display = 'none';
+  }
+
+  loadTrips();
+  loadVehicleEvents();
+}
+
+async function addVehicle() {
+  if (userRole !== 'admin') { toast('רק מנהל יכול להוסיף רכב','error'); return; }
+  const make = document.getElementById('vehMake').value.trim();
+  const model = document.getElementById('vehModel').value.trim();
+  if (!make) { toast('יש להזין יצרן','error'); return; }
+  const record = {
+    make, model,
+    year: parseInt(document.getElementById('vehYear').value) || null,
+    color: document.getElementById('vehColor').value.trim(),
+    plate: document.getElementById('vehPlate').value.trim(),
+    odometer: parseInt(document.getElementById('vehOdometer').value) || 0,
+    fuel: document.getElementById('vehFuel').value,
+    licenseExp: document.getElementById('vehLicenseExp').value || null,
+    insuranceCompExp: document.getElementById('vehInsuranceCompExp').value || null,
+    insuranceFullExp: document.getElementById('vehInsuranceFullExp').value || null,
+    testExp: document.getElementById('vehTestExp').value || null,
+    notes: document.getElementById('vehNotes').value.trim(),
+    createdBy: currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await db.collection('vehicles').add(record);
+  ['vehMake','vehModel','vehYear','vehColor','vehPlate','vehOdometer','vehLicenseExp','vehInsuranceCompExp','vehInsuranceFullExp','vehTestExp','vehNotes'].forEach(id => document.getElementById(id).value = '');
+  toast('רכב נוסף!');
+  loadVehicles();
+}
+
+async function delVehicle(id) {
+  if (userRole !== 'admin') return;
+  if (!confirm('למחוק את הרכב? פעולה זו לא תימחק את היסטוריית הנסיעות והאירועים.')) return;
+  await db.collection('vehicles').doc(id).delete();
+  toast('הרכב נמחק');
+  loadVehicles();
+}
+
+// ----- TRIPS -----
+async function loadTrips() {
+  const snap = await db.collection('trips').orderBy('startAt','desc').limit(100).get();
+  const rows = [];
+  let monthCount = 0;
+  const now = new Date();
+  const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  snap.forEach(doc => {
+    const d = doc.data();
+    rows.push({id: doc.id, ...d});
+    if (d.startAt && d.startAt.startsWith(thisMonth)) monthCount++;
+  });
+  document.getElementById('veh-trips-month').textContent = monthCount;
+
+  const tbody = document.getElementById('tripsTableBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין נסיעות רשומות</td></tr>'; return; }
+  const canDel = userRole === 'admin' || userRole === 'team';
+  tbody.innerHTML = rows.map(r => {
+    const veh = vehiclesCache.find(v => v.id === r.vehicleId);
+    const vehName = veh ? `${veh.make||''} ${veh.model||''}`.trim() : (r.vehicleName||'—');
+    const kmDiff = (r.kmEnd && r.kmStart) ? `${r.kmStart.toLocaleString()} → ${r.kmEnd.toLocaleString()}<br><small>(${(r.kmEnd-r.kmStart).toLocaleString()} ק"מ)</small>` : '—';
+    const costs = [
+      r.fuelCost ? `⛽ ₪${r.fuelCost}` : '',
+      r.extraCost ? `🅿️ ₪${r.extraCost}` : ''
+    ].filter(Boolean).join('<br>') || '—';
+    const startFmt = r.startAt ? r.startAt.replace('T',' ').slice(0,16) : '—';
+    const docs = filesCell(r.receiptFiles, '🧾') || '—';
+    return `<tr>
+      <td>${startFmt}</td>
+      <td>${vehName}</td>
+      <td>${r.driver||'—'}</td>
+      <td>${r.destination||'—'}</td>
+      <td>${r.passengers||'—'}</td>
+      <td>${kmDiff}</td>
+      <td>${costs}</td>
+      <td>${docs}</td>
+      <td>${canDel?`<button class="btn btn-danger btn-sm" onclick="delDoc('trips','${r.id}')">מחק</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function addTrip() {
+  const vehicleId = document.getElementById('tripVehicle').value;
+  const driver = document.getElementById('tripDriver').value.trim();
+  const startAt = document.getElementById('tripStart').value;
+  if (!vehicleId) { toast('יש לבחור רכב','error'); return; }
+  if (!driver) { toast('יש להזין שם נהג','error'); return; }
+  if (!startAt) { toast('יש להזין תאריך יציאה','error'); return; }
+
+  const btn = document.getElementById('tripAddBtn');
+  btn.disabled = true; btn.textContent = 'שומר...';
+  const record = {
+    vehicleId, driver, startAt,
+    endAt: document.getElementById('tripEnd').value || null,
+    destination: document.getElementById('tripDestination').value.trim(),
+    passengers: document.getElementById('tripPassengers').value.trim(),
+    kmStart: parseInt(document.getElementById('tripKmStart').value) || null,
+    kmEnd: parseInt(document.getElementById('tripKmEnd').value) || null,
+    fuelCost: parseInt(document.getElementById('tripFuelCost').value) || 0,
+    extraCost: parseInt(document.getElementById('tripExtraCost').value) || 0,
+    notes: document.getElementById('tripNotes').value.trim(),
+    createdBy: currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    const fileInput = document.getElementById('tripReceipts');
+    if (fileInput.files && fileInput.files.length) {
+      btn.textContent = 'מעלה קבצים...';
+      record.receiptFiles = await uploadFilesTo(fileInput.files, 'vehicle-trips');
+    }
+    await db.collection('trips').add(record);
+
+    // Update vehicle odometer if kmEnd provided
+    if (record.kmEnd) {
+      try { await db.collection('vehicles').doc(vehicleId).update({ odometer: record.kmEnd }); } catch(e) { console.warn('Could not update odometer:', e); }
+    }
+
+    ['tripDriver','tripStart','tripEnd','tripDestination','tripPassengers','tripKmStart','tripKmEnd','tripFuelCost','tripExtraCost','tripNotes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('tripReceipts').value = '';
+    toast('נסיעה נוספה!');
+    loadVehicles();
+  } catch (e) {
+    console.error(e);
+    toast('שגיאה: ' + (e.message||e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ הוסף נסיעה';
+  }
+}
+
+// ----- VEHICLE EVENTS -----
+async function loadVehicleEvents() {
+  const snap = await db.collection('vehicleEvents').orderBy('date','desc').limit(100).get();
+  const rows = [];
+  let monthCost = 0;
+  const now = new Date();
+  const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  snap.forEach(doc => {
+    const d = doc.data();
+    rows.push({id: doc.id, ...d});
+    if (d.date && d.date.startsWith(thisMonth)) monthCost += (d.cost || 0);
+  });
+  // Add trips fuel+extra for monthly cost
+  try {
+    const tripSnap = await db.collection('trips').get();
+    tripSnap.forEach(doc => {
+      const t = doc.data();
+      if (t.startAt && t.startAt.startsWith(thisMonth)) monthCost += (t.fuelCost||0) + (t.extraCost||0);
+    });
+  } catch(e) { console.warn('Trips month cost calc failed:', e); }
+  document.getElementById('veh-cost-month').textContent = monthCost.toLocaleString();
+
+  const tbody = document.getElementById('eventsTableBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">אין אירועים רשומים</td></tr>'; return; }
+  const canDel = userRole === 'admin' || userRole === 'team';
+  tbody.innerHTML = rows.map(r => {
+    const veh = vehiclesCache.find(v => v.id === r.vehicleId);
+    const vehName = veh ? `${veh.make||''} ${veh.model||''}`.trim() : '—';
+    const typeLabel = EVENT_TYPES[r.type] || r.type;
+    const cost = r.cost ? `₪${r.cost.toLocaleString()}` : '—';
+    const docs = filesCell(r.files, '📎') || '—';
+    return `<tr>
+      <td>${fmtDate(r.date)}${r.validUntil?`<br><small>תוקף: ${fmtDate(r.validUntil)}</small>`:''}</td>
+      <td>${vehName}</td>
+      <td>${typeLabel}</td>
+      <td>${r.notes||'—'}</td>
+      <td>${r.provider||'—'}</td>
+      <td>${cost}</td>
+      <td>${docs}</td>
+      <td>${canDel?`<button class="btn btn-danger btn-sm" onclick="delDoc('vehicleEvents','${r.id}')">מחק</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function addVehicleEvent() {
+  const vehicleId = document.getElementById('eventVehicle').value;
+  const type = document.getElementById('eventType').value;
+  const date = document.getElementById('eventDate').value;
+  if (!vehicleId) { toast('יש לבחור רכב','error'); return; }
+  if (!date) { toast('יש להזין תאריך','error'); return; }
+
+  const btn = document.getElementById('eventAddBtn');
+  btn.disabled = true; btn.textContent = 'שומר...';
+  const validUntil = document.getElementById('eventValidUntil').value || null;
+  const record = {
+    vehicleId, type, date, validUntil,
+    provider: document.getElementById('eventProvider').value.trim(),
+    cost: parseInt(document.getElementById('eventCost').value) || 0,
+    odometer: parseInt(document.getElementById('eventOdometer').value) || null,
+    notes: document.getElementById('eventNotes').value.trim(),
+    createdBy: currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    const fileInput = document.getElementById('eventFiles');
+    if (fileInput.files && fileInput.files.length) {
+      btn.textContent = 'מעלה קבצים...';
+      record.files = await uploadFilesTo(fileInput.files, 'vehicle-events');
+    }
+    await db.collection('vehicleEvents').add(record);
+
+    // If renewal type - update vehicle expiration date
+    if (validUntil) {
+      const fieldMap = { license:'licenseExp', insurance:'insuranceFullExp', test:'testExp' };
+      // insurance: we'll update both compulsory and comprehensive if user uses this type for both
+      if (type === 'insurance') {
+        try { await db.collection('vehicles').doc(vehicleId).update({ insuranceFullExp: validUntil, insuranceCompExp: validUntil }); } catch(e){}
+      } else if (fieldMap[type]) {
+        try { await db.collection('vehicles').doc(vehicleId).update({ [fieldMap[type]]: validUntil }); } catch(e){}
+      }
+    }
+    // Update odometer if higher
+    if (record.odometer) {
+      const v = vehiclesCache.find(x => x.id === vehicleId);
+      if (v && (!v.odometer || record.odometer > v.odometer)) {
+        try { await db.collection('vehicles').doc(vehicleId).update({ odometer: record.odometer }); } catch(e){}
+      }
+    }
+
+    ['eventProvider','eventCost','eventOdometer','eventNotes','eventDate','eventValidUntil'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('eventFiles').value = '';
+    toast('אירוע נוסף!');
+    loadVehicles();
+  } catch (e) {
+    console.error(e);
+    toast('שגיאה: ' + (e.message||e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ הוסף אירוע';
+  }
+}
+
 // ===== TEAM =====
 async function loadTeam() {
   if (userRole !== 'admin') return;
@@ -844,6 +1321,8 @@ async function delDoc(collection, id) {
   else if (collection==='donors') loadDonors();
   else if (collection==='projects') loadProjects();
   else if (collection==='team') loadTeam();
+  else if (collection==='trips') loadTrips();
+  else if (collection==='vehicleEvents') loadVehicleEvents();
   loadDashboard();
 }
 
