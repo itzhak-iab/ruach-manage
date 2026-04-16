@@ -97,6 +97,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .toast-success{background:#27ae60}
 .toast-error{background:#e74c3c}
 
+/* ===== TASKS MODULE ===== */
+.task-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600}
+.badge-todo{background:#f0f2f5;color:#555}
+.badge-progress{background:#fef3c7;color:#8b5a0a}
+.badge-waiting{background:#e0e7ff;color:#3730a3}
+.badge-done{background:#d1fae5;color:#065f46}
+.badge-cancelled{background:#f3f4f6;color:#9ca3af;text-decoration:line-through}
+.badge-urgent{background:#fee2e2;color:#991b1b}
+.badge-high{background:#fed7aa;color:#9a3412}
+.badge-medium{background:#fef3c7;color:#8b5a0a}
+.badge-low{background:#e0e7ff;color:#3730a3}
+.badge-regulatory{background:#dbeafe;color:#1e40af}
+.badge-overdue{background:#fee2e2;color:#991b1b;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.task-row{cursor:pointer;transition:background 0.15s}
+.task-row:hover{background:#f8f9fa}
+.task-row.done td{opacity:0.55;text-decoration:line-through}
+/* Calendar */
+.cal-wrap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-header{font-weight:600;text-align:center;padding:8px;background:var(--primary);color:#fff;border-radius:6px;font-size:0.85rem}
+.cal-day{min-height:90px;background:#f8f9fa;border-radius:6px;padding:6px;border:1px solid #e5e7eb;font-size:0.8rem;overflow:hidden}
+.cal-day.other-month{opacity:0.35}
+.cal-day.today{background:#dbeafe;border-color:var(--primary)}
+.cal-day-num{font-weight:600;margin-bottom:4px}
+.cal-task{display:block;padding:2px 4px;margin-bottom:2px;background:var(--primary);color:#fff;border-radius:3px;font-size:0.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cal-task.overdue{background:#c00}
+.cal-task.done{background:#9ca3af;text-decoration:line-through}
+.cal-task.regulatory{background:#1e40af}
+/* Modal */
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-content{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:720px;margin-top:20px;margin-bottom:40px;position:relative}
+.modal-close{position:absolute;top:12px;left:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#f0f2f5}
+.comment-item{background:#f8f9fa;padding:10px;border-radius:6px;margin-bottom:8px;font-size:0.9rem}
+.comment-meta{color:#888;font-size:0.75rem;margin-bottom:4px}
+.template-card{padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;background:#fafbfc}
+.template-card h4{margin:0 0 6px;font-size:1rem}
+.template-legal{background:#fff9e6;padding:8px;border-radius:6px;font-size:0.85rem;white-space:pre-wrap;border-right:3px solid #f59e0b;margin-top:8px}
+.view-switcher{display:inline-flex;background:#f0f2f5;border-radius:8px;padding:4px;margin-bottom:16px}
+.view-switcher button{padding:6px 16px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:0.9rem}
+.view-switcher button.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
 @media(max-width:768px){
   .sidebar{transform:translateX(100%)}
   .sidebar.open{transform:translateX(0)}
@@ -158,6 +200,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> שקיפות פיננסית</div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> דיווחי עובדים</div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> ניהול תורמים</div>
+    <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> יומן ומשימות</div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> פרויקטים</div>
     <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> ניהול רכבים</div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> ניהול צוות</div>
@@ -180,6 +223,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div class="kpi"><div class="icon">❤️</div><div class="label">תורמים</div><div class="value" id="dash-donors">0</div></div>
         <div class="kpi"><div class="icon">🎯</div><div class="label">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
         <div class="kpi"><div class="icon">📋</div><div class="label">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
+        <div class="kpi"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
       <div class="card">
         <h3>פעילות אחרונה</h3>
@@ -327,6 +371,136 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>סה״כ תרומות</th><th>מטרה</th><th>פעולות</th></tr></thead>
           <tbody id="donTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- TASKS / CALENDAR -->
+    <div class="section" id="sec-tasks">
+      <div class="page-header">
+        <h1>📋 יומן ומשימות</h1>
+        <p>ניהול משימות צוות ומעקב חובות רגולטוריות</p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">📌</div><div class="label">המשימות שלי</div><div class="value" id="tk-mine">0</div></div>
+        <div class="kpi"><div class="icon">⚠️</div><div class="label">באיחור</div><div class="value" id="tk-overdue" style="color:var(--danger)">0</div></div>
+        <div class="kpi"><div class="icon">📅</div><div class="label">השבוע</div><div class="value" id="tk-week">0</div></div>
+        <div class="kpi"><div class="icon">✅</div><div class="label">הושלמו החודש</div><div class="value" id="tk-done-month" style="color:var(--success)">0</div></div>
+      </div>
+
+      <!-- View switcher + filters -->
+      <div class="card">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+          <div class="view-switcher">
+            <button class="vs-btn active" id="tkViewList" onclick="switchTaskView('list')">📋 רשימה</button>
+            <button class="vs-btn" id="tkViewCal" onclick="switchTaskView('calendar')">📅 יומן</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <select id="tkFilterStatus" onchange="renderTasks()" style="padding:8px;border:1px solid #e5e7eb;border-radius:6px">
+              <option value="">כל הסטטוסים</option>
+              <option value="open">פתוחות</option>
+              <option value="todo">לטיפול</option>
+              <option value="in_progress">בתהליך</option>
+              <option value="waiting">בהמתנה</option>
+              <option value="done">הושלמו</option>
+              <option value="cancelled">בוטלו</option>
+            </select>
+            <select id="tkFilterAssignee" onchange="renderTasks()" style="padding:8px;border:1px solid #e5e7eb;border-radius:6px">
+              <option value="">כל המשויכים</option>
+              <option value="me">המשימות שלי</option>
+            </select>
+            <select id="tkFilterCategory" onchange="renderTasks()" style="padding:8px;border:1px solid #e5e7eb;border-radius:6px">
+              <option value="">כל הקטגוריות</option>
+              <option value="regulatory">רגולטורי</option>
+              <option value="operational">תפעולי</option>
+              <option value="financial">פיננסי</option>
+              <option value="hr">משאבי אנוש</option>
+              <option value="event">אירוע</option>
+              <option value="other">אחר</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add task -->
+      <div class="card" id="tkAddCard">
+        <h3>+ הוסף משימה</h3>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>כותרת</label><input type="text" id="tkTitle" placeholder="כותרת המשימה"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור</label><textarea id="tkDesc" placeholder="פרטים נוספים..."></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>קטגוריה</label>
+            <select id="tkCategory">
+              <option value="operational">תפעולי</option>
+              <option value="regulatory">רגולטורי</option>
+              <option value="financial">פיננסי</option>
+              <option value="hr">משאבי אנוש</option>
+              <option value="event">אירוע</option>
+              <option value="other">אחר</option>
+            </select>
+          </div>
+          <div class="form-field"><label>עדיפות</label>
+            <select id="tkPriority">
+              <option value="medium">בינונית</option>
+              <option value="low">נמוכה</option>
+              <option value="high">גבוהה</option>
+              <option value="urgent">דחופה</option>
+            </select>
+          </div>
+          <div class="form-field"><label>תאריך יעד</label><input type="date" id="tkDueDate"></div>
+          <div class="form-field"><label>משויכים</label>
+            <select id="tkAssignees" multiple size="3" style="height:auto"><option value="">טוען...</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>הערות משפטיות/רגולטוריות</label><textarea id="tkLegalNotes" placeholder="(אופציונלי)" style="min-height:60px"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label><input type="checkbox" id="tkRecurring" onchange="document.getElementById('tkRecurInterval').style.display=this.checked?'':'none'"> משימה חוזרת</label>
+          </div>
+          <div class="form-field" id="tkRecurInterval" style="display:none">
+            <label>תדירות</label>
+            <select id="tkInterval">
+              <option value="yearly">שנתי</option>
+              <option value="quarterly">רבעוני</option>
+              <option value="monthly">חודשי</option>
+              <option value="biennial">דו-שנתי</option>
+            </select>
+          </div>
+          <div class="form-field"><label>קבצים</label><input type="file" id="tkFiles" multiple accept="image/*,application/pdf"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addTask()">+ הוסף משימה</button>
+      </div>
+
+      <!-- List view -->
+      <div class="card" id="tkListCard">
+        <h3>רשימת משימות</h3>
+        <table class="data-table">
+          <thead><tr><th>סטטוס</th><th>כותרת</th><th>משויכים</th><th>יעד</th><th>עדיפות</th><th>קטגוריה</th><th>פעולות</th></tr></thead>
+          <tbody id="tkTableBody"><tr><td colspan="7" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Calendar view -->
+      <div class="card" id="tkCalendarCard" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <button class="btn btn-secondary" onclick="calPrev()">‹ חודש קודם</button>
+          <h3 id="tkCalTitle" style="margin:0">—</h3>
+          <button class="btn btn-secondary" onclick="calNext()">חודש הבא ›</button>
+        </div>
+        <div class="cal-wrap" id="tkCalWrap"></div>
+      </div>
+
+      <!-- Regulatory templates (admin only) -->
+      <div class="card" id="tkTemplatesCard" style="display:none">
+        <h3>⚖️ תבניות רגולטוריות לעמותה</h3>
+        <p style="color:var(--muted);margin-bottom:12px">לחצו "הפעל" ליצירת משימה אוטומטית עם הערות משפטיות ומועדים מתאימים.</p>
+        <div id="tkTemplates" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
       </div>
     </div>
 
@@ -529,6 +703,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 
 <div class="toast" id="toast"></div>
 
+<!-- TASK DETAILS MODAL -->
+<div class="modal" id="taskModal" style="display:none" onclick="if(event.target===this)closeTaskModal()">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeTaskModal()" style="position:absolute;left:16px;top:10px;font-size:1.6rem;cursor:pointer;color:#999">×</span>
+    <div id="taskModalBody"></div>
+  </div>
+</div>
+
 <script>
 // ===== FIREBASE INIT =====
 firebase.initializeApp({
@@ -630,13 +812,18 @@ function showApp(user) {
   // Admin-only features
   if (userRole === 'admin') {
     document.getElementById('navTeam').style.display = '';
+    document.getElementById('tkTemplatesCard').style.display = '';
   }
   if (userRole === 'viewer') {
-    document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
   }
 
   // Initial UI state
   toggleFinType();
+  // Default date for new task
+  const tkDue = document.getElementById('tkDueDate'); if (tkDue) tkDue.value = todayISO();
+  // Render regulatory templates cards (admin sees them, but safe to render always)
+  renderTemplates();
 
   // Load data
   loadFinance();
@@ -645,6 +832,8 @@ function showApp(user) {
   loadProjects();
   loadVehicles();
   loadTeam();
+  loadTeamForTasks();
+  loadTasks();
   loadDashboard();
 }
 
@@ -1326,10 +1515,518 @@ async function delDoc(collection, id) {
   loadDashboard();
 }
 
+// ============================================================
+// ===== TASKS / CALENDAR MODULE ==============================
+// ============================================================
+
+// Regulatory templates library for Israeli nonprofits
+const REGULATORY_TEMPLATES = {
+  annual_reports: {
+    icon: '📑', title: 'הגשת דו"ח כספי ומילולי לרשם העמותות',
+    description: 'דו"ח כספי מבוקר/סקור + דו"ח מילולי לשנה החולפת',
+    category: 'regulatory', priority: 'high', recurring: 'yearly',
+    dueMonth: 6, dueDay: 30, reminderDays: 60,
+    legalNotes: 'לפי סעיף 36 לחוק העמותות, תש"ם-1980, חובה להגיש לרשם העמותות מדי שנה:\n1. דו"ח כספי שנתי מבוקר (עמותות עם מחזור מעל 1.2 מיליון ₪) או סקור (עמותות קטנות יותר)\n2. דו"ח מילולי המפרט את פעילות העמותה בשנה החולפת\n3. פרוטוקול אישור הדו"חות באסיפה הכללית\n\nאי-הגשה במועד עלולה לגרום למחיקת רישום העמותה ולשלילת אישור ניהול תקין.'
+  },
+  proper_management: {
+    icon: '✅', title: 'חידוש אישור ניהול תקין',
+    description: 'הגשת בקשה לחידוש אישור ניהול תקין לרשם העמותות',
+    category: 'regulatory', priority: 'urgent', recurring: 'yearly',
+    dueMonth: 12, dueDay: 31, reminderDays: 90,
+    legalNotes: 'אישור ניהול תקין הוא תנאי להזדמנויות מימון (ממשלתי ופילנתרופי) ולפטור ממס על תרומות.\n\nדרישות עיקריות:\n• הגשת דו"חות כספיים + מילוליים מעודכנים\n• קיום אסיפה כללית שנתית בתוך 15 חודשים מהקודמת\n• לפחות שתי ישיבות ועד מנהל בשנה (מומלץ ארבע)\n• ועדת ביקורת או גוף מבקר פעיל\n• התאמה בין התקנון לפעילות בפועל\n\nהבקשה מוגשת דרך אתר רשם העמותות.'
+  },
+  agm: {
+    icon: '🏛️', title: 'כינוס אסיפה כללית שנתית',
+    description: 'אסיפה כללית — חובה בתוך 15 חודשים מהקודמת',
+    category: 'regulatory', priority: 'high', recurring: 'yearly',
+    dueOffsetDays: 400, reminderDays: 45,
+    legalNotes: 'לפי סעיף 20 לחוק העמותות, האסיפה הכללית תתקיים לפחות אחת ל-15 חודשים.\n\nסדר יום חובה:\n1. דיון בדו"ח מילולי של ועד מנהל\n2. אישור דו"ח כספי\n3. אישור דו"ח ועדת ביקורת\n4. בחירת ועד מנהל וועדת ביקורת (לפי הצורך)\n5. מינוי רואה חשבון (לעמותות עם מחזור מעל 1.2 מיליון ₪)\n\nהודעה: לפחות 21 ימים מראש לכל החברים, בצירוף סדר יום והדו"חות לדיון.\nפרוטוקול: חובה לשמור, כולל רשימת נוכחים והחלטות.'
+  },
+  board_meeting: {
+    icon: '💼', title: 'ישיבת ועד מנהל רבעונית',
+    description: 'ישיבה רבעונית של הוועד המנהל',
+    category: 'operational', priority: 'medium', recurring: 'quarterly',
+    dueOffsetDays: 90, reminderDays: 14,
+    legalNotes: 'נדרש לאישור ניהול תקין: לפחות 4 ישיבות ועד מנהל בשנה.\n\nבכל ישיבה:\n• לנהל פרוטוקול מסודר עם רשימת נוכחים\n• להחליט על פעולות מהותיות (אישור תקציב, חוזים מעל סכום מסוים, קבלת עובדים בכירים)\n• לאשר דו"חות כספיים רבעוניים\n• לסקור ניגודי עניינים ולתעד הצהרות חברי הוועד\n\nפרוטוקולים נשמרים 7 שנים לפחות.'
+  },
+  section_46: {
+    icon: '🎫', title: 'חידוש אישור סעיף 46',
+    description: 'בקשה/חידוש אישור מוסד ציבורי לעניין תרומות',
+    category: 'regulatory', priority: 'high', recurring: null,
+    dueOffsetDays: 1095, reminderDays: 120,
+    legalNotes: 'אישור סעיף 46 מאפשר לתורמים לקבל זיכוי ממס (עד 35% ליחיד, 26% לחברה) עבור תרומות.\n\nתנאים:\n• אישור ניהול תקין תקף\n• פעילות למטרה ציבורית מוכרת (חינוך, דת, רווחה, בריאות וכו\')\n• ועדת שרים מאשרת את הבקשה (תהליך של כ-6-12 חודשים)\n\nחובות דיווח שוטפות: דיווח על תרומות מעל סכום מסוים, שמירה על מטרות מוכרות, דיווח על שינויים מהותיים.\nהפקעת האישור: מובילה לחיוב רטרואקטיבי במס על התורמים. יש לטפל בחידוש הרבה לפני הפקיעה.'
+  },
+  form_126: {
+    icon: '💸', title: 'הגשת טופס 126 לרשות המיסים',
+    description: 'דו"ח מעסיקים על תשלומים לעובדים ונותני שירות',
+    category: 'financial', priority: 'high', recurring: 'yearly',
+    dueMonth: 4, dueDay: 30, reminderDays: 60,
+    legalNotes: 'טופס 126 — דו"ח מעסיקים על תשלומים לעובדים ולנותני שירותים. חובה על כל עמותה עם עובדים.\nטופס 856 — דו"ח על ניכויים משכר עובדים (אם רלוונטי).\n\nהטפסים מוגשים דרך שע"ם. נדרש תיאום מראש עם רואה החשבון.\nאי-הגשה גוררת קנסות ופגיעה באישור ניהול תקין.'
+  },
+  audit_committee: {
+    icon: '🔍', title: 'דו"ח ועדת ביקורת שנתי',
+    description: 'הכנת דו"ח ועדת ביקורת לקראת האסיפה הכללית',
+    category: 'regulatory', priority: 'medium', recurring: 'yearly',
+    dueMonth: 5, dueDay: 31, reminderDays: 60,
+    legalNotes: 'לפי סעיף 30 לחוק העמותות, לכל עמותה חייבת להיות ועדת ביקורת (לפחות 2 חברים, שאינם חברי ועד).\n\nתפקידי הוועדה:\n• בדיקת ענייני הכספים של העמותה וספרי החשבונות\n• בדיקת סדרי הניהול והפעולות\n• הגשת דו"ח שנתי לאסיפה הכללית\n• בדיקת תקינות החלטות ועד ההנהלה\n\nחלופה: גוף מבקר (רואה חשבון חיצוני) — לעמותות גדולות.'
+  },
+  registrar_updates: {
+    icon: '📮', title: 'עדכון רשם העמותות על שינויים מהותיים',
+    description: 'עדכון בתוך 14 ימים מכל שינוי מהותי',
+    category: 'regulatory', priority: 'high', recurring: null,
+    dueOffsetDays: 14, reminderDays: 3,
+    legalNotes: 'יש לעדכן את רשם העמותות בתוך 14 ימים על כל אחד מהשינויים הבאים:\n• שינוי בהרכב ועד מנהל או ועדת ביקורת (טופס מורשי חתימה)\n• שינוי כתובת רשומה\n• שינוי בתקנון (מחייב אישור אסיפה כללית מיוחדת ברוב של שני שלישים)\n• שינוי שם העמותה\n\nהטפסים מוגשים דרך אזור אישי באתר רשם העמותות, חתומים דיגיטלית.'
+  },
+  annual_fee: {
+    icon: '💳', title: 'תשלום אגרה שנתית לרשם העמותות',
+    description: 'תשלום אגרה שנתית',
+    category: 'financial', priority: 'medium', recurring: 'yearly',
+    dueMonth: 3, dueDay: 31, reminderDays: 30,
+    legalNotes: 'האגרה השנתית מתעדכנת מעת לעת. עמותות קטנות (מחזור עד סכום מסוים) זכאיות לפטור או להנחה.\nהתשלום מתבצע דרך אתר רשם העמותות.\nאי-תשלום גורר קנסות ופגיעה באישור ניהול תקין.'
+  },
+  conflict_of_interest: {
+    icon: '⚖️', title: 'איסוף הצהרות ניגוד עניינים',
+    description: 'הצהרות שנתיות מחברי ועד מנהל וועדת ביקורת',
+    category: 'regulatory', priority: 'medium', recurring: 'yearly',
+    dueMonth: 5, dueDay: 1, reminderDays: 30,
+    legalNotes: 'נדרש כחלק מדרישות אישור ניהול תקין. כל חבר ועד מנהל וועדת ביקורת חייב בהצהרה שנתית על:\n• עיסוקים נוספים העלולים לגרום לניגוד עניינים\n• קרבה משפחתית לחברים אחרים בוועד או לעובדי העמותה\n• עסקאות פרטיות מול ספקים/נותני שירות של העמותה\n\nההצהרות נשמרות בתיק העמותה ומוצגות לרשם העמותות לפי דרישה.'
+  }
+};
+
+const TASK_STATUSES = {todo:'לטיפול',in_progress:'בתהליך',waiting:'בהמתנה',done:'הושלמה',cancelled:'בוטלה'};
+const TASK_PRIORITIES = {low:'נמוכה',medium:'בינונית',high:'גבוהה',urgent:'דחופה'};
+const TASK_CATEGORIES = {regulatory:'רגולטורי',operational:'תפעולי',financial:'פיננסי',hr:'משאבי אנוש',event:'אירוע',other:'אחר'};
+
+let tasksCache = [];
+let teamCache = [];
+let currentTaskView = 'list';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+
+// ---- Utility: YYYY-MM-DD helpers ----
+function todayISO() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+function addDays(iso, n) {
+  const d = new Date(iso); d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function daysDelta(iso) {
+  if (!iso) return Infinity;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(iso); target.setHours(0,0,0,0);
+  return Math.round((target - today) / 86400000);
+}
+
+// ---- Compute due date from template ----
+function templateDueDate(tpl) {
+  const today = new Date();
+  if (tpl.dueMonth && tpl.dueDay) {
+    let year = today.getFullYear();
+    const candidate = new Date(year, tpl.dueMonth - 1, tpl.dueDay);
+    if (candidate < today) candidate.setFullYear(year + 1);
+    return candidate.toISOString().split('T')[0];
+  }
+  if (tpl.dueOffsetDays) return addDays(todayISO(), tpl.dueOffsetDays);
+  return todayISO();
+}
+
+// ---- Populate assignees dropdown from teamCache ----
+function populateAssignees() {
+  const sel = document.getElementById('tkAssignees');
+  const filt = document.getElementById('tkFilterAssignee');
+  if (!sel) return;
+  sel.innerHTML = teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
+  // Preserve filter UI
+  const cur = filt.value;
+  filt.innerHTML = '<option value="">כל המשויכים</option><option value="me">המשימות שלי</option>' +
+                   teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
+  filt.value = cur || '';
+}
+
+// ---- Load team members for assignee pickers ----
+async function loadTeamForTasks() {
+  try {
+    const snap = await db.collection('team').get();
+    teamCache = [];
+    snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+    populateAssignees();
+  } catch(e) { console.warn('loadTeamForTasks:', e); }
+}
+
+// ---- Upload helper specifically for tasks folder ----
+async function uploadTaskFiles(files) {
+  if (!files || !files.length) return [];
+  const out = [];
+  for (const f of files) {
+    if (f.size > 10 * 1024 * 1024) { toast('קובץ גדול מדי: ' + f.name, 'error'); continue; }
+    const safe = f.name.replace(/[^\w.\-א-ת]/g, '_');
+    const path = `tasks/${Date.now()}_${safe}`;
+    const ref = storage.ref(path);
+    await ref.put(f);
+    const url = await ref.getDownloadURL();
+    out.push({url, fileName: f.name, path, size: f.size, uploadedAt: Date.now()});
+  }
+  return out;
+}
+
+// ---- CRUD: Load & render ----
+async function loadTasks() {
+  try {
+    const snap = await db.collection('tasks').orderBy('dueDate','asc').get();
+    tasksCache = [];
+    snap.forEach(doc => tasksCache.push({id: doc.id, ...doc.data()}));
+    renderTasks();
+    updateTaskKPIs();
+  } catch(e) {
+    console.error('loadTasks:', e);
+    document.getElementById('tkTableBody').innerHTML =
+      '<tr><td colspan="7" class="empty-state">שגיאה בטעינה</td></tr>';
+  }
+}
+
+function filterTasks() {
+  const status = document.getElementById('tkFilterStatus').value;
+  const assignee = document.getElementById('tkFilterAssignee').value;
+  const category = document.getElementById('tkFilterCategory').value;
+  return tasksCache.filter(t => {
+    if (status === 'open') { if (t.status === 'done' || t.status === 'cancelled') return false; }
+    else if (status && t.status !== status) return false;
+    if (category && t.category !== category) return false;
+    if (assignee === 'me') {
+      if (!t.assignees || !t.assignees.includes(currentUser.email)) return false;
+    } else if (assignee) {
+      if (!t.assignees || !t.assignees.includes(assignee)) return false;
+    }
+    return true;
+  });
+}
+
+function renderTasks() {
+  if (currentTaskView === 'calendar') renderCalendar();
+  else renderTaskList();
+}
+
+function renderTaskList() {
+  const list = filterTasks();
+  const tbody = document.getElementById('tkTableBody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין משימות התואמות לפילטרים</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(t => {
+    const delta = daysDelta(t.dueDate);
+    const isOverdue = t.status !== 'done' && t.status !== 'cancelled' && delta < 0;
+    const statusLabel = isOverdue ? 'באיחור' : (TASK_STATUSES[t.status] || t.status);
+    const statusClass = isOverdue ? 'badge-overdue' : ('badge-' + (t.status==='in_progress'?'progress':t.status||'todo'));
+    const prioClass = 'badge-' + (t.priority || 'medium');
+    const catClass = t.category === 'regulatory' ? 'badge-regulatory' : 'badge-' + (t.priority || 'medium');
+    const rowClass = 'task-row' + (t.status === 'done' ? ' done' : '');
+    const assigneeStr = (t.assigneeNames || []).join(', ') || '—';
+    const dueStr = t.dueDate ? fmtDate(t.dueDate) : '—';
+    const adminActions = userRole === 'admin' ? `<button class="btn-icon" onclick="event.stopPropagation();delTask('${t.id}')" title="מחק">🗑️</button>` : '';
+    return `<tr class="${rowClass}" onclick="openTaskDetails('${t.id}')">
+      <td><span class="task-badge ${statusClass}">${statusLabel}</span></td>
+      <td><strong>${t.title||''}</strong>${t.category==='regulatory'?' ⚖️':''}</td>
+      <td>${assigneeStr}</td>
+      <td>${dueStr}</td>
+      <td><span class="task-badge ${prioClass}">${TASK_PRIORITIES[t.priority]||''}</span></td>
+      <td>${TASK_CATEGORIES[t.category]||t.category||''}</td>
+      <td>${adminActions}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateTaskKPIs() {
+  const mine = tasksCache.filter(t => t.assignees && t.assignees.includes(currentUser.email) && t.status !== 'done' && t.status !== 'cancelled').length;
+  const overdue = tasksCache.filter(t => t.status !== 'done' && t.status !== 'cancelled' && daysDelta(t.dueDate) < 0).length;
+  const week = tasksCache.filter(t => { const d = daysDelta(t.dueDate); return t.status !== 'done' && t.status !== 'cancelled' && d >= 0 && d <= 7; }).length;
+  const now = new Date();
+  const doneMonth = tasksCache.filter(t => {
+    if (t.status !== 'done' || !t.completedAt) return false;
+    const d = t.completedAt.toDate ? t.completedAt.toDate() : new Date(t.completedAt);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  if (document.getElementById('tk-mine')) document.getElementById('tk-mine').textContent = mine;
+  if (document.getElementById('tk-overdue')) document.getElementById('tk-overdue').textContent = overdue;
+  if (document.getElementById('tk-week')) document.getElementById('tk-week').textContent = week;
+  if (document.getElementById('tk-done-month')) document.getElementById('tk-done-month').textContent = doneMonth;
+  // Dashboard
+  if (document.getElementById('dash-tasks-overdue')) document.getElementById('dash-tasks-overdue').textContent = overdue;
+}
+
+// ---- Add a new task ----
+async function addTask() {
+  const title = document.getElementById('tkTitle').value.trim();
+  const dueDate = document.getElementById('tkDueDate').value;
+  if (!title || !dueDate) { toast('חובה למלא כותרת ותאריך יעד','error'); return; }
+  const assigneeSel = document.getElementById('tkAssignees');
+  const assignees = Array.from(assigneeSel.selectedOptions).map(o => o.value).filter(Boolean);
+  const assigneeNames = assignees.map(a => { const m = teamCache.find(t => t.email === a); return m ? (m.name || m.email) : a; });
+  const filesInput = document.getElementById('tkFiles');
+  const files = await uploadTaskFiles(filesInput.files);
+  const recurring = document.getElementById('tkRecurring').checked ? {interval: document.getElementById('tkInterval').value} : null;
+  const data = {
+    title,
+    description: document.getElementById('tkDesc').value.trim(),
+    category: document.getElementById('tkCategory').value,
+    priority: document.getElementById('tkPriority').value,
+    status: 'todo',
+    dueDate,
+    reminderDate: addDays(dueDate, -14),
+    assignees, assigneeNames,
+    legalNotes: document.getElementById('tkLegalNotes').value.trim(),
+    recurring,
+    files,
+    comments: [],
+    checklist: [],
+    createdBy: currentUser.email,
+    createdByName: currentUser.displayName || currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    await db.collection('tasks').add(data);
+    toast('משימה נוספה');
+    // Reset form
+    document.getElementById('tkTitle').value = '';
+    document.getElementById('tkDesc').value = '';
+    document.getElementById('tkLegalNotes').value = '';
+    document.getElementById('tkDueDate').value = '';
+    document.getElementById('tkRecurring').checked = false;
+    document.getElementById('tkRecurInterval').style.display = 'none';
+    filesInput.value = '';
+    Array.from(assigneeSel.options).forEach(o => o.selected = false);
+    loadTasks();
+  } catch(e) { console.error(e); toast('שגיאה בהוספה: ' + e.message, 'error'); }
+}
+
+async function delTask(id) {
+  if (!confirm('למחוק משימה?')) return;
+  try { await db.collection('tasks').doc(id).delete(); toast('נמחק'); loadTasks(); }
+  catch(e) { toast('שגיאה: ' + e.message, 'error'); }
+}
+
+// ---- View switch + filters ----
+function switchTaskView(v) {
+  currentTaskView = v;
+  document.getElementById('tkViewList').classList.toggle('active', v === 'list');
+  document.getElementById('tkViewCal').classList.toggle('active', v === 'calendar');
+  document.getElementById('tkListCard').style.display = v === 'list' ? '' : 'none';
+  document.getElementById('tkCalendarCard').style.display = v === 'calendar' ? '' : 'none';
+  renderTasks();
+}
+
+// ---- Calendar rendering ----
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+
+const CAL_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const CAL_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+function renderCalendar() {
+  const title = document.getElementById('tkCalTitle');
+  const wrap = document.getElementById('tkCalWrap');
+  if (!title || !wrap) return;
+  title.textContent = `${CAL_MONTHS[calMonth]} ${calYear}`;
+  const firstDay = new Date(calYear, calMonth, 1);
+  const firstWeekday = firstDay.getDay(); // 0=Sunday
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const tasksByDate = {};
+  filterTasks().forEach(t => { if (t.dueDate) (tasksByDate[t.dueDate] = tasksByDate[t.dueDate] || []).push(t); });
+  let html = CAL_DAYS.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+  for (let i = 0; i < firstWeekday; i++) html += '<div class="cal-day other-month"></div>';
+  const todayStr = todayISO();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = iso === todayStr;
+    const dayTasks = tasksByDate[iso] || [];
+    const shown = dayTasks.slice(0, 3);
+    const more = dayTasks.length - shown.length;
+    html += `<div class="cal-day${isToday?' today':''}">
+      <div class="cal-day-num">${day}</div>
+      ${shown.map(t => {
+        const overdue = t.status !== 'done' && t.status !== 'cancelled' && daysDelta(t.dueDate) < 0;
+        const cls = t.status === 'done' ? 'done' : overdue ? 'overdue' : (t.category === 'regulatory' ? 'regulatory' : '');
+        return `<span class="cal-task ${cls}" onclick="openTaskDetails('${t.id}')" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||''}</span>`;
+      }).join('')}
+      ${more > 0 ? `<span class="cal-task" style="background:#6b7280">+${more} נוספות</span>` : ''}
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+// ---- Modal ----
+function closeTaskModal() {
+  document.getElementById('taskModal').style.display = 'none';
+}
+
+async function openTaskDetails(id) {
+  const t = tasksCache.find(x => x.id === id);
+  if (!t) return;
+  const isAdmin = userRole === 'admin';
+  const assignees = (t.assigneeNames || []).join(', ') || '—';
+  const delta = daysDelta(t.dueDate);
+  const isOverdue = t.status !== 'done' && t.status !== 'cancelled' && delta < 0;
+  const dueInfo = t.dueDate ? `${fmtDate(t.dueDate)} ${isOverdue?'<span style="color:var(--danger);font-weight:600">(באיחור ' + Math.abs(delta) + ' ימים)</span>':'(בעוד ' + delta + ' ימים)'}` : '—';
+  const legalHtml = t.legalNotes ? `<div class="template-legal">${t.legalNotes.replace(/\n/g,'<br>')}</div>` : '';
+  const filesHtml = (t.files || []).map(f => `<a href="${f.url}" target="_blank" style="display:inline-block;margin:4px;padding:4px 8px;background:#f0f2f5;border-radius:4px;text-decoration:none">📎 ${f.fileName}</a>`).join('');
+  const commentsHtml = (t.comments || []).map(c => {
+    const when = c.createdAt ? new Date(c.createdAt).toLocaleString('he-IL') : '';
+    return `<div class="comment-item"><div class="comment-meta">${c.userName||c.userId||''} · ${when}</div>${(c.text||'').replace(/\n/g,'<br>')}</div>`;
+  }).join('');
+  const checklistHtml = (t.checklist || []).map((c, i) =>
+    `<label style="display:block;margin:4px 0"><input type="checkbox" ${c.done?'checked':''} onchange="toggleChecklist('${t.id}',${i},this.checked)"> ${c.text}</label>`
+  ).join('');
+  const body = `
+    <div style="padding-left:30px">
+      <h2 style="margin:0 0 8px">${t.title||''}</h2>
+      <div style="margin-bottom:12px"><span class="task-badge badge-${t.status==='in_progress'?'progress':t.status||'todo'}">${TASK_STATUSES[t.status]||t.status}</span>
+        <span class="task-badge badge-${t.priority||'medium'}" style="margin-right:4px">${TASK_PRIORITIES[t.priority]||''}</span>
+        ${t.category==='regulatory'?'<span class="task-badge badge-regulatory" style="margin-right:4px">⚖️ רגולטורי</span>':''}
+      </div>
+      <div style="margin-bottom:12px">
+        <strong>שינוי סטטוס:</strong>
+        <button class="btn btn-secondary" style="margin:2px" onclick="setTaskStatus('${t.id}','todo')">לטיפול</button>
+        <button class="btn btn-secondary" style="margin:2px" onclick="setTaskStatus('${t.id}','in_progress')">בתהליך</button>
+        <button class="btn btn-secondary" style="margin:2px" onclick="setTaskStatus('${t.id}','waiting')">בהמתנה</button>
+        <button class="btn btn-primary" style="margin:2px" onclick="setTaskStatus('${t.id}','done')">✓ הושלמה</button>
+        <button class="btn btn-secondary" style="margin:2px" onclick="setTaskStatus('${t.id}','cancelled')">ביטול</button>
+      </div>
+      ${t.description?`<div style="margin-bottom:10px"><strong>תיאור:</strong><br>${t.description.replace(/\n/g,'<br>')}</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><strong>תאריך יעד:</strong> ${dueInfo}</div>
+        <div><strong>משויכים:</strong> ${assignees}</div>
+        <div><strong>קטגוריה:</strong> ${TASK_CATEGORIES[t.category]||t.category||'—'}</div>
+        <div><strong>נוצר ע"י:</strong> ${t.createdByName||'—'}</div>
+        ${t.recurring?`<div><strong>תדירות:</strong> ${({yearly:'שנתי',quarterly:'רבעוני',monthly:'חודשי',biennial:'דו-שנתי'})[t.recurring.interval]||t.recurring.interval}</div>`:''}
+      </div>
+      ${legalHtml ? `<h4>⚖️ הערות משפטיות</h4>${legalHtml}` : ''}
+      ${checklistHtml ? `<h4>תתי-משימות</h4>${checklistHtml}` : ''}
+      ${filesHtml ? `<h4>קבצים</h4>${filesHtml}` : ''}
+      <h4 style="margin-top:16px">תגובות</h4>
+      <div id="taskComments">${commentsHtml || '<p style="color:var(--muted)">אין תגובות עדיין</p>'}</div>
+      <div style="margin-top:10px">
+        <textarea id="taskCommentInput" placeholder="הוסף תגובה..." style="width:100%;min-height:50px;padding:8px;border:1px solid #e5e7eb;border-radius:6px"></textarea>
+        <button class="btn btn-primary" onclick="addTaskComment('${t.id}')" style="margin-top:6px">שלח תגובה</button>
+      </div>
+      ${isAdmin?`<div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb"><button class="btn btn-danger" onclick="delTask('${t.id}');closeTaskModal()">🗑️ מחק משימה</button></div>`:''}
+    </div>
+  `;
+  document.getElementById('taskModalBody').innerHTML = body;
+  document.getElementById('taskModal').style.display = 'flex';
+}
+
+async function setTaskStatus(id, status) {
+  try {
+    const upd = {status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()};
+    if (status === 'done') { upd.completedAt = firebase.firestore.FieldValue.serverTimestamp(); upd.completedBy = currentUser.email; }
+    await db.collection('tasks').doc(id).update(upd);
+    toast('סטטוס עודכן');
+    // Handle recurring: create next instance
+    const t = tasksCache.find(x => x.id === id);
+    if (status === 'done' && t && t.recurring && t.recurring.interval) {
+      const nextDate = computeNextDueDate(t.dueDate, t.recurring.interval);
+      const {id:_, createdAt, updatedAt, completedAt, completedBy, ...rest} = t;
+      await db.collection('tasks').add({
+        ...rest,
+        status: 'todo',
+        dueDate: nextDate,
+        reminderDate: addDays(nextDate, -14),
+        comments: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('משימה חוזרת נוצרה ל-' + fmtDate(nextDate));
+    }
+    closeTaskModal();
+    loadTasks();
+  } catch(e) { toast('שגיאה: ' + e.message, 'error'); }
+}
+
+function computeNextDueDate(iso, interval) {
+  const d = new Date(iso);
+  if (interval === 'yearly') d.setFullYear(d.getFullYear() + 1);
+  else if (interval === 'biennial') d.setFullYear(d.getFullYear() + 2);
+  else if (interval === 'quarterly') d.setMonth(d.getMonth() + 3);
+  else if (interval === 'monthly') d.setMonth(d.getMonth() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+async function addTaskComment(id) {
+  const input = document.getElementById('taskCommentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    const t = tasksCache.find(x => x.id === id);
+    const comments = (t.comments || []).concat([{
+      userId: currentUser.email,
+      userName: currentUser.displayName || currentUser.email,
+      text,
+      createdAt: Date.now()
+    }]);
+    await db.collection('tasks').doc(id).update({comments, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    input.value = '';
+    toast('תגובה נוספה');
+    await loadTasks();
+    openTaskDetails(id);
+  } catch(e) { toast('שגיאה: ' + e.message, 'error'); }
+}
+
+async function toggleChecklist(id, idx, checked) {
+  try {
+    const t = tasksCache.find(x => x.id === id);
+    const checklist = [...(t.checklist || [])];
+    if (checklist[idx]) { checklist[idx].done = checked; }
+    await db.collection('tasks').doc(id).update({checklist, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    await loadTasks();
+  } catch(e) { toast('שגיאה: ' + e.message, 'error'); }
+}
+
+// ---- Regulatory templates ----
+function renderTemplates() {
+  const wrap = document.getElementById('tkTemplates');
+  if (!wrap) return;
+  wrap.innerHTML = Object.entries(REGULATORY_TEMPLATES).map(([key, tpl]) => `
+    <div class="template-card">
+      <h4>${tpl.icon} ${tpl.title}</h4>
+      <div style="color:var(--muted);font-size:0.85rem;margin-bottom:6px">${tpl.description}</div>
+      <div style="font-size:0.75rem;color:#888">
+        ${TASK_CATEGORIES[tpl.category]} · ${TASK_PRIORITIES[tpl.priority]}
+        ${tpl.recurring?` · ${({yearly:'שנתי',quarterly:'רבעוני',monthly:'חודשי',biennial:'דו-שנתי'})[tpl.recurring]}`:''}
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="enableTemplate('${key}')">הפעל תבנית</button>
+    </div>
+  `).join('');
+}
+
+function enableTemplate(key) {
+  const tpl = REGULATORY_TEMPLATES[key];
+  if (!tpl) return;
+  // Switch to tasks section and fill the form
+  const navItem = Array.from(document.querySelectorAll('.nav-item')).find(n => n.textContent.includes('יומן ומשימות'));
+  switchSection('tasks', navItem);
+  document.getElementById('tkTitle').value = tpl.title;
+  document.getElementById('tkDesc').value = tpl.description;
+  document.getElementById('tkCategory').value = tpl.category;
+  document.getElementById('tkPriority').value = tpl.priority;
+  document.getElementById('tkDueDate').value = templateDueDate(tpl);
+  document.getElementById('tkLegalNotes').value = tpl.legalNotes;
+  if (tpl.recurring) {
+    document.getElementById('tkRecurring').checked = true;
+    document.getElementById('tkRecurInterval').style.display = '';
+    document.getElementById('tkInterval').value = tpl.recurring;
+  } else {
+    document.getElementById('tkRecurring').checked = false;
+    document.getElementById('tkRecurInterval').style.display = 'none';
+  }
+  document.getElementById('tkTitle').scrollIntoView({behavior:'smooth', block:'center'});
+  toast('תבנית נטענה. אשר פרטים ולחץ על "הוסף משימה"');
+}
+
 // Set default date for reports
 document.getElementById('repDate').valueAsDate = new Date();
-// Set current month
-document.getElementById('finMonth').value = new Date().getMonth() + 1;
 </script>
 </body>
 </html>
