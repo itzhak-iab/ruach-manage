@@ -150,6 +150,42 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .mobile-header h2{font-size:1rem;margin-right:12px}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99}
 .overlay.show{display:block}
+
+/* ===== REPORT GENERATOR ===== */
+.report-modal .modal-content{max-width:1200px}
+.report-split{display:grid;grid-template-columns:360px 1fr;gap:16px;max-height:75vh}
+.report-form-col{overflow-y:auto;padding:8px;border-left:1px solid #e5e7eb}
+.report-preview-col{overflow-y:auto;background:#f8f9fa;padding:16px;border-radius:6px}
+.report-form-col h4{margin-top:16px;color:var(--primary);font-size:0.95rem}
+.report-form-col .form-field{margin-bottom:10px}
+.report-form-col label{font-size:0.85rem;font-weight:600}
+.report-form-col input,.report-form-col textarea,.report-form-col select{width:100%;padding:6px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.9rem;font-family:inherit}
+.report-form-col textarea{min-height:60px;resize:vertical}
+.report-auto-note{font-size:0.75rem;color:var(--success);margin-bottom:8px}
+
+#printArea{display:none}
+.report-doc{font-family:'David','Times New Roman',serif;max-width:21cm;margin:0 auto;padding:2cm;background:#fff;color:#000;direction:rtl;line-height:1.6}
+.report-doc .rpt-header{text-align:center;border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:24px}
+.report-doc .rpt-header h1{margin:0 0 6px;font-size:1.6rem}
+.report-doc .rpt-header .sub{font-size:0.9rem;color:#555}
+.report-doc h2{font-size:1.1rem;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px;margin-bottom:10px}
+.report-doc .rpt-row{margin:8px 0}
+.report-doc .rpt-row strong{display:inline-block;min-width:160px}
+.report-doc .rpt-block{margin:12px 0;padding:10px;background:#fafafa;border-right:3px solid #888;white-space:pre-wrap}
+.report-doc table{width:100%;border-collapse:collapse;margin:10px 0}
+.report-doc table th,.report-doc table td{border:1px solid #999;padding:6px;text-align:right;font-size:0.9rem}
+.report-doc table th{background:#f0f0f0}
+.report-doc .rpt-sigs{margin-top:60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:30px}
+.report-doc .rpt-sig{border-top:1px solid #000;padding-top:6px;text-align:center;font-size:0.9rem}
+.report-doc .rpt-footer{margin-top:30px;font-size:0.75rem;color:#888;text-align:center;border-top:1px solid #eee;padding-top:10px}
+
+@media print {
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;left:0;top:0;width:100%}
+  .no-print{display:none !important}
+  @page{size:A4;margin:1.5cm}
+}
 </style>
 </head>
 <body>
@@ -710,6 +746,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div id="taskModalBody"></div>
   </div>
 </div>
+
+<!-- REPORT GENERATOR MODAL -->
+<div class="modal report-modal" id="reportModal" style="display:none" onclick="if(event.target===this)closeReportModal()">
+  <div class="modal-content">
+    <span class="modal-close no-print" onclick="closeReportModal()" style="position:absolute;left:16px;top:10px;font-size:1.6rem;cursor:pointer;color:#999">×</span>
+    <h2 id="reportModalTitle" style="margin:0 0 12px">—</h2>
+    <div class="report-split">
+      <div class="report-form-col" id="reportForm"></div>
+      <div class="report-preview-col" id="reportPreview">—</div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap" class="no-print">
+      <button class="btn btn-primary" onclick="printReport()">🖨️ הדפס / שמור כ-PDF</button>
+      <button class="btn btn-secondary" onclick="downloadReportHTML()">💾 הורד כ-HTML</button>
+      <button class="btn btn-secondary" onclick="copyReportLink()">📋 העתק תוכן</button>
+      <button class="btn btn-secondary" onclick="closeReportModal()">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA (filled dynamically, only visible during print) -->
+<div id="printArea"></div>
 
 <script>
 // ===== FIREBASE INIT =====
@@ -2024,6 +2081,799 @@ function enableTemplate(key) {
   document.getElementById('tkTitle').scrollIntoView({behavior:'smooth', block:'center'});
   toast('תבנית נטענה. אשר פרטים ולחץ על "הוסף משימה"');
 }
+
+// ============================================================
+// ===== INTERACTIVE REPORT GENERATOR =========================
+// ============================================================
+
+const ORG_INFO = {
+  name: 'עמותת החשמונאים',
+  registrationNumber: '', // ניתן למלא בטופס
+  address: '',
+  purpose: 'ליווי והעצמת חיילים חרדים בחטיבת החשמונאים של צה"ל',
+  phone: '',
+  email: 'i.barkai7@gmail.com'
+};
+
+// Helper: sum finance by type / year
+async function getFinancialSummary(year) {
+  try {
+    const snap = await db.collection('finance').get();
+    let income = 0, expense = 0, byPurpose = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      const dateStr = d.date || d.purchaseDate;
+      if (!dateStr) return;
+      const dy = parseInt(dateStr.substring(0,4));
+      if (year && dy !== year) return;
+      const amt = parseFloat(d.amount) || 0;
+      if (d.type === 'income') income += amt;
+      else if (d.type === 'expense') expense += amt;
+      byPurpose[d.purpose] = (byPurpose[d.purpose] || 0) + (d.type === 'income' ? amt : -amt);
+    });
+    return {income, expense, balance: income - expense, byPurpose};
+  } catch(e) { return {income:0,expense:0,balance:0,byPurpose:{}}; }
+}
+
+async function getTeamList() {
+  try { const snap = await db.collection('team').get(); const arr = []; snap.forEach(d => arr.push({email:d.id,...d.data()})); return arr; }
+  catch(e) { return []; }
+}
+
+async function getDonorCount() {
+  try { const snap = await db.collection('donors').get(); return snap.size; } catch(e) { return 0; }
+}
+
+// ---- REPORT TEMPLATES (declarative) ----
+const REPORT_TEMPLATES = {
+  // ============ 1. הזמנה לאסיפה כללית ============
+  agm_invitation: {
+    parent: 'agm', icon: '📨',
+    title: 'הזמנה לאסיפה כללית שנתית',
+    description: 'הודעה רשמית לחברי העמותה — 21 ימים מראש לפחות',
+    sections: [
+      {heading: 'פרטי האסיפה', fields: [
+        {id:'meetingDate', label:'תאריך האסיפה', type:'date', required:true},
+        {id:'meetingTime', label:'שעת התחלה', type:'time', default:'19:00'},
+        {id:'location', label:'מיקום', type:'text', default:'משרדי העמותה'},
+        {id:'reportYear', label:'שנת הדו"חות לדיון', type:'number', default: new Date().getFullYear() - 1}
+      ]},
+      {heading: 'סדר יום נוסף (מעבר לחובה)', fields: [
+        {id:'extraAgenda', label:'נושאים נוספים', type:'textarea', rows:3, placeholder:'נושאים מיוחדים לדיון...'}
+      ]},
+      {heading: 'חתימה', fields: [
+        {id:'signedByName', label:'שם הח"מ', type:'text'},
+        {id:'signedByRole', label:'תפקיד', type:'text', default:'יו"ר ועד מנהל'}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועד מנהל'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>הזמנה לאסיפה כללית שנתית</h1>
+        <div class="sub">${ORG_INFO.name}${ORG_INFO.registrationNumber?' · ע.ר. '+ORG_INFO.registrationNumber:''}</div>
+      </div>
+      <p>לכבוד חברי/חברות העמותה,</p>
+      <p>בהתאם להוראות חוק העמותות, תש"ם-1980 ולתקנון העמותה, הריני להזמין אתכם/ן לאסיפה כללית שנתית שתתקיים:</p>
+      <div class="rpt-row"><strong>תאריך:</strong> ${d.meetingDate ? fmtDate(d.meetingDate) : '___'}</div>
+      <div class="rpt-row"><strong>שעה:</strong> ${d.meetingTime || '___'}</div>
+      <div class="rpt-row"><strong>מיקום:</strong> ${d.location || '___'}</div>
+      <h2>סדר היום</h2>
+      <ol>
+        <li>דיון ואישור הדו"ח המילולי לשנת ${d.reportYear || '____'}</li>
+        <li>דיון ואישור הדו"ח הכספי לשנת ${d.reportYear || '____'}</li>
+        <li>הצגת ואישור דו"ח ועדת הביקורת</li>
+        <li>בחירת ועד מנהל וועדת ביקורת (לפי הצורך)</li>
+        <li>מינוי רואה חשבון (לפי הצורך)</li>
+        ${d.extraAgenda ? `<li>${d.extraAgenda.replace(/\n/g,'</li><li>')}</li>` : ''}
+      </ol>
+      <p style="margin-top:20px"><strong>הערות:</strong></p>
+      <ul>
+        <li>ההודעה נשלחה לפחות 21 ימים לפני מועד האסיפה בהתאם לתקנון.</li>
+        <li>הדו"חות הכספיים והמילוליים עומדים לעיון החברים לפי דרישה.</li>
+        <li>חבר שאינו יכול להשתתף — יכול להסמיך באמצעות ייפוי כוח בכתב.</li>
+      </ul>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.signedByName || '_________________'}<br><small>${d.signedByRole || 'יו"ר ועד מנהל'}</small></div>
+      </div>
+      <div class="rpt-footer">הוזמן מ${ORG_INFO.name} · ${todayISO()}</div>
+    `
+  },
+
+  // ============ 2. פרוטוקול אסיפה כללית ============
+  agm_protocol: {
+    parent: 'agm', icon: '📜',
+    title: 'פרוטוקול אסיפה כללית שנתית',
+    description: 'פרוטוקול רשמי — יוגש לרשם העמותות',
+    autoData: ['finSummary','team'],
+    sections: [
+      {heading: 'פרטי האסיפה', fields: [
+        {id:'meetingDate', label:'תאריך האסיפה', type:'date', required:true},
+        {id:'startTime', label:'שעת התחלה', type:'time'},
+        {id:'endTime', label:'שעת סיום', type:'time'},
+        {id:'location', label:'מיקום', type:'text'},
+        {id:'reportYear', label:'שנת דיווח', type:'number', default: new Date().getFullYear() - 1}
+      ]},
+      {heading: 'נוכחים', fields: [
+        {id:'chairPerson', label:'יו"ר האסיפה', type:'text', required:true},
+        {id:'secretary', label:'מזכיר/ת האסיפה', type:'text', required:true},
+        {id:'attendees', label:'רשימת נוכחים (שם + ת.ז.)', type:'textarea', rows:5, placeholder:'ישראל ישראלי — 012345678\nחיים כהן — ...'},
+        {id:'totalAttendees', label:'סה"כ נוכחים', type:'number'},
+        {id:'totalMembers', label:'סה"כ חברי העמותה', type:'number'}
+      ]},
+      {heading: 'החלטות', fields: [
+        {id:'decisionVerbal', label:'החלטה על אישור דו"ח מילולי', type:'select', options:['אושר פה אחד','אושר ברוב','נדחה'], default:'אושר פה אחד'},
+        {id:'decisionFinancial', label:'החלטה על אישור דו"ח כספי', type:'select', options:['אושר פה אחד','אושר ברוב','נדחה'], default:'אושר פה אחד'},
+        {id:'decisionAudit', label:'החלטה על אישור דו"ח ועדת ביקורת', type:'select', options:['אושר פה אחד','אושר ברוב','נדחה'], default:'אושר פה אחד'},
+        {id:'boardChanges', label:'שינויים בוועד מנהל (אם יש)', type:'textarea', rows:3},
+        {id:'otherDecisions', label:'החלטות נוספות', type:'textarea', rows:4}
+      ]}
+    ],
+    signatures: [{role:'יו"ר האסיפה'},{role:'מזכיר/ת האסיפה'}],
+    render: (d, auto) => `
+      <div class="rpt-header">
+        <h1>פרוטוקול אסיפה כללית שנתית</h1>
+        <div class="sub">${ORG_INFO.name} · שנת דיווח ${d.reportYear || '____'}</div>
+      </div>
+      <h2>פרטי האסיפה</h2>
+      <div class="rpt-row"><strong>תאריך:</strong> ${d.meetingDate ? fmtDate(d.meetingDate) : '___'}</div>
+      <div class="rpt-row"><strong>שעה:</strong> ${d.startTime || '___'}${d.endTime ? ' - ' + d.endTime : ''}</div>
+      <div class="rpt-row"><strong>מיקום:</strong> ${d.location || '___'}</div>
+      <div class="rpt-row"><strong>יו"ר האסיפה:</strong> ${d.chairPerson || '___'}</div>
+      <div class="rpt-row"><strong>מזכיר/ת:</strong> ${d.secretary || '___'}</div>
+      <div class="rpt-row"><strong>נוכחים:</strong> ${d.totalAttendees || '___'} מתוך ${d.totalMembers || '___'} חברים</div>
+      ${d.attendees ? `<div class="rpt-block">${d.attendees}</div>` : ''}
+
+      <h2>סדר היום</h2>
+      <ol>
+        <li>דיון ואישור הדו"ח המילולי</li>
+        <li>דיון ואישור הדו"ח הכספי</li>
+        <li>דו"ח ועדת ביקורת</li>
+        <li>שינויים בוועד מנהל / ועדת ביקורת</li>
+      </ol>
+
+      <h2>דיון והחלטות</h2>
+      <div class="rpt-row"><strong>1. דו"ח מילולי:</strong> ${d.decisionVerbal || 'אושר פה אחד'}</div>
+      <div class="rpt-row"><strong>2. דו"ח כספי לשנת ${d.reportYear||'____'}:</strong> ${d.decisionFinancial || 'אושר פה אחד'}</div>
+      ${auto && auto.finSummary ? `
+        <table>
+          <tr><th>סך הכנסות</th><th>סך הוצאות</th><th>יתרה</th></tr>
+          <tr><td>₪${auto.finSummary.income.toLocaleString()}</td><td>₪${auto.finSummary.expense.toLocaleString()}</td><td>₪${auto.finSummary.balance.toLocaleString()}</td></tr>
+        </table>` : ''}
+      <div class="rpt-row"><strong>3. דו"ח ועדת ביקורת:</strong> ${d.decisionAudit || 'אושר פה אחד'}</div>
+      ${d.boardChanges ? `<div class="rpt-row"><strong>4. שינויים בוועד מנהל:</strong><div class="rpt-block">${d.boardChanges}</div></div>` : ''}
+      ${d.otherDecisions ? `<div class="rpt-row"><strong>החלטות נוספות:</strong><div class="rpt-block">${d.otherDecisions}</div></div>` : ''}
+
+      <p style="margin-top:24px">האסיפה ננעלה בשעה ${d.endTime || '___'}.</p>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.chairPerson || '_________________'}<br><small>יו"ר האסיפה</small></div>
+        <div class="rpt-sig">${d.secretary || '_________________'}<br><small>מזכיר/ת האסיפה</small></div>
+      </div>
+    `
+  },
+
+  // ============ 3. פרוטוקול ישיבת ועד מנהל ============
+  board_protocol: {
+    parent: 'board_meeting', icon: '📝',
+    title: 'פרוטוקול ישיבת ועד מנהל',
+    description: 'פרוטוקול ישיבה רבעונית/שוטפת של הוועד',
+    sections: [
+      {heading: 'פרטי הישיבה', fields: [
+        {id:'meetingDate', label:'תאריך', type:'date', required:true},
+        {id:'meetingNumber', label:'מספר ישיבה', type:'text', placeholder:'למשל: 1/2026'},
+        {id:'startTime', label:'שעת התחלה', type:'time'},
+        {id:'endTime', label:'שעת סיום', type:'time'},
+        {id:'location', label:'מיקום', type:'text', default:'משרדי העמותה'}
+      ]},
+      {heading: 'נוכחים', fields: [
+        {id:'chairPerson', label:'יו"ר הישיבה', type:'text', required:true},
+        {id:'presentMembers', label:'חברי ועד נוכחים', type:'textarea', rows:4},
+        {id:'absentMembers', label:'נעדרו', type:'textarea', rows:2}
+      ]},
+      {heading: 'סדר יום ודיון', fields: [
+        {id:'agenda', label:'סדר יום', type:'textarea', rows:4, placeholder:'1. אישור פרוטוקול ישיבה קודמת\n2. דו"ח תקציבי\n3. ...'},
+        {id:'discussion', label:'עיקרי הדיון', type:'textarea', rows:6},
+        {id:'decisions', label:'החלטות', type:'textarea', rows:6, placeholder:'1. אושר תקציב...\n2. החלט על...'},
+        {id:'conflictsNoted', label:'ניגודי עניינים שדווחו', type:'textarea', rows:2}
+      ]}
+    ],
+    signatures: [{role:'יו"ר הישיבה'},{role:'רושם הפרוטוקול'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>פרוטוקול ישיבת ועד מנהל</h1>
+        <div class="sub">${ORG_INFO.name}${d.meetingNumber ? ' · ישיבה מס\' ' + d.meetingNumber : ''}</div>
+      </div>
+      <div class="rpt-row"><strong>תאריך:</strong> ${d.meetingDate ? fmtDate(d.meetingDate) : '___'}</div>
+      <div class="rpt-row"><strong>שעה:</strong> ${d.startTime || '___'}${d.endTime ? ' - ' + d.endTime : ''}</div>
+      <div class="rpt-row"><strong>מיקום:</strong> ${d.location || '___'}</div>
+      <div class="rpt-row"><strong>יו"ר:</strong> ${d.chairPerson || '___'}</div>
+
+      <h2>נוכחים</h2>
+      ${d.presentMembers ? `<div class="rpt-block">${d.presentMembers}</div>` : '<div class="rpt-row">—</div>'}
+      ${d.absentMembers ? `<h2>נעדרו</h2><div class="rpt-block">${d.absentMembers}</div>` : ''}
+
+      <h2>סדר יום</h2>
+      ${d.agenda ? `<div class="rpt-block">${d.agenda}</div>` : '<div class="rpt-row">—</div>'}
+
+      <h2>דיון</h2>
+      ${d.discussion ? `<div class="rpt-block">${d.discussion}</div>` : '<div class="rpt-row">—</div>'}
+
+      <h2>החלטות</h2>
+      ${d.decisions ? `<div class="rpt-block">${d.decisions}</div>` : '<div class="rpt-row">—</div>'}
+
+      ${d.conflictsNoted ? `<h2>ניגודי עניינים שדווחו בישיבה</h2><div class="rpt-block">${d.conflictsNoted}</div>` : ''}
+
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.chairPerson || '_________________'}<br><small>יו"ר הישיבה</small></div>
+        <div class="rpt-sig">_________________<br><small>רושם הפרוטוקול</small></div>
+      </div>
+    `
+  },
+
+  // ============ 4. דו"ח מילולי שנתי ============
+  verbal_report: {
+    parent: 'annual_reports', icon: '📘',
+    title: 'דו"ח מילולי שנתי לרשם העמותות',
+    description: 'תיאור פעילות העמותה בשנה החולפת',
+    autoData: ['finSummary','donorCount','team'],
+    sections: [
+      {heading: 'פרטים כלליים', fields: [
+        {id:'reportYear', label:'שנת דיווח', type:'number', required:true, default: new Date().getFullYear() - 1},
+        {id:'orgRegNum', label:'מספר רישום (ע.ר.)', type:'text'},
+        {id:'orgAddress', label:'כתובת רשומה', type:'text'},
+        {id:'purposes', label:'מטרות העמותה (לפי התקנון)', type:'textarea', rows:3, default: ORG_INFO.purpose}
+      ]},
+      {heading: 'פעילות השנה', fields: [
+        {id:'activitySummary', label:'תקציר פעילות השנה', type:'textarea', rows:6},
+        {id:'majorPrograms', label:'תוכניות מרכזיות', type:'textarea', rows:6, placeholder:'1. ליווי תורני לחיילי חטיבת החשמונאים...\n2. סיוע כלכלי וסיוע במצוקה...'},
+        {id:'achievements', label:'הישגים בשנה החולפת', type:'textarea', rows:5},
+        {id:'numBeneficiaries', label:'מספר נהנים/מוטבים משירותי העמותה', type:'number'}
+      ]},
+      {heading: 'משאבי אנוש', fields: [
+        {id:'numEmployees', label:'מספר עובדים בשכר', type:'number'},
+        {id:'numVolunteers', label:'מספר מתנדבים', type:'number'}
+      ]},
+      {heading: 'הצהרות', fields: [
+        {id:'declarationChanges', label:'האם חלו שינויים מהותיים בתקנון/מטרות?', type:'select', options:['לא','כן — פורט להלן'], default:'לא'},
+        {id:'changesDetails', label:'פירוט השינויים (אם כן)', type:'textarea', rows:3},
+        {id:'declarationConflicts', label:'האם ישנן עסקאות עם בעלי עניין שיש לדווח?', type:'select', options:['לא','כן — פורט להלן'], default:'לא'},
+        {id:'conflictsDetails', label:'פירוט עסקאות בעלי עניין', type:'textarea', rows:3}
+      ]},
+      {heading: 'חתימה', fields: [
+        {id:'chairmanName', label:'שם יו"ר ועד מנהל', type:'text'}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועד מנהל'},{role:'חבר ועד מנהל'}],
+    render: (d, auto) => `
+      <div class="rpt-header">
+        <h1>דו"ח מילולי לרשם העמותות</h1>
+        <div class="sub">${ORG_INFO.name} · שנת דיווח ${d.reportYear || '____'}</div>
+      </div>
+      <h2>פרטים כלליים</h2>
+      <div class="rpt-row"><strong>שם העמותה:</strong> ${ORG_INFO.name}</div>
+      <div class="rpt-row"><strong>מספר רישום:</strong> ${d.orgRegNum || '___'}</div>
+      <div class="rpt-row"><strong>כתובת רשומה:</strong> ${d.orgAddress || '___'}</div>
+      <div class="rpt-row"><strong>מטרות לפי התקנון:</strong></div>
+      <div class="rpt-block">${d.purposes || '___'}</div>
+
+      <h2>פעילות השנה</h2>
+      <div class="rpt-row"><strong>תקציר:</strong></div>
+      <div class="rpt-block">${d.activitySummary || '___'}</div>
+      <div class="rpt-row"><strong>תוכניות מרכזיות:</strong></div>
+      <div class="rpt-block">${d.majorPrograms || '___'}</div>
+      <div class="rpt-row"><strong>הישגים:</strong></div>
+      <div class="rpt-block">${d.achievements || '___'}</div>
+      <div class="rpt-row"><strong>מספר נהנים:</strong> ${d.numBeneficiaries || '___'}</div>
+
+      <h2>משאבי אנוש</h2>
+      <div class="rpt-row"><strong>עובדים בשכר:</strong> ${d.numEmployees || '___'}</div>
+      <div class="rpt-row"><strong>מתנדבים:</strong> ${d.numVolunteers || '___'}</div>
+      ${auto && auto.team ? `<div class="rpt-row"><strong>חברי צוות רשומים במערכת:</strong> ${auto.team.length}</div>` : ''}
+
+      ${auto && auto.finSummary ? `
+      <h2>נתונים כספיים (סיכום ${d.reportYear || ''})</h2>
+      <table>
+        <tr><th>סך הכנסות</th><th>סך הוצאות</th><th>יתרה</th></tr>
+        <tr><td>₪${auto.finSummary.income.toLocaleString()}</td><td>₪${auto.finSummary.expense.toLocaleString()}</td><td>₪${auto.finSummary.balance.toLocaleString()}</td></tr>
+      </table>
+      <p style="font-size:0.85rem;color:#555">*הנתונים מבוססים על רישומי המערכת הפנימית. לדיוק — לצרף דו"ח כספי מבוקר/סקור.</p>
+      ` : ''}
+      ${auto && auto.donorCount ? `<div class="rpt-row"><strong>מספר תורמים רשומים:</strong> ${auto.donorCount}</div>` : ''}
+
+      <h2>הצהרות</h2>
+      <div class="rpt-row"><strong>שינויים מהותיים בתקנון/מטרות:</strong> ${d.declarationChanges || 'לא'}</div>
+      ${d.changesDetails ? `<div class="rpt-block">${d.changesDetails}</div>` : ''}
+      <div class="rpt-row"><strong>עסקאות עם בעלי עניין:</strong> ${d.declarationConflicts || 'לא'}</div>
+      ${d.conflictsDetails ? `<div class="rpt-block">${d.conflictsDetails}</div>` : ''}
+
+      <p style="margin-top:24px">אני/אנחנו, הח"מ, מצהיר/ים כי הפרטים המפורטים לעיל נכונים ומלאים.</p>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.chairmanName || '_________________'}<br><small>יו"ר ועד מנהל</small></div>
+        <div class="rpt-sig">_________________<br><small>חבר ועד מנהל</small></div>
+      </div>
+      <div class="rpt-footer">הופק ב-${fmtDate(todayISO())} ממערכת ניהול ${ORG_INFO.name}</div>
+    `
+  },
+
+  // ============ 5. תצהיר ניגוד עניינים ============
+  conflict_declaration: {
+    parent: 'conflict_of_interest', icon: '⚖️',
+    title: 'תצהיר העדר ניגוד עניינים',
+    description: 'תצהיר שנתי אישי — לחתום ע"י כל חבר ועד/ביקורת',
+    sections: [
+      {heading: 'פרטי המצהיר/ה', fields: [
+        {id:'fullName', label:'שם מלא', type:'text', required:true},
+        {id:'idNumber', label:'מספר ת.ז.', type:'text', required:true},
+        {id:'role', label:'תפקיד בעמותה', type:'select', options:['חבר ועד מנהל','יו"ר ועד מנהל','חבר ועדת ביקורת','יו"ר ועדת ביקורת','מנכ"ל/רכז']},
+        {id:'address', label:'כתובת', type:'text'},
+        {id:'year', label:'שנת ההצהרה', type:'number', default: new Date().getFullYear()}
+      ]},
+      {heading: 'הצהרות', fields: [
+        {id:'otherRoles', label:'תפקידים נוספים (עסקי/ציבורי) שיש לי', type:'textarea', rows:3, placeholder:'(אם אין — לכתוב "אין")'},
+        {id:'familyTies', label:'קרובי משפחה בעמותה (חברי ועד, עובדים, ספקים)', type:'textarea', rows:3, placeholder:'(אם אין — לכתוב "אין")'},
+        {id:'businessTies', label:'קשרים עסקיים עם ספקי/נותני שירות של העמותה', type:'textarea', rows:3, placeholder:'(אם אין — לכתוב "אין")'},
+        {id:'otherInterests', label:'עניינים נוספים העלולים ליצור ניגוד עניינים', type:'textarea', rows:3, placeholder:'(אם אין — לכתוב "אין")'}
+      ]}
+    ],
+    signatures: [{role:'המצהיר/ה'},{role:'עד לחתימה'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>תצהיר העדר ניגוד עניינים</h1>
+        <div class="sub">${ORG_INFO.name} · שנת ${d.year || new Date().getFullYear()}</div>
+      </div>
+      <p>אני החתום/ה מטה:</p>
+      <div class="rpt-row"><strong>שם מלא:</strong> ${d.fullName || '_________________'}</div>
+      <div class="rpt-row"><strong>מספר ת.ז.:</strong> ${d.idNumber || '___________'}</div>
+      <div class="rpt-row"><strong>כתובת:</strong> ${d.address || '_________________'}</div>
+      <div class="rpt-row"><strong>תפקיד בעמותה:</strong> ${d.role || '_________________'}</div>
+
+      <p style="margin-top:16px">לאחר שהוזהרתי כי עליי להצהיר את האמת וכי אהיה צפוי/ה לעונשים הקבועים בחוק אם לא אעשה כן, מצהיר/ה בזאת כדלקמן:</p>
+
+      <h2>1. תפקידים נוספים</h2>
+      <div class="rpt-block">${d.otherRoles || 'אין'}</div>
+
+      <h2>2. קרובי משפחה בעמותה</h2>
+      <div class="rpt-block">${d.familyTies || 'אין'}</div>
+
+      <h2>3. קשרים עסקיים עם ספקי/נותני שירות של העמותה</h2>
+      <div class="rpt-block">${d.businessTies || 'אין'}</div>
+
+      <h2>4. עניינים נוספים העלולים ליצור ניגוד</h2>
+      <div class="rpt-block">${d.otherInterests || 'אין'}</div>
+
+      <p style="margin-top:16px"><strong>התחייבות:</strong> אני מתחייב/ת לדווח מידית לוועד המנהל על כל שינוי או נסיבה חדשה שעלולה להוות ניגוד עניינים, ולהימנע מהשתתפות בדיונים והחלטות בנושאים שבהם יש לי עניין אישי.</p>
+
+      <p style="margin-top:24px">זה שמי, זו חתימתי ותוכן תצהירי אמת.</p>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.fullName || '_________________'}<br><small>המצהיר/ה</small></div>
+        <div class="rpt-sig">_________________<br><small>עד לחתימה (שם ות.ז.)</small></div>
+      </div>
+    `
+  },
+
+  // ============ 6. דו"ח ועדת ביקורת ============
+  audit_report: {
+    parent: 'audit_committee', icon: '🔍',
+    title: 'דו"ח ועדת ביקורת שנתי',
+    description: 'דו"ח לאסיפה הכללית',
+    autoData: ['finSummary'],
+    sections: [
+      {heading: 'פרטים כלליים', fields: [
+        {id:'reportYear', label:'שנת דיווח', type:'number', default: new Date().getFullYear() - 1, required:true},
+        {id:'committeeChair', label:'יו"ר ועדת ביקורת', type:'text', required:true},
+        {id:'committeeMember', label:'חבר/ה בוועדת ביקורת', type:'text'},
+        {id:'meetingsCount', label:'מספר ישיבות בשנה', type:'number'}
+      ]},
+      {heading: 'ממצאים', fields: [
+        {id:'financialFindings', label:'ממצאים בביקורת כספית', type:'textarea', rows:5, default:'בוצעה בדיקת דו"חות כספיים, קבלות, הוצאות והכנסות. הרישום נמצא מסודר ותקין.'},
+        {id:'operationalFindings', label:'ממצאים בביקורת תפעולית/ניהולית', type:'textarea', rows:5, default:'נבדקו פרוטוקולי ועד מנהל, החלטות מהותיות, וניהול הרישומים. נמצא כי העמותה פועלת בהתאם למטרותיה ולתקנון.'},
+        {id:'boardCompliance', label:'תקינות החלטות ועד ההנהלה', type:'select', options:['תקין','דורש תיקון — פורט להלן'], default:'תקין'},
+        {id:'complianceNotes', label:'הערות לתיקון', type:'textarea', rows:3},
+        {id:'recommendations', label:'המלצות לשנה הבאה', type:'textarea', rows:4}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועדת ביקורת'},{role:'חבר/ה בוועדת ביקורת'}],
+    render: (d, auto) => `
+      <div class="rpt-header">
+        <h1>דו"ח ועדת ביקורת שנתי</h1>
+        <div class="sub">${ORG_INFO.name} · שנת דיווח ${d.reportYear || '____'}</div>
+      </div>
+      <p>בהתאם לסעיף 30 לחוק העמותות, תש"ם-1980, ולתפקידיה של ועדת הביקורת, הוועדה בחנה את פעילות העמותה וספריה במהלך שנת ${d.reportYear || '____'} ומגישה בזאת את דו"חה השנתי.</p>
+
+      <h2>פרטים כלליים</h2>
+      <div class="rpt-row"><strong>חברי הוועדה:</strong> ${d.committeeChair || '___'}${d.committeeMember ? ', ' + d.committeeMember : ''}</div>
+      <div class="rpt-row"><strong>מספר ישיבות הוועדה בשנה:</strong> ${d.meetingsCount || '___'}</div>
+
+      <h2>ביקורת כספית</h2>
+      <div class="rpt-block">${d.financialFindings || '___'}</div>
+      ${auto && auto.finSummary ? `
+      <table>
+        <tr><th>סך הכנסות</th><th>סך הוצאות</th><th>יתרה</th></tr>
+        <tr><td>₪${auto.finSummary.income.toLocaleString()}</td><td>₪${auto.finSummary.expense.toLocaleString()}</td><td>₪${auto.finSummary.balance.toLocaleString()}</td></tr>
+      </table>` : ''}
+
+      <h2>ביקורת תפעולית וניהולית</h2>
+      <div class="rpt-block">${d.operationalFindings || '___'}</div>
+
+      <h2>תקינות החלטות ועד ההנהלה</h2>
+      <div class="rpt-row">${d.boardCompliance || 'תקין'}</div>
+      ${d.complianceNotes ? `<div class="rpt-block">${d.complianceNotes}</div>` : ''}
+
+      <h2>המלצות לשנה הבאה</h2>
+      <div class="rpt-block">${d.recommendations || '—'}</div>
+
+      <p style="margin-top:24px"><strong>סיכום:</strong> ועדת הביקורת ממליצה לאסיפה הכללית לאשר את דו"חות העמותה לשנת ${d.reportYear || '____'}.</p>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.committeeChair || '_________________'}<br><small>יו"ר ועדת ביקורת</small></div>
+        <div class="rpt-sig">${d.committeeMember || '_________________'}<br><small>חבר/ה בוועדת ביקורת</small></div>
+      </div>
+    `
+  },
+
+  // ============ 7. בקשה לניהול תקין ============
+  proper_mgmt_declaration: {
+    parent: 'proper_management', icon: '✅',
+    title: 'תצהיר עמידה בדרישות ניהול תקין',
+    description: 'תצהיר מצורף לבקשת חידוש אישור ניהול תקין',
+    sections: [
+      {heading: 'פרטים', fields: [
+        {id:'year', label:'שנת הבקשה', type:'number', default: new Date().getFullYear(), required:true},
+        {id:'lastAGM', label:'תאריך האסיפה הכללית האחרונה', type:'date'},
+        {id:'boardMeetings', label:'מספר ישיבות ועד מנהל בשנה', type:'number'},
+        {id:'auditMeetings', label:'מספר ישיבות ועדת ביקורת בשנה', type:'number'}
+      ]},
+      {heading: 'הצהרות', fields: [
+        {id:'reportsSubmitted', label:'דו"חות לרשם העמותות הוגשו בשנה האחרונה', type:'select', options:['כן','לא']},
+        {id:'conflictsCollected', label:'נאספו הצהרות ניגוד עניינים מכל חברי הוועד', type:'select', options:['כן','לא']},
+        {id:'bylawsAligned', label:'פעילות העמותה תואמת את התקנון והמטרות', type:'select', options:['כן','לא']},
+        {id:'signerName', label:'שם החותם', type:'text', required:true},
+        {id:'signerRole', label:'תפקיד', type:'text', default:'יו"ר ועד מנהל'}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועד מנהל'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>תצהיר עמידה בדרישות ניהול תקין</h1>
+        <div class="sub">${ORG_INFO.name} · לשנת ${d.year || new Date().getFullYear()}</div>
+      </div>
+      <p>הח"מ, בתפקידי כ-${d.signerRole || 'יו"ר ועד מנהל'} של העמותה, מצהיר/ה בזאת כדלקמן:</p>
+
+      <div class="rpt-row">1. <strong>האסיפה הכללית האחרונה התקיימה ב-</strong>${d.lastAGM ? fmtDate(d.lastAGM) : '___'} (בתוך 15 חודשים, כנדרש בחוק).</div>
+      <div class="rpt-row">2. <strong>ועד המנהל קיים</strong> ${d.boardMeetings || '___'} ישיבות בשנה החולפת (הנדרש — לפחות 4).</div>
+      <div class="rpt-row">3. <strong>ועדת הביקורת קיימה</strong> ${d.auditMeetings || '___'} ישיבות והגישה דו"ח שנתי לאסיפה הכללית.</div>
+      <div class="rpt-row">4. <strong>דו"חות לרשם העמותות הוגשו כנדרש:</strong> ${d.reportsSubmitted || '___'}</div>
+      <div class="rpt-row">5. <strong>נאספו הצהרות ניגוד עניינים מכל חברי הוועד:</strong> ${d.conflictsCollected || '___'}</div>
+      <div class="rpt-row">6. <strong>פעילות העמותה תואמת את התקנון והמטרות:</strong> ${d.bylawsAligned || '___'}</div>
+
+      <p style="margin-top:20px">אני מבקש/ת בזאת לחדש את אישור ניהול התקין של העמותה בהתאם לדרישות הרשות התאגידית.</p>
+
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.signerName || '_________________'}<br><small>${d.signerRole || 'יו"ר ועד מנהל'}</small></div>
+      </div>
+    `
+  },
+
+  // ============ 8. בקשת סעיף 46 ============
+  section_46_declaration: {
+    parent: 'section_46', icon: '🎫',
+    title: 'תצהיר לבקשת/חידוש אישור סעיף 46',
+    description: 'תצהיר מצורף לבקשת אישור כמוסד ציבורי לעניין תרומות',
+    sections: [
+      {heading: 'פרטי העמותה', fields: [
+        {id:'orgRegNum', label:'מספר רישום (ע.ר.)', type:'text'},
+        {id:'purposesDetails', label:'מטרות העמותה המקנות זכאות', type:'textarea', rows:4, default: ORG_INFO.purpose},
+        {id:'activityField', label:'תחום פעילות ציבורי', type:'select', options:['חינוך','דת','רווחה','בריאות','תרבות','ספורט','אחר']}
+      ]},
+      {heading: 'הצהרות', fields: [
+        {id:'hasProperMgmt', label:'לעמותה אישור ניהול תקין תקף', type:'select', options:['כן','לא']},
+        {id:'properMgmtValidUntil', label:'תוקף אישור ניהול תקין', type:'date'},
+        {id:'activityConsistent', label:'פעילות העמותה עולה בקנה אחד עם המטרות', type:'select', options:['כן','לא'], default:'כן'},
+        {id:'noPersonalBenefits', label:'הכנסות והוצאות העמותה אינן משמשות לרווח אישי', type:'select', options:['כן','לא'], default:'כן'},
+        {id:'signerName', label:'שם החותם', type:'text', required:true}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועד מנהל'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>תצהיר לבקשת אישור מוסד ציבורי לפי סעיף 46</h1>
+        <div class="sub">${ORG_INFO.name} · ע.ר. ${d.orgRegNum || '___'}</div>
+      </div>
+      <p>הח"מ מצהיר/ה בזאת:</p>
+      <div class="rpt-row">1. העמותה רשומה כדין אצל רשם העמותות במספר: <strong>${d.orgRegNum || '___'}</strong></div>
+      <div class="rpt-row">2. מטרותיה העיקריות של העמותה:</div>
+      <div class="rpt-block">${d.purposesDetails || '___'}</div>
+      <div class="rpt-row">3. <strong>תחום הפעילות הציבורי:</strong> ${d.activityField || '___'}</div>
+      <div class="rpt-row">4. <strong>לעמותה אישור ניהול תקין תקף:</strong> ${d.hasProperMgmt || '___'}${d.properMgmtValidUntil ? ' (תוקף עד: ' + fmtDate(d.properMgmtValidUntil) + ')' : ''}</div>
+      <div class="rpt-row">5. <strong>פעילות העמותה עולה בקנה אחד עם המטרות:</strong> ${d.activityConsistent || 'כן'}</div>
+      <div class="rpt-row">6. <strong>הכנסות והוצאות העמותה אינן משמשות לרווח אישי של חברי הוועד או העובדים:</strong> ${d.noPersonalBenefits || 'כן'}</div>
+      <div class="rpt-row">7. העמותה מנהלת ספרים כנדרש ומגישה דו"חות שנתיים במועד.</div>
+
+      <p style="margin-top:20px">בהתאם לדרישות פקודת מס הכנסה וסעיף 46 לפקודה, אני/אנו מבקש/ים לאשר את העמותה כמוסד ציבורי לעניין תרומות.</p>
+
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.signerName || '_________________'}<br><small>יו"ר ועד מנהל</small></div>
+      </div>
+    `
+  },
+
+  // ============ 9. טופס עדכון רשם העמותות ============
+  registrar_update: {
+    parent: 'registrar_updates', icon: '📮',
+    title: 'הודעה לרשם העמותות — עדכון פרטים',
+    description: 'עדכון שינוי מהותי (חברי ועד / כתובת / שם / תקנון)',
+    sections: [
+      {heading: 'סוג העדכון', fields: [
+        {id:'updateType', label:'מהות השינוי', type:'select', options:['שינוי בהרכב ועד מנהל','שינוי בהרכב ועדת ביקורת','שינוי כתובת רשומה','שינוי שם העמותה','שינוי בתקנון','שינוי מורשי חתימה','אחר']},
+        {id:'effectiveDate', label:'תאריך תחולת השינוי', type:'date', required:true}
+      ]},
+      {heading: 'פרטי השינוי', fields: [
+        {id:'details', label:'פירוט השינוי', type:'textarea', rows:6, required:true, placeholder:'(לשינוי בוועד: שמות חברים חדשים + חברים שפרשו, תאריכים, תצהירים)\n(לשינוי כתובת: כתובת ישנה וכתובת חדשה)\n...'},
+        {id:'approvedBy', label:'אורגן שאישר (ועד מנהל / אסיפה כללית)', type:'select', options:['ועד מנהל','אסיפה כללית','אסיפה כללית מיוחדת']},
+        {id:'approvalDate', label:'תאריך החלטה', type:'date'},
+        {id:'attachments', label:'מסמכים מצורפים', type:'textarea', rows:3, default:'• פרוטוקול אישור\n• תצהיר מורשי חתימה\n• תעודת זהות/שינוי כתובת (לפי העניין)'}
+      ]},
+      {heading: 'חתימה', fields: [
+        {id:'signerName', label:'שם החותם', type:'text', required:true},
+        {id:'signerRole', label:'תפקיד', type:'text', default:'יו"ר ועד מנהל'}
+      ]}
+    ],
+    signatures: [{role:'יו"ר ועד מנהל'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>הודעה לרשם העמותות — עדכון פרטים</h1>
+        <div class="sub">${ORG_INFO.name}</div>
+      </div>
+      <p>לכבוד רשם העמותות,<br>משרד המשפטים</p>
+      <p>הנדון: <strong>${d.updateType || '___'}</strong></p>
+
+      <h2>מהות השינוי</h2>
+      <div class="rpt-row"><strong>סוג:</strong> ${d.updateType || '___'}</div>
+      <div class="rpt-row"><strong>תאריך תחולת השינוי:</strong> ${d.effectiveDate ? fmtDate(d.effectiveDate) : '___'}</div>
+      <div class="rpt-row"><strong>אושר ע"י:</strong> ${d.approvedBy || '___'}${d.approvalDate ? ' בתאריך ' + fmtDate(d.approvalDate) : ''}</div>
+
+      <h2>פירוט השינוי</h2>
+      <div class="rpt-block">${d.details || '___'}</div>
+
+      <h2>מסמכים מצורפים</h2>
+      <div class="rpt-block">${d.attachments || '—'}</div>
+
+      <p style="margin-top:20px">הודעה זו מוגשת בתוך 14 ימים ממועד השינוי, בהתאם לחוק העמותות.</p>
+
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.signerName || '_________________'}<br><small>${d.signerRole || 'יו"ר ועד מנהל'}</small></div>
+      </div>
+    `
+  },
+
+  // ============ 10. אישור קבלה לתורם ============
+  donation_receipt: {
+    parent: null, icon: '🎁',
+    title: 'אישור קבלה / קבלה על תרומה',
+    description: 'קבלה רשמית לתורם (כולל ציטוט סעיף 46 אם תקף)',
+    sections: [
+      {heading: 'פרטי התרומה', fields: [
+        {id:'receiptNumber', label:'מספר קבלה', type:'text', required:true},
+        {id:'donationDate', label:'תאריך תרומה', type:'date', required:true, default: todayISO()},
+        {id:'amount', label:'סכום (₪)', type:'number', required:true},
+        {id:'paymentMethod', label:'אמצעי תשלום', type:'select', options:['העברה בנקאית','צ\'ק','כרטיס אשראי','מזומן','אחר']}
+      ]},
+      {heading: 'פרטי התורם', fields: [
+        {id:'donorName', label:'שם התורם/ת', type:'text', required:true},
+        {id:'donorId', label:'ת.ז. / ח.פ.', type:'text'},
+        {id:'donorAddress', label:'כתובת', type:'text'},
+        {id:'donorEmail', label:'אימייל', type:'text'}
+      ]},
+      {heading: 'ייעוד', fields: [
+        {id:'purpose', label:'ייעוד התרומה', type:'select', options:['ליווי תורני','הכנה לשירות','רווחה וסיוע','העצמת לימוד התורה בחטיבה','תוכניות בוגרים','כללי']},
+        {id:'section46', label:'האם כלולה תחת סעיף 46 (פטור ממס)', type:'select', options:['כן','לא — אין אישור בתוקף'], default:'כן'},
+        {id:'section46Number', label:'מספר אישור סעיף 46', type:'text'}
+      ]}
+    ],
+    signatures: [{role:'מורשה חתימה'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>אישור קבלה על תרומה</h1>
+        <div class="sub">${ORG_INFO.name}${d.receiptNumber ? ' · קבלה מס\' ' + d.receiptNumber : ''}</div>
+      </div>
+      <p>הריני לאשר קבלת תרומה כמפורט להלן:</p>
+      <table>
+        <tr><th>תאריך</th><td>${d.donationDate ? fmtDate(d.donationDate) : '___'}</td></tr>
+        <tr><th>סכום</th><td><strong>₪${parseFloat(d.amount||0).toLocaleString()}</strong></td></tr>
+        <tr><th>אמצעי תשלום</th><td>${d.paymentMethod || '___'}</td></tr>
+        <tr><th>שם התורם/ת</th><td>${d.donorName || '___'}</td></tr>
+        <tr><th>ת.ז./ח.פ.</th><td>${d.donorId || '___'}</td></tr>
+        <tr><th>ייעוד</th><td>${d.purpose || '___'}</td></tr>
+      </table>
+
+      ${d.section46 === 'כן' ? `
+      <div class="rpt-block" style="background:#fff9e6;border-right-color:#f59e0b">
+        <strong>⚖️ זכאות לזיכוי ממס — סעיף 46 לפקודת מס הכנסה</strong><br>
+        תרומה זו זכאית לזיכוי ממס בהתאם לסעיף 46 לפקודת מס הכנסה.<br>
+        ${d.section46Number ? 'מספר אישור: ' + d.section46Number : ''}<br>
+        שמור אישור זה לצורך הגשת הדו"ח השנתי למס הכנסה.
+      </div>
+      ` : ''}
+
+      <p style="margin-top:20px">תודה מקרב לב על תרומתך הנדיבה לעמותת החשמונאים ולחיילי חטיבת החשמונאים.</p>
+
+      <div class="rpt-sigs">
+        <div class="rpt-sig">_________________<br><small>מורשה חתימה · ${ORG_INFO.name}</small></div>
+      </div>
+      <div class="rpt-footer">הונפק ב-${fmtDate(todayISO())}</div>
+    `
+  }
+};
+
+// ---- Report generator state ----
+let currentReportKey = null;
+let currentReportData = {};
+let currentReportAuto = {};
+
+async function openReportGen(key) {
+  const tpl = REPORT_TEMPLATES[key];
+  if (!tpl) { toast('תבנית לא נמצאה','error'); return; }
+  currentReportKey = key;
+  currentReportData = {};
+
+  // Build form HTML
+  const formEl = document.getElementById('reportForm');
+  let formHTML = '';
+  tpl.sections.forEach(sec => {
+    formHTML += `<h4>${sec.heading}</h4>`;
+    sec.fields.forEach(f => {
+      const val = (f.default !== undefined) ? f.default : '';
+      currentReportData[f.id] = val;
+      let input = '';
+      const req = f.required ? ' required' : '';
+      if (f.type === 'textarea') {
+        input = `<textarea id="rpt_${f.id}" rows="${f.rows||3}" placeholder="${f.placeholder||''}"${req} oninput="onReportFieldChange('${f.id}',this.value)">${val}</textarea>`;
+      } else if (f.type === 'select') {
+        input = `<select id="rpt_${f.id}"${req} onchange="onReportFieldChange('${f.id}',this.value)">` +
+                (f.options||[]).map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('') +
+                `</select>`;
+      } else {
+        input = `<input type="${f.type||'text'}" id="rpt_${f.id}" value="${val}" placeholder="${f.placeholder||''}"${req} oninput="onReportFieldChange('${f.id}',this.value)">`;
+      }
+      formHTML += `<div class="form-field"><label>${f.label}${f.required?' *':''}</label>${input}</div>`;
+    });
+  });
+  formEl.innerHTML = formHTML;
+
+  document.getElementById('reportModalTitle').textContent = tpl.icon + ' ' + tpl.title;
+  document.getElementById('reportModal').style.display = 'flex';
+
+  // Load auto-data if needed
+  currentReportAuto = {};
+  if (tpl.autoData) {
+    const y = currentReportData.reportYear || (new Date().getFullYear() - 1);
+    if (tpl.autoData.includes('finSummary')) currentReportAuto.finSummary = await getFinancialSummary(y);
+    if (tpl.autoData.includes('team')) currentReportAuto.team = await getTeamList();
+    if (tpl.autoData.includes('donorCount')) currentReportAuto.donorCount = await getDonorCount();
+  }
+  updateReportPreview();
+}
+
+async function onReportFieldChange(id, val) {
+  currentReportData[id] = val;
+  // Reload finSummary if year changes
+  if (id === 'reportYear') {
+    const tpl = REPORT_TEMPLATES[currentReportKey];
+    if (tpl && tpl.autoData && tpl.autoData.includes('finSummary')) {
+      currentReportAuto.finSummary = await getFinancialSummary(parseInt(val) || null);
+    }
+  }
+  updateReportPreview();
+}
+
+function updateReportPreview() {
+  const tpl = REPORT_TEMPLATES[currentReportKey];
+  if (!tpl) return;
+  const html = `<div class="report-doc">${tpl.render(currentReportData, currentReportAuto)}</div>`;
+  document.getElementById('reportPreview').innerHTML = html;
+}
+
+function closeReportModal() {
+  document.getElementById('reportModal').style.display = 'none';
+}
+
+function printReport() {
+  const tpl = REPORT_TEMPLATES[currentReportKey];
+  if (!tpl) return;
+  const html = `<div class="report-doc">${tpl.render(currentReportData, currentReportAuto)}</div>`;
+  document.getElementById('printArea').innerHTML = html;
+  window.print();
+}
+
+function downloadReportHTML() {
+  const tpl = REPORT_TEMPLATES[currentReportKey];
+  if (!tpl) return;
+  const body = tpl.render(currentReportData, currentReportAuto);
+  const fullHTML = `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>${tpl.title} - ${ORG_INFO.name}</title>
+<style>
+body{font-family:'David','Times New Roman',serif;max-width:21cm;margin:0 auto;padding:2cm;background:#fff;color:#000;direction:rtl;line-height:1.6}
+.rpt-header{text-align:center;border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:24px}
+.rpt-header h1{margin:0 0 6px;font-size:1.6rem}
+.rpt-header .sub{font-size:0.9rem;color:#555}
+h2{font-size:1.1rem;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px;margin-bottom:10px}
+.rpt-row{margin:8px 0}
+.rpt-row strong{display:inline-block;min-width:160px}
+.rpt-block{margin:12px 0;padding:10px;background:#fafafa;border-right:3px solid #888;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+table th,table td{border:1px solid #999;padding:6px;text-align:right;font-size:0.9rem}
+table th{background:#f0f0f0}
+.rpt-sigs{margin-top:60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:30px}
+.rpt-sig{border-top:1px solid #000;padding-top:6px;text-align:center;font-size:0.9rem}
+.rpt-footer{margin-top:30px;font-size:0.75rem;color:#888;text-align:center;border-top:1px solid #eee;padding-top:10px}
+@page{size:A4;margin:1.5cm}
+</style>
+</head>
+<body>${body}</body>
+</html>`;
+  const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = tpl.title.replace(/[^\wא-ת]/g, '_');
+  a.download = `${safeName}_${todayISO()}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('הקובץ הורד');
+}
+
+function copyReportLink() {
+  const preview = document.getElementById('reportPreview');
+  // Copy plain text content
+  const text = preview.innerText;
+  navigator.clipboard.writeText(text).then(() => toast('הועתק ללוח')).catch(() => toast('שגיאה בהעתקה','error'));
+}
+
+// ---- Enhance renderTemplates to include report generator buttons ----
+// Re-define renderTemplates to show both: "הפעל משימה" and related reports
+const _origRenderTemplates = renderTemplates;
+renderTemplates = function() {
+  const wrap = document.getElementById('tkTemplates');
+  if (!wrap) return;
+  // Build reports-by-parent map
+  const reportsByParent = {};
+  Object.entries(REPORT_TEMPLATES).forEach(([k,r]) => {
+    if (r.parent) {
+      (reportsByParent[r.parent] = reportsByParent[r.parent] || []).push({key:k, ...r});
+    }
+  });
+  // Standalone reports (no parent)
+  const standalone = Object.entries(REPORT_TEMPLATES).filter(([k,r]) => !r.parent).map(([k,r]) => ({key:k, ...r}));
+
+  let html = Object.entries(REGULATORY_TEMPLATES).map(([key, tpl]) => {
+    const linked = reportsByParent[key] || [];
+    const reportBtns = linked.map(r =>
+      `<button class="btn btn-secondary" style="margin:2px 0;width:100%;font-size:0.85rem" onclick="openReportGen('${r.key}')">📄 ${r.title}</button>`
+    ).join('');
+    return `
+    <div class="template-card">
+      <h4>${tpl.icon} ${tpl.title}</h4>
+      <div style="color:var(--muted);font-size:0.85rem;margin-bottom:6px">${tpl.description}</div>
+      <div style="font-size:0.75rem;color:#888">
+        ${TASK_CATEGORIES[tpl.category]} · ${TASK_PRIORITIES[tpl.priority]}
+        ${tpl.recurring?` · ${({yearly:'שנתי',quarterly:'רבעוני',monthly:'חודשי',biennial:'דו-שנתי'})[tpl.recurring]}`:''}
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="enableTemplate('${key}')">📌 צור משימת מעקב</button>
+      ${reportBtns ? `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb"><div style="font-size:0.75rem;color:var(--primary);margin-bottom:4px">🗂️ מסמכים אינטראקטיביים:</div>${reportBtns}</div>` : ''}
+    </div>
+    `;
+  }).join('');
+  // Standalone extras
+  if (standalone.length) {
+    html += `<div class="template-card" style="background:#f0f9ff;border-color:#0369a1">
+      <h4>🎁 מסמכים כלליים</h4>
+      <div style="color:var(--muted);font-size:0.85rem;margin-bottom:6px">מסמכים שלא קשורים לתבנית רגולטורית ספציפית</div>
+      ${standalone.map(r => `<button class="btn btn-secondary" style="margin:2px 0;width:100%;font-size:0.85rem" onclick="openReportGen('${r.key}')">${r.icon} ${r.title}</button>`).join('')}
+    </div>`;
+  }
+  wrap.innerHTML = html;
+};
 
 // Set default date for reports
 document.getElementById('repDate').valueAsDate = new Date();
