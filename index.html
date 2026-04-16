@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--primary:#1a8a9a;--primary-dark:#0d6e7a;--accent:#e67e22;--dark:#1a1a2e;--light:#f0f2f5;--card:#fff;--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:12px}
@@ -202,7 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <h3>הוסף רשומה חדשה</h3>
         <div class="form-row">
           <div class="form-field"><label>סוג</label>
-            <select id="finType"><option value="income">הכנסה</option><option value="expense">הוצאה</option></select>
+            <select id="finType" onchange="toggleFinType()"><option value="income">הכנסה</option><option value="expense">הוצאה</option></select>
           </div>
           <div class="form-field"><label>חודש</label>
             <select id="finMonth">
@@ -220,15 +221,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
             </select>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="addFinRecord()">+ הוסף</button>
+        <div class="form-row">
+          <div class="form-field" style="flex:1"><label>פירוט (עבור מה?)</label>
+            <input type="text" id="finDescription" placeholder="לדוגמה: כיבוד לליל לימוד הושענא רבה / ביגוד חם עבור גדוד יונתן">
+          </div>
+        </div>
+        <!-- Income only: receipt issued -->
+        <div class="form-row" id="finIncomeExtra">
+          <div class="form-field" style="flex:1">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="finReceiptIssued" style="width:auto;margin:0"> הונפקה קבלה לתורם
+            </label>
+            <input type="text" id="finReceiptNumber" placeholder="מספר קבלה (אופציונלי)" style="margin-top:8px">
+          </div>
+        </div>
+        <!-- Expense only: receipt upload -->
+        <div class="form-row" id="finExpenseExtra" style="display:none">
+          <div class="form-field" style="flex:1"><label>צרף קבלות / חשבוניות (ניתן לבחור מספר קבצים)</label>
+            <input type="file" id="finReceiptFiles" multiple accept="image/*,application/pdf">
+            <small style="color:#666;margin-top:4px;display:block">תומך ב-PDF ותמונות. גודל מקסימלי: 10MB לקובץ.</small>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addFinRecord()" id="finAddBtn">+ הוסף</button>
       </div>
 
       <!-- Finance Table -->
       <div class="card">
         <h3>רשומות</h3>
         <table class="data-table">
-          <thead><tr><th>סוג</th><th>חודש</th><th>סכום</th><th>מקור</th><th>מטרה</th><th>פעולות</th></tr></thead>
-          <tbody id="finTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>סוג</th><th>חודש</th><th>סכום</th><th>מקור</th><th>מטרה</th><th>פירוט</th><th>קבלה</th><th>פעולות</th></tr></thead>
+          <tbody id="finTableBody"><tr><td colspan="8" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -375,6 +397,7 @@ firebase.initializeApp({
 
 const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
 
@@ -501,6 +524,31 @@ function toggleSidebar() {
 }
 
 // ===== FINANCE =====
+function toggleFinType() {
+  const type = document.getElementById('finType').value;
+  document.getElementById('finIncomeExtra').style.display = type === 'income' ? 'flex' : 'none';
+  document.getElementById('finExpenseExtra').style.display = type === 'expense' ? 'flex' : 'none';
+  const srcLabel = document.querySelector('#finSourceField label');
+  const srcInput = document.getElementById('finSource');
+  if (type === 'income') { srcLabel.textContent = 'מקור'; srcInput.placeholder = 'שם התורם / מקור'; }
+  else { srcLabel.textContent = 'ספק'; srcInput.placeholder = 'שם הספק / חנות'; }
+}
+
+async function uploadReceiptFiles(files) {
+  if (!files || !files.length) return [];
+  const uploads = [];
+  for (const file of files) {
+    if (file.size > 10 * 1024 * 1024) { toast(`הקובץ "${file.name}" גדול מ-10MB`,'error'); continue; }
+    const safeName = file.name.replace(/[^\w.\-א-ת]/g,'_');
+    const path = `receipts/${Date.now()}_${safeName}`;
+    const ref = storage.ref(path);
+    const snap = await ref.put(file);
+    const url = await snap.ref.getDownloadURL();
+    uploads.push({ url, fileName: file.name, path, size: file.size, uploadedAt: new Date().toISOString() });
+  }
+  return uploads;
+}
+
 async function loadFinance() {
   const snap = await db.collection('finance').orderBy('createdAt','desc').get();
   let totalInc = 0, totalExp = 0;
@@ -519,12 +567,32 @@ async function loadFinance() {
   document.getElementById('dash-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
 
   const tbody = document.getElementById('finTableBody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין רשומות</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">אין רשומות</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const typeLabel = r.type === 'income' ? '<span style="color:var(--primary)">הכנסה</span>' : '<span style="color:var(--accent)">הוצאה</span>';
     const cls = r.type === 'income' ? 'amount-positive' : 'amount-negative';
     const canDel = userRole === 'admin' || userRole === 'team';
-    return `<tr><td>${typeLabel}</td><td>${MONTHS[r.month]||'—'}</td><td class="${cls}">₪${(r.amount||0).toLocaleString()}</td><td>${r.source||'—'}</td><td>${PURPOSES[r.purpose]||r.purpose||'—'}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'finance\',\''+r.id+'\')">מחק</button>':''}</td></tr>`;
+    let receiptCell = '—';
+    if (r.type === 'income') {
+      if (r.receiptIssued) {
+        receiptCell = '<span style="color:var(--primary)">✔ הונפקה' + (r.receiptNumber ? ` (#${r.receiptNumber})` : '') + '</span>';
+      } else {
+        receiptCell = '<span style="color:#c00">✘ לא הונפקה</span>';
+      }
+    } else if (r.receiptFiles && r.receiptFiles.length) {
+      receiptCell = r.receiptFiles.map((f,i) => `<a href="${f.url}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;margin-left:4px">📎 ${f.fileName||('קובץ '+(i+1))}</a>`).join('<br>');
+    }
+    const desc = r.description ? `<span title="${(r.description||'').replace(/"/g,'&quot;')}">${r.description.length>40 ? r.description.slice(0,40)+'…' : r.description}</span>` : '—';
+    return `<tr>
+      <td>${typeLabel}</td>
+      <td>${MONTHS[r.month]||'—'}</td>
+      <td class="${cls}">₪${(r.amount||0).toLocaleString()}</td>
+      <td>${r.source||'—'}</td>
+      <td>${PURPOSES[r.purpose]||r.purpose||'—'}</td>
+      <td>${desc}</td>
+      <td>${receiptCell}</td>
+      <td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'finance\',\''+r.id+'\')">מחק</button>':''}</td>
+    </tr>`;
   }).join('');
 }
 
@@ -534,12 +602,42 @@ async function addFinRecord() {
   const amount = parseInt(document.getElementById('finAmount').value) || 0;
   const source = document.getElementById('finSource').value.trim();
   const purpose = document.getElementById('finPurpose').value;
+  const description = document.getElementById('finDescription').value.trim();
   if (!amount) { toast('יש להזין סכום','error'); return; }
-  await db.collection('finance').add({ type, month, amount, source, purpose, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  document.getElementById('finAmount').value = '';
-  document.getElementById('finSource').value = '';
-  toast('נשמר!');
-  loadFinance();
+
+  const btn = document.getElementById('finAddBtn');
+  btn.disabled = true; btn.textContent = 'שומר...';
+
+  const record = { type, month, amount, source, purpose, description, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+  try {
+    if (type === 'income') {
+      record.receiptIssued = document.getElementById('finReceiptIssued').checked;
+      const receiptNumber = document.getElementById('finReceiptNumber').value.trim();
+      if (receiptNumber) record.receiptNumber = receiptNumber;
+    } else {
+      const fileInput = document.getElementById('finReceiptFiles');
+      if (fileInput.files && fileInput.files.length) {
+        btn.textContent = 'מעלה קבצים...';
+        record.receiptFiles = await uploadReceiptFiles(fileInput.files);
+      }
+    }
+    await db.collection('finance').add(record);
+
+    document.getElementById('finAmount').value = '';
+    document.getElementById('finSource').value = '';
+    document.getElementById('finDescription').value = '';
+    document.getElementById('finReceiptIssued').checked = false;
+    document.getElementById('finReceiptNumber').value = '';
+    document.getElementById('finReceiptFiles').value = '';
+    toast('נשמר!');
+    loadFinance();
+  } catch (e) {
+    console.error(e);
+    toast('שגיאה בשמירה: ' + (e.message||e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ הוסף';
+  }
 }
 
 // ===== REPORTS =====
