@@ -152,16 +152,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .overlay.show{display:block}
 
 /* ===== REPORT GENERATOR ===== */
-.report-modal .modal-content{max-width:1200px}
+.report-modal .modal-content{max-width:1200px;background:#fff}
 .report-split{display:grid;grid-template-columns:360px 1fr;gap:16px;max-height:75vh}
-.report-form-col{overflow-y:auto;padding:8px;border-left:1px solid #e5e7eb}
-.report-preview-col{overflow-y:auto;background:#f8f9fa;padding:16px;border-radius:6px}
-.report-form-col h4{margin-top:16px;color:var(--primary);font-size:0.95rem}
-.report-form-col .form-field{margin-bottom:10px}
-.report-form-col label{font-size:0.85rem;font-weight:600}
-.report-form-col input,.report-form-col textarea,.report-form-col select{width:100%;padding:6px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.9rem;font-family:inherit}
+.report-form-col{overflow-y:auto;padding:14px;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.04)}
+.report-preview-col{overflow-y:auto;background:#f8f9fa;padding:16px;border-radius:8px;border:1px solid #e5e7eb}
+.report-form-col h4{margin:16px 0 8px;color:var(--primary);font-size:0.95rem;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+.report-form-col h4:first-child{margin-top:0}
+.report-form-col .form-field{margin-bottom:12px;background:#fafbfc;padding:8px;border-radius:6px}
+.report-form-col label{font-size:0.85rem;font-weight:600;color:#1e293b;display:block;margin-bottom:4px}
+.report-form-col input,.report-form-col textarea,.report-form-col select{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;font-family:inherit;background:#fff;color:#0f172a;box-sizing:border-box}
+.report-form-col input:focus,.report-form-col textarea:focus,.report-form-col select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
 .report-form-col textarea{min-height:60px;resize:vertical}
-.report-auto-note{font-size:0.75rem;color:var(--success);margin-bottom:8px}
+.report-auto-note{font-size:0.8rem;color:#166534;background:#f0fdf4;padding:8px;border-radius:6px;border-right:3px solid #22c55e;margin:8px 0}
 
 #printArea{display:none}
 .report-doc{font-family:'David','Times New Roman',serif;max-width:21cm;margin:0 auto;padding:2cm;background:#fff;color:#000;direction:rtl;line-height:1.6}
@@ -267,6 +269,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <p style="margin:0;color:#475569;font-size:0.9rem">הפק דוח חודשי או שנתי המאחד הכנסות, הוצאות ודיווחי עובדים</p>
         </div>
         <button class="btn btn-primary" onclick="openActivityReport()">📊 הפק דוח</button>
+      </div>
+
+      <div class="card" id="org-profile-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          <h3 style="margin:0">🏛️ פרופיל עמותה — רשם העמותות</h3>
+          <button class="btn btn-secondary" id="org-refresh-btn" onclick="refreshOrgProfile()">🔄 סנכרן מרשם העמותות</button>
+        </div>
+        <p style="color:#64748b;font-size:0.85rem;margin-top:0">פרטים ציבוריים של העמותה נשלפים אוטומטית מרשם העמותות דרך פורטל הנתונים הממשלתי (data.gov.il). נתונים אלו משמשים באופן אוטומטי בתבניות הדוחות האינטראקטיביות.</p>
+        <div id="org-profile-body" style="font-size:0.9rem"><div class="empty-state">טוען...</div></div>
       </div>
       <div class="card">
         <h3>פעילות אחרונה</h3>
@@ -915,6 +926,7 @@ function showApp(user) {
   loadTeamForTasks();
   loadTasks();
   loadDashboard();
+  loadOrgProfile();
 }
 
 // ===== TOAST =====
@@ -2133,14 +2145,170 @@ function enableTemplate(key) {
 // ===== INTERACTIVE REPORT GENERATOR =========================
 // ============================================================
 
-const ORG_INFO = {
-  name: 'עמותת החשמונאים',
-  registrationNumber: '', // ניתן למלא בטופס
-  address: '',
-  purpose: 'ליווי והעצמת חיילים חרדים בחטיבת החשמונאים של צה"ל',
+// Note: פרטי עמותה - משמשים כ-default. הנתונים האמיתיים נטענים דינמית מ-data.gov.il
+// (רשימת העמותות הרשומות של רשם העמותות) ומ-Firestore (config/orgProfile) לעדכונים ידניים.
+let ORG_INFO = {
+  name: 'רוח חשמונאית (ע"ר)',
+  englishName: '',
+  registrationNumber: '580814234',
+  registrationDate: '24/03/2025',
+  status: 'רשומה',
+  classification: 'חינוך, השכלה והכשרה מקצועית',
+  subField: 'תוכניות חינוך',
+  city: 'טלמון',
+  street: 'תומר דבורה',
+  apartment: '',
+  postalCode: '7193700',
+  address: 'תומר דבורה, טלמון 7193700',
+  purpose: 'שימור ופיתוח זהותו החרדית של החייל החרדי. הקמת והפעלת מנגנון לימוד תורה המותאם לשירות בצבא ומתוך חיבור לעולם הישיבות החרדי. ליווי והכוונה אמונית ומקצועית בהקשרי היציאה לחיי המעשה שאחרי הצבא או חזרה לבית המדרש.',
   phone: '',
-  email: 'i.barkai7@gmail.com'
+  email: 'i.barkai7@gmail.com',
+  website: 'https://ruach-hashmonaim.org',
+  properManagement: null, // נשלף מ-data.gov.il
+  section46: null,        // נקבע ידנית
+  board: [],              // נקבע ידנית (גיידסטאר/רשם = דורש התחברות)
+  source: 'default',      // 'default' | 'data.gov.il' | 'manual'
+  lastSynced: null
 };
+
+// ============================================================
+// רשם העמותות / גיידסטאר - שליפת נתונים ציבורית דרך data.gov.il (CKAN API)
+// Dataset: מאגר עמותות וחברות לתועלת הציבור (משרד המשפטים)
+// ============================================================
+const GOV_RESOURCE_ORGS = 'be5b7935-3922-45d4-9638-08871b17ec95';      // עמותות רשומות
+const GOV_RESOURCE_NIHUL = 'cb12ac14-7429-4268-bc03-460f48157858';    // ניהול תקין
+
+async function fetchOrgFromRegistry(regNum) {
+  const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=${GOV_RESOURCE_ORGS}&q=${encodeURIComponent(regNum)}&limit=1`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('שליפה מרשם העמותות נכשלה: ' + resp.status);
+  const json = await resp.json();
+  const rec = json.result && json.result.records && json.result.records[0];
+  if (!rec) throw new Error('עמותה לא נמצאה ברשם ('+regNum+')');
+
+  // Normalize fields (Hebrew keys from data.gov.il)
+  const cleanTxt = s => (s||'').toString().replace(/~/g,'·').replace(/&#x0D;/g,'').replace(/\s+/g,' ').trim();
+  return {
+    name: cleanTxt(rec['שם עמותה בעברית']),
+    englishName: cleanTxt(rec['שם עמותה באנגלית']),
+    registrationNumber: String(rec['מספר עמותה']||regNum),
+    registrationDate: cleanTxt(rec['תאריך רישום עמותה']),
+    status: cleanTxt(rec['סטטוס עמותה']),
+    classification: cleanTxt(rec['סיווג פעילות ענפי']),
+    subField: cleanTxt(rec['תחום פעילות משני']),
+    city: cleanTxt(rec['כתובת - ישוב']),
+    street: cleanTxt(rec['כתובת - רחוב']),
+    apartment: cleanTxt(rec['כתובת - מספר דירה']),
+    postalCode: cleanTxt(rec['כתובת - מיקוד']),
+    purpose: cleanTxt(rec['מטרות עמותה']).replace(/·\s*/g,'\n'),
+    lastReportingYear: cleanTxt(rec['שנת דיווח אחרונה']),
+    annualRevenue: rec['מחזור כספי (הכנסות)'],
+    annualExpense: rec['סך הוצאות העמותה'],
+    employees: rec['כמות עובדים'],
+    volunteers: rec['כמות מתנדבים']
+  };
+}
+
+async function fetchProperManagementStatus(regNum) {
+  const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=${GOV_RESOURCE_NIHUL}&q=${encodeURIComponent(regNum)}&limit=5`;
+  const resp = await fetch(url);
+  if (!resp.ok) return null;
+  const json = await resp.json();
+  const recs = json.result && json.result.records || [];
+  if (!recs.length) return {hasCertificate: false, note: 'לא נמצא אישור ניהול תקין בתוקף ברשומות רשם העמותות'};
+  // Pick latest year
+  const latest = recs.sort((a,b)=>parseInt(b['שנת האישור']||0)-parseInt(a['שנת האישור']||0))[0];
+  return {
+    hasCertificate: true,
+    year: latest['שנת האישור'],
+    raw: latest
+  };
+}
+
+// Load from Firestore cache (if exists) then merge
+async function loadOrgProfile() {
+  try {
+    const doc = await db.collection('config').doc('orgProfile').get();
+    if (doc.exists) {
+      const cached = doc.data();
+      ORG_INFO = {...ORG_INFO, ...cached};
+      console.log('[ORG] loaded from cache, synced:', cached.lastSynced);
+    }
+  } catch(e) {
+    console.warn('[ORG] failed to load cache:', e.message);
+  }
+  renderOrgProfile();
+}
+
+// Refresh from data.gov.il and save to Firestore
+async function refreshOrgProfile() {
+  const btn = document.getElementById('org-refresh-btn');
+  if (btn) btn.disabled = true;
+  try {
+    toast('מתחבר לרשם העמותות...');
+    const regNum = ORG_INFO.registrationNumber || '580814234';
+    const [orgData, nihulStatus] = await Promise.all([
+      fetchOrgFromRegistry(regNum),
+      fetchProperManagementStatus(regNum)
+    ]);
+
+    ORG_INFO = {
+      ...ORG_INFO,
+      ...orgData,
+      address: `${orgData.street}, ${orgData.city}${orgData.postalCode?' '+orgData.postalCode:''}`.trim(),
+      properManagement: nihulStatus,
+      source: 'data.gov.il',
+      lastSynced: new Date().toISOString()
+    };
+
+    // Save to Firestore (if admin)
+    try {
+      await db.collection('config').doc('orgProfile').set(ORG_INFO, {merge: true});
+      console.log('[ORG] saved to Firestore');
+    } catch(e) {
+      console.warn('[ORG] could not save to Firestore (permissions?):', e.message);
+    }
+
+    renderOrgProfile();
+    toast('✅ פרטי העמותה עודכנו מרשם העמותות');
+  } catch(e) {
+    toast('❌ ' + e.message);
+    console.error('[ORG] refresh failed:', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function renderOrgProfile() {
+  const el = document.getElementById('org-profile-body');
+  if (!el) return;
+  const o = ORG_INFO;
+  const syncInfo = o.lastSynced
+    ? `עודכן לאחרונה: ${new Date(o.lastSynced).toLocaleString('he-IL')} · מקור: ${o.source}`
+    : `מקור: ${o.source}`;
+  const nihulBadge = o.properManagement
+    ? (o.properManagement.hasCertificate
+        ? `<span style="background:#22c55e;color:#fff;padding:3px 8px;border-radius:4px;font-size:0.85rem">✓ ניהול תקין ${o.properManagement.year||''}</span>`
+        : `<span style="background:#f59e0b;color:#fff;padding:3px 8px;border-radius:4px;font-size:0.85rem">⚠ ${o.properManagement.note||'אין אישור ניהול תקין'}</span>`)
+    : '<span style="color:#888;font-size:0.85rem">סטטוס ניהול תקין: לא נבדק</span>';
+  const statusBadge = `<span style="background:#3b82f6;color:#fff;padding:3px 8px;border-radius:4px;font-size:0.85rem">${o.status||'?'}</span>`;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div><strong>שם העמותה:</strong><br>${o.name||'—'}</div>
+      <div><strong>מספר עמותה:</strong><br>${o.registrationNumber||'—'}</div>
+      <div><strong>תאריך רישום:</strong><br>${o.registrationDate||'—'}</div>
+      <div><strong>סטטוס:</strong><br>${statusBadge}</div>
+      <div><strong>סיווג:</strong><br>${o.classification||'—'}</div>
+      <div><strong>תחום פעילות:</strong><br>${o.subField||'—'}</div>
+      <div style="grid-column:1/-1"><strong>כתובת:</strong> ${o.address||'—'}</div>
+      <div style="grid-column:1/-1"><strong>אישור ניהול תקין:</strong> ${nihulBadge}</div>
+      <div style="grid-column:1/-1"><strong>מטרות העמותה:</strong><div style="white-space:pre-wrap;margin-top:4px;padding:8px;background:#fafbfc;border-right:3px solid #3b82f6;border-radius:4px">${o.purpose||'—'}</div></div>
+    </div>
+    <div style="margin-top:10px;font-size:0.8rem;color:#666">${syncInfo}</div>
+    <div style="margin-top:8px;font-size:0.75rem;color:#94a3b8">מקור: רשם העמותות (משרד המשפטים) · data.gov.il · נתונים ציבוריים</div>
+  `;
+}
 
 // Helper: sum finance by type / year
 async function getFinancialSummary(year) {
@@ -2367,7 +2535,7 @@ const REPORT_TEMPLATES = {
         {id:'reportYear', label:'שנת דיווח', type:'number', required:true, default: new Date().getFullYear() - 1},
         {id:'orgRegNum', label:'מספר רישום (ע.ר.)', type:'text'},
         {id:'orgAddress', label:'כתובת רשומה', type:'text'},
-        {id:'purposes', label:'מטרות העמותה (לפי התקנון)', type:'textarea', rows:3, default: ORG_INFO.purpose}
+        {id:'purposes', label:'מטרות העמותה (לפי התקנון)', type:'textarea', rows:3, default: () => ORG_INFO.purpose}
       ]},
       {heading: 'פעילות השנה', fields: [
         {id:'activitySummary', label:'תקציר פעילות השנה', type:'textarea', rows:6},
@@ -2607,7 +2775,7 @@ const REPORT_TEMPLATES = {
     sections: [
       {heading: 'פרטי העמותה', fields: [
         {id:'orgRegNum', label:'מספר רישום (ע.ר.)', type:'text'},
-        {id:'purposesDetails', label:'מטרות העמותה המקנות זכאות', type:'textarea', rows:4, default: ORG_INFO.purpose},
+        {id:'purposesDetails', label:'מטרות העמותה המקנות זכאות', type:'textarea', rows:4, default: () => ORG_INFO.purpose},
         {id:'activityField', label:'תחום פעילות ציבורי', type:'select', options:['חינוך','דת','רווחה','בריאות','תרבות','ספורט','אחר']}
       ]},
       {heading: 'הצהרות', fields: [
@@ -2767,7 +2935,8 @@ async function openReportGen(key) {
   tpl.sections.forEach(sec => {
     formHTML += `<h4>${sec.heading}</h4>`;
     sec.fields.forEach(f => {
-      const val = (f.default !== undefined) ? f.default : '';
+      let val = (f.default !== undefined) ? f.default : '';
+      if (typeof val === 'function') val = val();
       currentReportData[f.id] = val;
       let input = '';
       const req = f.required ? ' required' : '';
@@ -2790,6 +2959,8 @@ async function openReportGen(key) {
 
   // Load auto-data if needed
   currentReportAuto = {};
+  // orgProfile is always attached so templates can read current data
+  currentReportAuto.orgProfile = ORG_INFO;
   if (tpl.autoData) {
     const y = currentReportData.reportYear || (new Date().getFullYear() - 1);
     if (tpl.autoData.includes('finSummary')) currentReportAuto.finSummary = await getFinancialSummary(y);
