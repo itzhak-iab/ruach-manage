@@ -76,6 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:500}
 .badge-admin{background:#ffeef0;color:#e74c3c}
 .badge-team{background:#e8f8f0;color:#27ae60}
+.badge-ram{background:#fff7e6;color:#d97706}
 .badge-viewer{background:#eef0ff;color:#3498db}
 
 .section{display:none}
@@ -240,6 +241,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> דשבורד</div>
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> שקיפות פיננסית</div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> דיווחי עובדים</div>
+    <div class="nav-item" onclick="switchSection('pluga',this)" id="navPluga"><span class="icon">🎖️</span> דיווח שבועי — ר"מ פלוגתי</div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> ניהול תורמים</div>
     <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> יומן ומשימות</div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> פרויקטים</div>
@@ -407,6 +409,113 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <table class="data-table">
           <thead><tr><th>תאריך</th><th>עובד</th><th>שעות</th><th>תחום</th><th>הערות</th></tr></thead>
           <tbody id="repTableBody"><tr><td colspan="5" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PLUGA: WEEKLY REPORT — ר"מ פלוגתי -->
+    <div class="section" id="sec-pluga">
+      <div class="page-header">
+        <h1>🎖️ דיווח שבועי — ר"מ פלוגתי</h1>
+        <p>טופס דיווח שבועי בהתאם להסכם ההעסקה · להגשה עד יום ראשון בבוקר עבור השבוע שחלף</p>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#fff7e6 0%,#eef2ff 100%);border-right:4px solid #d97706">
+        <h3>📜 תזכורת מחובות התפקיד (על פי החוזה)</h3>
+        <ul style="margin:8px 0 0;padding-right:20px;line-height:1.8">
+          <li><strong>נוכחות שטח:</strong> 3–4 ימים בשבוע, 6 שעות לכל הפחות ביום פעילות</li>
+          <li><strong>זמינות לחיילים:</strong> לפחות פעמיים בשבוע בשעות ט"ש או זמני פנאי</li>
+          <li><strong>קשר אישי:</strong> לפחות 16 שיחות אישיות בחודש (≈ 4 בשבוע) + סיכום תובנות</li>
+          <li><strong>זיהוי והצפה:</strong> זיהוי פערים / מצוקות והעברתם למפקדים ולמובילי התוכנית</li>
+          <li><strong>תיאום פיקודי:</strong> תהליכי עבודה שוטפים עם הסגל הפיקודי בפלוגה</li>
+          <li><strong>הגשה:</strong> לא יאוחר מיום א' בבוקר עבור השבוע שחלף</li>
+        </ul>
+      </div>
+
+      <div class="card" id="plugaAddCard">
+        <h3>🆕 מלא דיווח שבועי חדש</h3>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">א. פרטי השבוע</h4>
+        <div class="form-row">
+          <div class="form-field"><label>שבוע (יום ראשון)</label><input type="date" id="plgWeekStart"></div>
+          <div class="form-field"><label>עד (יום שבת)</label><input type="date" id="plgWeekEnd"></div>
+          <div class="form-field"><label>פלוגה / יחידה</label><input type="text" id="plgUnit" placeholder="פלוגה ___ / חטיבה ___"></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ב. נוכחות שטח</h4>
+        <div class="form-row">
+          <div class="form-field"><label>ימי נוכחות השבוע</label><input type="number" id="plgFieldDays" min="0" max="7" placeholder="3–4"></div>
+          <div class="form-field"><label>סה"כ שעות נוכחות</label><input type="number" id="plgFieldHours" step="0.5" placeholder="24"></div>
+          <div class="form-field"><label>מיקום עיקרי</label><input type="text" id="plgLocation" placeholder="בסיס / שטח / שניהם"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>פירוט ימים ופעילות</label><textarea id="plgFieldDetails" rows="3" placeholder="יום א' — בסיס, לוח שנתי + שיחות אישיות&#10;יום ג' — שטח, ליווי פעילות מבצעית&#10;..."></textarea></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ג. זמינות לחיילים (ט"ש / זמני פנאי)</h4>
+        <div class="form-row">
+          <div class="form-field"><label>כמות מפגשי זמינות</label><input type="number" id="plgAvailCount" min="0" placeholder="2"></div>
+          <div class="form-field" style="grid-column:span 2"><label>תיאור קצר (מתי, כמה חיילים)</label><input type="text" id="plgAvailDetails" placeholder="ב' בערב — ~20 חיילים, ד' בערב — קבוצה קטנה"></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ד. קשר אישי — שיחות</h4>
+        <div class="form-row">
+          <div class="form-field"><label>מס' שיחות אישיות השבוע</label><input type="number" id="plgTalksCount" min="0" placeholder="4"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>סיכום תובנות מהשיחות <small style="color:#64748b">(ללא פרטים מזהים)</small></label><textarea id="plgTalksInsights" rows="4" placeholder="תובנות מצטברות, מוטיבים חוזרים, נושאים שעלו..."></textarea></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ה. זיהוי והצפה</h4>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>פערים / מצוקות / צרכים שעלו מהשטח</label><textarea id="plgGaps" rows="3" placeholder="פער X, מצוקה Y..."></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>למי הועבר / הוצף</label><textarea id="plgEscalated" rows="2" placeholder="מ"פ, רב חטיבה, מוביל התוכנית..."></textarea></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ו. תיאום פיקודי</h4>
+        <div class="form-row">
+          <div class="form-field"><label>מפגשי עבודה עם הסגל</label><input type="number" id="plgCmdCount" min="0" placeholder="1"></div>
+          <div class="form-field" style="grid-column:span 2"><label>עם מי? (מ"פ, סמ"פ, מ"מים...)</label><input type="text" id="plgCmdWith" placeholder="מ"פ, סמ"פ"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>עיקרי השיחות / החלטות</label><textarea id="plgCmdNotes" rows="3"></textarea></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ז. תמונת מצב רכה — 4 שאלות מהותיות</h4>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>1. אילו אתגרים רוחניים קיימים בפלוגה השבוע?</label><textarea id="plgQ1" rows="3" placeholder="שבת בשטח, תפילה, הנחת תפילין, שמירת חלב/בשר, שאלות אמוניות..."></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>2. האם יש מקרי קצה שצריך לתת עליהם את הדעת? (חייל בסיכון, משבר משפחתי, ירידה רוחנית, בידוד חברתי)</label><textarea id="plgQ2" rows="3" placeholder="מתי אפשר בלי פרטים מזהים, ולדגל עם המובילים..."></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>3. מה הרוח הכללית בפלוגה? (מורל, גאוות יחידה, תחושת שייכות, יחסים בין החיילים)</label><textarea id="plgQ3" rows="3"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>4. אילו הזדמנויות/רגעי שיא היו השבוע? (שיעור משמעותי, שיחה מכוננת, תגובה חיובית)</label><textarea id="plgQ4" rows="3"></textarea></div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">ח. מבט קדימה</h4>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תוכניות לשבוע הבא / סיוע שנדרש</label><textarea id="plgNextWeek" rows="3" placeholder="חומרים ליום עיון, תיאום עם משפחות, הכנה לחג..."></textarea></div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="addPlugaReport()">💾 שלח דיווח שבועי</button>
+          <button class="btn btn-secondary" onclick="resetPlugaForm()">🧹 נקה טופס</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📚 דיווחים שבועיים קודמים</h3>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-field"><label>סנן לפי עובד</label><select id="plgFilterUser"><option value="">— הכול —</option></select></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>שבוע</th><th>עובד</th><th>ימים</th><th>שעות</th><th>שיחות</th><th>פעולות</th></tr></thead>
+          <tbody id="plgTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -755,7 +864,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>אימייל Google</label><input type="email" id="teamEmail" placeholder="user@gmail.com" dir="ltr"></div>
           <div class="form-field"><label>שם</label><input type="text" id="teamName" placeholder="שם"></div>
           <div class="form-field"><label>תפקיד</label>
-            <select id="teamRole"><option value="admin">מנהל</option><option value="team">צוות</option><option value="viewer">צופה</option></select>
+            <select id="teamRole"><option value="admin">מנהל</option><option value="team">צוות</option><option value="ram-plugati">ר"מ פלוגתי</option><option value="viewer">צופה</option></select>
           </div>
         </div>
         <button class="btn btn-primary" onclick="addTeamMember()">+ הוסף</button>
@@ -779,6 +888,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   <div class="modal-content">
     <span class="modal-close" onclick="closeTaskModal()" style="position:absolute;left:16px;top:10px;font-size:1.6rem;cursor:pointer;color:#999">×</span>
     <div id="taskModalBody"></div>
+  </div>
+</div>
+
+<!-- PLUGA REPORT VIEW MODAL -->
+<div class="modal" id="plugaModal" style="display:none" onclick="if(event.target===this)closePlugaModal()">
+  <div class="modal-content" style="max-width:900px">
+    <span class="modal-close no-print" onclick="closePlugaModal()" style="position:absolute;left:16px;top:10px;font-size:1.6rem;cursor:pointer;color:#999">×</span>
+    <div id="plugaModalBody"></div>
   </div>
 </div>
 
@@ -823,7 +940,7 @@ let userRole = null;
 const PURPOSES = {torah:'ליווי תורני',prep:'הכנה לשירות',welfare:'רווחה וסיוע',study:'העצמת לימוד התורה בחטיבה',alumni:'תוכניות בוגרים',general:'כללי',admin:'מנהלה'};
 const MONTHS = {1:'ינואר',2:'פברואר',3:'מרץ',4:'אפריל',5:'מאי',6:'יוני',7:'יולי',8:'אוגוסט',9:'ספטמבר',10:'אוקטובר',11:'נובמבר',12:'דצמבר'};
 const STATUSES = {active:'פעיל',planning:'בתכנון',done:'הושלם'};
-const ROLES = {admin:'מנהל',team:'צוות',viewer:'צופה'};
+const ROLES = {admin:'מנהל',team:'צוות','ram-plugati':'ר"מ פלוגתי',viewer:'צופה'};
 
 // ===== AUTH =====
 function signIn() {
@@ -919,6 +1036,17 @@ function showApp(user) {
   // Render regulatory templates cards (admin sees them, but safe to render always)
   renderTemplates();
 
+  // Pluga (ר"מ פלוגתי) section visibility:
+  // - viewer: hide
+  // - others: show (ram-plugati sees only their own; admin/team see all)
+  const navPluga = document.getElementById('navPluga');
+  if (navPluga) navPluga.style.display = (userRole === 'viewer') ? 'none' : '';
+  // ram-plugati sees the form but nothing else; hide admin cards etc. already handled.
+  // Initialize default week and wire filter
+  resetPlugaForm();
+  const plgFilter = document.getElementById('plgFilterUser');
+  if (plgFilter) plgFilter.onchange = renderPlugaTable;
+
   // Load data
   loadFinance();
   loadReports();
@@ -930,6 +1058,7 @@ function showApp(user) {
   loadTasks();
   loadDashboard();
   loadOrgProfile();
+  loadPlugaReports();
 }
 
 // ===== TOAST =====
@@ -1162,6 +1291,147 @@ async function addReport() {
     toast('שגיאה בשמירה: ' + (e.message||e), 'error');
   }
 }
+
+// ===== PLUGA WEEKLY REPORTS — ר"מ פלוגתי =====
+const PLG_FIELDS = [
+  'plgWeekStart','plgWeekEnd','plgUnit',
+  'plgFieldDays','plgFieldHours','plgLocation','plgFieldDetails',
+  'plgAvailCount','plgAvailDetails',
+  'plgTalksCount','plgTalksInsights',
+  'plgGaps','plgEscalated',
+  'plgCmdCount','plgCmdWith','plgCmdNotes',
+  'plgQ1','plgQ2','plgQ3','plgQ4',
+  'plgNextWeek'
+];
+
+function canViewAllPluga() { return userRole === 'admin' || userRole === 'team'; }
+function canSubmitPluga() { return userRole === 'admin' || userRole === 'team' || userRole === 'ram-plugati'; }
+
+function defaultPlugaWeek() {
+  // Default to last week (Sunday → Saturday)
+  const today = new Date();
+  const day = today.getDay(); // Sun=0
+  const lastSat = new Date(today); lastSat.setDate(today.getDate() - day - 1);
+  const lastSun = new Date(lastSat); lastSun.setDate(lastSat.getDate() - 6);
+  return { start: lastSun.toISOString().slice(0,10), end: lastSat.toISOString().slice(0,10) };
+}
+
+function resetPlugaForm() {
+  PLG_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const w = defaultPlugaWeek();
+  const ws = document.getElementById('plgWeekStart'); if (ws) ws.value = w.start;
+  const we = document.getElementById('plgWeekEnd');   if (we) we.value = w.end;
+}
+
+async function addPlugaReport() {
+  if (!canSubmitPluga()) { toast('אין לך הרשאה להגיש דיווח שבועי','error'); return; }
+  const data = {};
+  PLG_FIELDS.forEach(id => { const el = document.getElementById(id); data[id.replace(/^plg/, '').replace(/^./, c=>c.toLowerCase())] = el ? el.value.trim() : ''; });
+  if (!data.weekStart || !data.weekEnd) { toast('יש למלא את טווח השבוע','error'); return; }
+  // Coerce numeric fields
+  ['fieldDays','fieldHours','availCount','talksCount','cmdCount'].forEach(k => {
+    data[k] = data[k] === '' ? null : Number(data[k]);
+  });
+  data.createdBy = currentUser.email;
+  data.userName = currentUser.displayName || currentUser.email;
+  data.userRole = userRole;
+  data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    const ref = await db.collection('pluga_weekly_reports').add(data);
+    console.log('[SAVE OK] pluga_weekly_reports doc id:', ref.id);
+    toast('דיווח שבועי נשמר (ID: ' + ref.id.substring(0,8) + ')');
+    resetPlugaForm();
+    loadPlugaReports();
+  } catch(e) {
+    console.error('[SAVE FAIL] pluga_weekly_reports:', e);
+    toast('שגיאה בשמירה: ' + (e.message||e), 'error');
+  }
+}
+
+let _plugaCache = [];
+async function loadPlugaReports() {
+  const tbody = document.getElementById('plgTableBody');
+  if (!tbody) return;
+  try {
+    let snap;
+    if (canViewAllPluga()) {
+      snap = await db.collection('pluga_weekly_reports').orderBy('weekStart','desc').limit(100).get();
+    } else {
+      // Regular ר"מ פלוגתי sees only their own
+      snap = await db.collection('pluga_weekly_reports').where('createdBy','==',currentUser.email).orderBy('weekStart','desc').limit(50).get();
+    }
+    _plugaCache = [];
+    snap.forEach(doc => _plugaCache.push({id: doc.id, ...doc.data()}));
+    renderPlugaTable();
+    // Populate user filter (admin/team only)
+    if (canViewAllPluga()) {
+      const sel = document.getElementById('plgFilterUser');
+      if (sel) {
+        const users = Array.from(new Set(_plugaCache.map(r => r.userName||r.createdBy))).sort();
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— הכול —</option>' + users.map(u => `<option value="${u}"${u===cur?' selected':''}>${u}</option>`).join('');
+      }
+    }
+  } catch(e) {
+    console.error('[LOAD FAIL] pluga_weekly_reports:', e);
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">שגיאה: ' + (e.message||e) + '</td></tr>';
+  }
+}
+
+function renderPlugaTable() {
+  const tbody = document.getElementById('plgTableBody');
+  if (!tbody) return;
+  const sel = document.getElementById('plgFilterUser');
+  const filter = sel ? sel.value : '';
+  let rows = _plugaCache;
+  if (filter) rows = rows.filter(r => (r.userName||r.createdBy) === filter);
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין דיווחים עדיין</td></tr>'; return; }
+  const isAdmin = userRole === 'admin';
+  tbody.innerHTML = rows.map(r => {
+    const week = `${r.weekStart||'—'} → ${r.weekEnd||'—'}`;
+    const del = isAdmin ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delDoc('pluga_weekly_reports','${r.id}',loadPlugaReports)">🗑</button>` : '';
+    return `<tr style="cursor:pointer" onclick="openPlugaView('${r.id}')"><td>${week}</td><td>${r.userName||r.createdBy||'—'}</td><td>${r.fieldDays??'—'}</td><td>${r.fieldHours??'—'}</td><td>${r.talksCount??'—'}</td><td>👁 פתח ${del}</td></tr>`;
+  }).join('');
+}
+
+function openPlugaView(id) {
+  const r = _plugaCache.find(x => x.id === id);
+  if (!r) return;
+  const sec = (title, content) => content ? `<div style="margin:14px 0"><h4 style="margin:0 0 6px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">${title}</h4><div style="white-space:pre-wrap">${content}</div></div>` : '';
+  const num = (n) => (n===null||n===undefined||n==='') ? '—' : n;
+  document.getElementById('plugaModalBody').innerHTML = `
+    <h2 style="margin:0 0 4px">🎖️ דיווח שבועי — ר"מ פלוגתי</h2>
+    <div style="color:#64748b;margin-bottom:8px">${r.userName||r.createdBy||''} · ${r.weekStart||'—'} → ${r.weekEnd||'—'} · ${r.unit||''}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0;background:#f8fafc;padding:10px;border-radius:8px">
+      <div><strong>ימי שטח:</strong> ${num(r.fieldDays)}</div>
+      <div><strong>שעות נוכחות:</strong> ${num(r.fieldHours)}</div>
+      <div><strong>מפגשי זמינות:</strong> ${num(r.availCount)}</div>
+      <div><strong>שיחות אישיות:</strong> ${num(r.talksCount)}</div>
+      <div><strong>תיאומי פיקוד:</strong> ${num(r.cmdCount)}</div>
+    </div>
+    ${sec('📍 פירוט נוכחות', r.fieldDetails + (r.location?` <em>(${r.location})</em>`:''))}
+    ${sec('🕯 זמינות לחיילים', r.availDetails)}
+    ${sec('💬 תובנות מהשיחות', r.talksInsights)}
+    ${sec('⚠ פערים / מצוקות', r.gaps)}
+    ${sec('📤 הוצף ל…', r.escalated)}
+    ${sec('🤝 תיאום פיקודי — עם מי', r.cmdWith)}
+    ${sec('🤝 תיאום פיקודי — עיקרי הדברים', r.cmdNotes)}
+    <div style="background:#fff7e6;padding:12px;border-radius:8px;margin-top:14px">
+      <h3 style="margin:0 0 8px;color:#d97706">💭 תמונת מצב רכה</h3>
+      ${sec('1. אתגרים רוחניים בפלוגה', r.q1)}
+      ${sec('2. מקרי קצה לתת עליהם את הדעת', r.q2)}
+      ${sec('3. הרוח הכללית בפלוגה', r.q3)}
+      ${sec('4. הזדמנויות / רגעי שיא', r.q4)}
+    </div>
+    ${sec('📅 מבט קדימה / סיוע נדרש', r.nextWeek)}
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="window.print()">🖨 הדפס / שמור PDF</button>
+      <button class="btn btn-secondary" onclick="closePlugaModal()">סגור</button>
+    </div>`;
+  document.getElementById('plugaModal').style.display = 'flex';
+}
+
+function closePlugaModal() { document.getElementById('plugaModal').style.display = 'none'; }
 
 // ===== DONORS =====
 async function loadDonors() {
@@ -1583,7 +1853,7 @@ async function loadTeam() {
   snap.forEach(doc => rows.push({id:doc.id,...doc.data()}));
   const tbody = document.getElementById('teamTableBody');
   tbody.innerHTML = rows.map(r => {
-    const badgeCls = r.role==='admin'?'badge-admin':r.role==='team'?'badge-team':'badge-viewer';
+    const badgeCls = r.role==='admin'?'badge-admin':r.role==='team'?'badge-team':r.role==='ram-plugati'?'badge-ram':'badge-viewer';
     return `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.email||r.id}</td><td><span class="badge ${badgeCls}">${ROLES[r.role]||r.role}</span></td><td>${r.email!==currentUser.email?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'team\',\''+r.id+'\')">הסר</button>':'(אתה)'}</td></tr>`;
   }).join('');
 }
@@ -1621,16 +1891,18 @@ async function loadDashboard() {
 }
 
 // ===== DELETE =====
-async function delDoc(collection, id) {
+async function delDoc(collection, id, cb) {
   if (!confirm('למחוק?')) return;
   await db.collection(collection).doc(id).delete();
   toast('נמחק');
-  if (collection==='finance') loadFinance();
+  if (typeof cb === 'function') { cb(); }
+  else if (collection==='finance') loadFinance();
   else if (collection==='donors') loadDonors();
   else if (collection==='projects') loadProjects();
   else if (collection==='team') loadTeam();
   else if (collection==='trips') loadTrips();
   else if (collection==='vehicleEvents') loadVehicleEvents();
+  else if (collection==='pluga_weekly_reports') loadPlugaReports();
   loadDashboard();
 }
 
