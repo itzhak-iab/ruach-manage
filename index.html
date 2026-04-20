@@ -2284,7 +2284,11 @@ function renderProjectTasks(p, body) {
   const projTasks = (tasksCache||[]).filter(t => t.projectId === p.id);
   projTasks.sort((a,b) => (a.dueDate||'').localeCompare(b.dueDate||''));
 
-  const assigneeOpts = teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
+  // Only actual team members (exclude viewers) can be assigned tasks
+  const teamForAssign = (teamCache||[]).filter(t => t.role !== 'viewer');
+  const assigneeOpts = teamForAssign.length
+    ? teamForAssign.map(t => `<option value="${t.email}">${t.name||t.email}${t.role?' ('+(ROLES[t.role]||t.role)+')':''}</option>`).join('')
+    : '<option value="" disabled>טוען צוות…</option>';
   const rows = projTasks.length ? projTasks.map(t => {
     const assigneeName = (t.assignees||[]).map(e => teamCache.find(tm=>tm.email===e)?.name || e).join(', ') || '—';
     const statusBg = t.status==='done'?'#dcfce7':t.status==='in_progress'?'#dbeafe':'#fef3c7';
@@ -2906,6 +2910,17 @@ async function loadTeamForTasks() {
     teamCache = [];
     snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
     populateAssignees();
+    // Also refresh project leader dropdown — it depends on teamCache
+    try { if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect(); } catch(e) {}
+    // Refresh project list too, so leader names resolve properly in the list
+    try {
+      if (typeof loadProjects === 'function' && Array.isArray(projectsCache) && projectsCache.length) {
+        // Re-render by calling loadProjects again (idempotent — re-reads from Firestore)
+        // But cheaper: just re-render the list if we already have data
+        const container = document.getElementById('projList');
+        if (container && projectsCache.length) loadProjects();
+      }
+    } catch(e) {}
   } catch(e) { console.warn('loadTeamForTasks:', e); }
 }
 
