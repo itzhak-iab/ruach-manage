@@ -243,10 +243,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     </div>
     <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד</span></div>
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
+    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
     <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
-    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> <span data-i18n="nav.team">ניהול צוות</span></div>
     <div style="border-top:1px solid rgba(255,255,255,0.15);margin:10px 0;padding:10px 0;display:flex;gap:4px;justify-content:center">
@@ -254,6 +254,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.20-b</div>
   </aside>
 
   <!-- Main Content -->
@@ -1044,6 +1045,21 @@ function switchSection(id, el) {
   if (id === 'tasks' && typeof CONTRACT_ROLES !== 'undefined' && CONTRACT_ROLES.includes(userRole)) {
     const f = document.getElementById('tkFilterAssignee');
     if (f && !f.value) { f.value = 'me'; if (typeof renderTasks === 'function') renderTasks(); }
+  }
+  // Projects: make sure leader dropdown is populated with current team (handles race condition at first load)
+  if (id === 'projects') {
+    (async () => {
+      try {
+        if (!Array.isArray(teamCache) || !teamCache.length) {
+          // Team not loaded yet — fetch now
+          const snap = await db.collection('team').get();
+          teamCache = [];
+          snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+          if (typeof populateAssignees === 'function') populateAssignees();
+        }
+        if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect();
+      } catch(e) { console.warn('projects leader refresh:', e); }
+    })();
   }
 }
 
@@ -1956,12 +1972,21 @@ const EXPENSE_CATEGORIES = {
 
 let projectsCache = [];
 
-function populateProjectLeaderSelect() {
+async function populateProjectLeaderSelect() {
   const sel = document.getElementById('projLeader');
   if (!sel) return;
   const cur = sel.value;
-  // Only team members (not "viewer") can be leaders
-  const leaders = teamCache.filter(t => t.role !== 'viewer');
+  // If teamCache is empty, load team now (robust against race conditions at startup)
+  if (!Array.isArray(teamCache) || !teamCache.length) {
+    try {
+      const snap = await db.collection('team').get();
+      teamCache = [];
+      snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+      console.log('[populateProjectLeaderSelect] loaded', teamCache.length, 'team members');
+    } catch(e) { console.warn('populateProjectLeaderSelect: failed to load team:', e); }
+  }
+  // Only actual team members (exclude viewers) can be leaders
+  const leaders = (teamCache||[]).filter(t => t.role && t.role !== 'viewer');
   sel.innerHTML = '<option value="">— ללא מוביל —</option>' +
     leaders.map(t => `<option value="${t.email}">${t.name||t.email}${t.role?' ('+(ROLES[t.role]||t.role)+')':''}</option>`).join('');
   if (cur) sel.value = cur;
