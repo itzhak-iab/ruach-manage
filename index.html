@@ -484,7 +484,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="section" id="sec-tasks">
       <div class="page-header">
         <h1 data-i18n="page.tasks.title">📋 יומן ומשימות</h1>
-        <p>ניהול משימות צוות ומעקב חובות רגולטוריות</p>
+        <p>משימות המערכת נגזרות מפרויקטים. כל עובד רואה את המשימות שהוקצו לו; מנהלים רואים את כולן (שלהם קודם).</p>
       </div>
 
       <!-- KPIs -->
@@ -529,8 +529,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         </div>
       </div>
 
-      <!-- Add task -->
-      <div class="card" id="tkAddCard">
+      <!-- Info banner: tasks derive from projects -->
+      <div class="card" id="tkProjectsHint" style="background:#eff6ff;border:1px solid #bfdbfe">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="font-size:1.6rem">📂</div>
+          <div style="flex:1;min-width:200px">
+            <strong>המשימות נגזרות מפרויקטים</strong><br>
+            <span style="color:#1e40af;font-size:0.9rem">להוספת משימה חדשה — פתחו את הפרויקט הרלוונטי ועברו לטאב "✅ משימות".</span>
+          </div>
+          <button class="btn btn-primary" onclick="switchSection('projects', document.querySelector('.nav-item[onclick*=projects]'))">עבור לפרויקטים ←</button>
+        </div>
+      </div>
+
+      <!-- Add task (HIDDEN — tasks are created only from inside a project) -->
+      <div class="card" id="tkAddCard" style="display:none">
         <h3>+ הוסף משימה</h3>
         <div class="form-row">
           <div class="form-field" style="grid-column:1/-1"><label>כותרת</label><input type="text" id="tkTitle" placeholder="כותרת המשימה"></div>
@@ -2872,11 +2884,19 @@ function populateAssignees() {
   const filt = document.getElementById('tkFilterAssignee');
   if (!sel) return;
   sel.innerHTML = teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
-  // Preserve filter UI
   const cur = filt.value;
-  filt.innerHTML = '<option value="">כל המשויכים</option><option value="me">המשימות שלי</option>' +
-                   teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
-  filt.value = cur || '';
+  const isManager = (userRole === 'admin' || userRole === 'team');
+  if (isManager) {
+    filt.innerHTML = '<option value="">כל המשויכים</option><option value="me">המשימות שלי</option>' +
+                     teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
+    filt.value = cur || '';
+  } else {
+    // Non-managers can only see their own tasks — hide the filter entirely to avoid confusion.
+    filt.innerHTML = '<option value="me">המשימות שלי</option>';
+    filt.value = 'me';
+    filt.disabled = true;
+    filt.style.opacity = '0.6';
+  }
 }
 
 // ---- Load team members for assignee pickers ----
@@ -2924,7 +2944,13 @@ function filterTasks() {
   const status = document.getElementById('tkFilterStatus').value;
   const assignee = document.getElementById('tkFilterAssignee').value;
   const category = document.getElementById('tkFilterCategory').value;
+  // Visibility enforcement: non-manager users only ever see tasks assigned to them.
+  const isManager = (userRole === 'admin' || userRole === 'team');
   return tasksCache.filter(t => {
+    // Hard visibility gate for non-managers (regardless of the UI filter)
+    if (!isManager) {
+      if (!t.assignees || !t.assignees.includes(currentUser.email)) return false;
+    }
     if (status === 'open') { if (t.status === 'done' || t.status === 'cancelled') return false; }
     else if (status && t.status !== status) return false;
     if (category && t.category !== category) return false;
@@ -2948,6 +2974,17 @@ function renderTaskList() {
   if (!list.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין משימות התואמות לפילטרים</td></tr>';
     return;
+  }
+  // Manager sort: mine first, then by dueDate. Non-managers already only see theirs.
+  const isManager = (userRole === 'admin' || userRole === 'team');
+  if (isManager) {
+    const myEmail = currentUser.email;
+    list.sort((a,b) => {
+      const aMine = (a.assignees||[]).includes(myEmail) ? 0 : 1;
+      const bMine = (b.assignees||[]).includes(myEmail) ? 0 : 1;
+      if (aMine !== bMine) return aMine - bMine;
+      return (a.dueDate||'9999-99-99').localeCompare(b.dueDate||'9999-99-99');
+    });
   }
   tbody.innerHTML = list.map(t => {
     const delta = daysDelta(t.dueDate);
