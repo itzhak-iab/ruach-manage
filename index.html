@@ -224,15 +224,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   <!-- Mobile Header -->
   <div class="mobile-header">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2>עמותת החשמונאים</h2>
+    <h2 data-i18n="app.name">עמותת החשמונאים</h2>
   </div>
   <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <h2>🏛️ עמותת החשמונאים</h2>
-      <p>מערכת ניהול פנימית</p>
+      <h2><span>🏛️ </span><span data-i18n="app.name">עמותת החשמונאים</span></h2>
+      <p data-i18n="app.subtitle">מערכת ניהול פנימית</p>
     </div>
     <div class="sidebar-user">
       <img id="userPhoto" src="" alt="">
@@ -241,15 +241,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div class="role" id="userRole"></div>
       </div>
     </div>
-    <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> דשבורד</div>
-    <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> שקיפות פיננסית</div>
-    <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> דיווחי עובדים</div>
-    <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> ניהול תורמים</div>
-    <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> יומן ומשימות</div>
-    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> פרויקטים</div>
-    <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> ניהול רכבים</div>
-    <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> ניהול צוות</div>
-    <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> התנתק</div>
+    <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד</span></div>
+    <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
+    <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
+    <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
+    <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
+    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
+    <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
+    <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> <span data-i18n="nav.team">ניהול צוות</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.15);margin:10px 0;padding:10px 0;display:flex;gap:4px;justify-content:center">
+      <button type="button" id="i18n-he-btn" onclick="setAppLang('he')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-size:0.82rem">🇮🇱 עברית</button>
+      <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
+    </div>
+    <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
   </aside>
 
   <!-- Main Content -->
@@ -258,16 +262,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- DASHBOARD -->
     <div class="section active" id="sec-dashboard">
       <div class="page-header">
-        <h1>דשבורד</h1>
-        <p>סקירה כללית של פעילות העמותה</p>
+        <h1 data-i18n="page.dashboard.title">דשבורד</h1>
+        <p data-i18n="page.dashboard.sub">סקירה כללית של פעילות העמותה</p>
       </div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="icon">💰</div><div class="label">סך הכנסות</div><div class="value" id="dash-income">₪0</div></div>
-        <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="dash-expense">₪0</div></div>
-        <div class="kpi"><div class="icon">📊</div><div class="label">יתרה</div><div class="value" id="dash-balance">₪0</div></div>
-        <div class="kpi"><div class="icon">❤️</div><div class="label">תורמים</div><div class="value" id="dash-donors">0</div></div>
-        <div class="kpi"><div class="icon">🎯</div><div class="label">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
-        <div class="kpi"><div class="icon">📋</div><div class="label">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
+        <div class="kpi"><div class="icon">💰</div><div class="label" data-i18n="kpi.income">סך הכנסות</div><div class="value" id="dash-income">₪0</div></div>
+        <div class="kpi"><div class="icon">📤</div><div class="label" data-i18n="kpi.expense">סך הוצאות</div><div class="value" id="dash-expense">₪0</div></div>
+        <div class="kpi"><div class="icon">📊</div><div class="label" data-i18n="kpi.balance">יתרה</div><div class="value" id="dash-balance">₪0</div></div>
+        <div class="kpi"><div class="icon">❤️</div><div class="label" data-i18n="kpi.donors">תורמים</div><div class="value" id="dash-donors">0</div></div>
+        <div class="kpi"><div class="icon">🎯</div><div class="label" data-i18n="kpi.projects_active">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
+        <div class="kpi"><div class="icon">📋</div><div class="label" data-i18n="kpi.reports_month">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
         <div class="kpi"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg,#f0f9ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
@@ -304,7 +308,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- FINANCE -->
     <div class="section" id="sec-finance">
       <div class="page-header">
-        <h1>שקיפות פיננסית</h1>
+        <h1 data-i18n="page.finance.title">שקיפות פיננסית</h1>
         <p>ניהול הכנסות והוצאות העמותה</p>
       </div>
       <div class="kpi-grid">
@@ -381,7 +385,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- REPORTS -->
     <div class="section" id="sec-reports">
       <div class="page-header">
-        <h1>📋 דיווחי עובדים</h1>
+        <h1 data-i18n="page.reports.title">📋 דיווחי עובדים</h1>
         <p>דיווח שבועי על פי חוזה · דיווחי שעות יומיים · דוחות מסכמים</p>
       </div>
 
@@ -406,8 +410,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>סנן לפי תפקיד</label><select id="plgFilterRole"><option value="">— כל התפקידים —</option></select></div>
         </div>
         <table class="data-table">
-          <thead><tr><th>שבוע</th><th>תפקיד</th><th>עובד</th><th>אישור חוזה</th><th>פעולות</th></tr></thead>
-          <tbody id="plgTableBody"><tr><td colspan="5" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>שבוע</th><th>תפקיד</th><th>עובד</th><th>ימים</th><th>אישור חוזה</th><th>פעולות</th></tr></thead>
+          <tbody id="plgTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
 
@@ -445,7 +449,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- DONORS -->
     <div class="section" id="sec-donors">
       <div class="page-header">
-        <h1>ניהול תורמים</h1>
+        <h1 data-i18n="page.donors.title">ניהול תורמים</h1>
         <p>מעקב אחרי תורמים ותרומות</p>
       </div>
       <div class="card" id="donorAddCard">
@@ -479,7 +483,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- TASKS / CALENDAR -->
     <div class="section" id="sec-tasks">
       <div class="page-header">
-        <h1>📋 יומן ומשימות</h1>
+        <h1 data-i18n="page.tasks.title">📋 יומן ומשימות</h1>
         <p>ניהול משימות צוות ומעקב חובות רגולטוריות</p>
       </div>
 
@@ -609,8 +613,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- PROJECTS -->
     <div class="section" id="sec-projects">
       <div class="page-header">
-        <h1>ניהול פרויקטים</h1>
-        <p>מעקב אחרי תוכניות ופרויקטים</p>
+        <h1 data-i18n="page.projects.title">ניהול פרויקטים</h1>
+        <p data-i18n="page.projects.sub">פרויקטים, מוביל, תקציב (מקורות והוצאות) ותתי-משימות</p>
       </div>
       <div class="card" id="projAddCard">
         <h3>הוסף פרויקט</h3>
@@ -625,10 +629,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>סטטוס</label>
             <select id="projStatus"><option value="active">פעיל</option><option value="planning">בתכנון</option><option value="done">הושלם</option></select>
           </div>
-          <div class="form-field"><label>תקציב (₪)</label><input type="number" id="projBudget" placeholder="0"></div>
+          <div class="form-field"><label>מוביל פרויקט</label>
+            <select id="projLeader"><option value="">— ללא מוביל —</option></select>
+          </div>
         </div>
         <div class="form-row">
-          <div class="form-field" style="grid-column:1/-1"><label>תיאור</label><textarea id="projDesc" placeholder="תיאור הפרויקט..."></textarea></div>
+          <div class="form-field"><label>תקציב משוער כולל (₪)</label><input type="number" id="projBudget" placeholder="0"></div>
+          <div class="form-field" style="grid-column:2/span 3"><label>תיאור</label><textarea id="projDesc" placeholder="תיאור הפרויקט..." rows="2"></textarea></div>
         </div>
         <button class="btn btn-primary" onclick="addProject()">+ הוסף פרויקט</button>
       </div>
@@ -638,10 +645,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
     </div>
 
+    <!-- PROJECT DETAILS MODAL -->
+    <div id="projectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:#fff;border-radius:12px;max-width:900px;width:100%;margin-top:20px;overflow:hidden">
+        <div style="padding:20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+          <h2 id="projModalTitle" style="margin:0">פרויקט</h2>
+          <button class="btn btn-secondary" onclick="closeProjectModal()">✕</button>
+        </div>
+        <div style="display:flex;gap:2px;background:#f3f4f6;padding:0 20px">
+          <button class="proj-tab-btn active" data-tab="details" onclick="switchProjTab('details',this)" style="padding:10px 20px;background:#fff;border:none;border-radius:8px 8px 0 0;cursor:pointer;font-weight:500">📋 פרטים</button>
+          <button class="proj-tab-btn" data-tab="budget" onclick="switchProjTab('budget',this)" style="padding:10px 20px;background:transparent;border:none;border-radius:8px 8px 0 0;cursor:pointer">💰 תקציב</button>
+          <button class="proj-tab-btn" data-tab="tasks" onclick="switchProjTab('tasks',this)" style="padding:10px 20px;background:transparent;border:none;border-radius:8px 8px 0 0;cursor:pointer">✅ משימות</button>
+        </div>
+        <div id="projModalBody" style="padding:20px;max-height:70vh;overflow-y:auto"></div>
+      </div>
+    </div>
+
     <!-- VEHICLES -->
     <div class="section" id="sec-vehicles">
       <div class="page-header">
-        <h1>🚗 ניהול רכבים</h1>
+        <h1 data-i18n="page.vehicles.title">🚗 ניהול רכבים</h1>
         <p>מעקב, נסיעות, טיפולים ובירוקרטיה של רכבי העמותה</p>
       </div>
 
@@ -777,7 +800,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <!-- TEAM (admin only) -->
     <div class="section" id="sec-team">
       <div class="page-header">
-        <h1>ניהול צוות</h1>
+        <h1 data-i18n="page.team.title">ניהול צוות</h1>
         <p>הרשאות גישה למערכת</p>
       </div>
       <div class="card">
@@ -1005,6 +1028,11 @@ function switchSection(id, el) {
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
+  // Contract employees: when entering tasks, default filter to "my tasks"
+  if (id === 'tasks' && typeof CONTRACT_ROLES !== 'undefined' && CONTRACT_ROLES.includes(userRole)) {
+    const f = document.getElementById('tkFilterAssignee');
+    if (f && !f.value) { f.value = 'me'; if (typeof renderTasks === 'function') renderTasks(); }
+  }
 }
 
 function toggleSidebar() {
@@ -1281,6 +1309,219 @@ const CONTRACT_CONFIG = {
   }
 };
 
+// ===== i18n =====
+// Minimal bilingual dictionary. Keys follow 'section.term' convention.
+// Only the most visible strings are translated; future PRs can expand coverage.
+const I18N = {
+  he: {
+    'app.name': 'עמותת החשמונאים',
+    'app.subtitle': 'מערכת ניהול פנימית',
+    // nav
+    'nav.dashboard':'דשבורד','nav.finance':'שקיפות פיננסית','nav.reports':'דיווחי עובדים',
+    'nav.donors':'ניהול תורמים','nav.tasks':'יומן ומשימות','nav.projects':'פרויקטים',
+    'nav.vehicles':'ניהול רכבים','nav.team':'ניהול צוות','nav.logout':'התנתק',
+    // page titles
+    'page.dashboard.title':'דשבורד','page.dashboard.sub':'סקירה כללית של פעילות העמותה',
+    'page.finance.title':'שקיפות פיננסית','page.reports.title':'דיווחי עובדים',
+    'page.donors.title':'ניהול תורמים','page.tasks.title':'📋 יומן ומשימות',
+    'page.projects.title':'ניהול פרויקטים','page.projects.sub':'פרויקטים, מוביל, תקציב (מקורות והוצאות) ותתי-משימות',
+    'page.vehicles.title':'🚗 ניהול רכבים','page.team.title':'ניהול צוות',
+    // KPIs
+    'kpi.income':'סך הכנסות','kpi.expense':'סך הוצאות','kpi.balance':'יתרה',
+    'kpi.donors':'תורמים','kpi.projects_active':'פרויקטים פעילים','kpi.reports_month':'דיווחים החודש',
+    'kpi.overdue':'משימות באיחור',
+    // buttons / actions
+    'btn.add':'הוסף','btn.save':'שמור','btn.cancel':'ביטול','btn.delete':'מחק',
+    'btn.open':'פתח','btn.close':'סגור','btn.edit':'ערוך','btn.export':'ייצוא',
+    'btn.translate':'תרגם לאנגלית','btn.hide_translation':'הסתר תרגום',
+    // projects
+    'proj.add':'הוסף פרויקט','proj.name':'שם הפרויקט','proj.area':'תחום',
+    'proj.status':'סטטוס','proj.leader':'מוביל פרויקט','proj.budget_est':'תקציב משוער כולל (₪)',
+    'proj.desc':'תיאור','proj.no_projects':'אין פרויקטים',
+    'proj.tab.details':'📋 פרטים','proj.tab.budget':'💰 תקציב','proj.tab.tasks':'✅ משימות',
+    'proj.funding.header':'💰 מקורות מימון','proj.expenses.header':'🧾 הוצאות',
+    'proj.funding.total':'סה"כ גויס','proj.received':'התקבל בפועל','proj.balance':'יתרה',
+    'proj.tasks.header':'תתי-משימות של הפרויקט',
+    // weekly report
+    'wk.section.title':'דיווח שבועי','wk.days':'ימי עבודה השבוע (לחישוב סה"כ ימים בדשבורד)',
+    'wk.weekStart':'שבוע (יום ראשון)','wk.weekEnd':'עד (יום שבת)',
+    'wk.submit':'💾 שלח דיווח שבועי','wk.clear':'🧹 נקה טופס',
+    // common
+    'common.loading':'טוען...','common.no_data':'אין נתונים',
+    'common.name':'שם','common.email':'דוא"ל','common.role':'תפקיד',
+    'common.date':'תאריך','common.amount':'סכום','common.notes':'הערות',
+    'common.actions':'פעולות','common.description':'תיאור'
+  },
+  en: {
+    'app.name': 'Hashmonaim Association',
+    'app.subtitle': 'Internal Management System',
+    'nav.dashboard':'Dashboard','nav.finance':'Financial Transparency','nav.reports':'Employee Reports',
+    'nav.donors':'Donors','nav.tasks':'Tasks & Calendar','nav.projects':'Projects',
+    'nav.vehicles':'Vehicles','nav.team':'Team Management','nav.logout':'Sign Out',
+    'page.dashboard.title':'Dashboard','page.dashboard.sub':'Overview of association activities',
+    'page.finance.title':'Financial Transparency','page.reports.title':'Employee Reports',
+    'page.donors.title':'Donor Management','page.tasks.title':'📋 Tasks & Calendar',
+    'page.projects.title':'Project Management','page.projects.sub':'Projects, leader, budget (sources & expenses) and subtasks',
+    'page.vehicles.title':'🚗 Vehicle Management','page.team.title':'Team Management',
+    'kpi.income':'Total Income','kpi.expense':'Total Expenses','kpi.balance':'Balance',
+    'kpi.donors':'Donors','kpi.projects_active':'Active Projects','kpi.reports_month':'Reports This Month',
+    'kpi.overdue':'Overdue Tasks',
+    'btn.add':'Add','btn.save':'Save','btn.cancel':'Cancel','btn.delete':'Delete',
+    'btn.open':'Open','btn.close':'Close','btn.edit':'Edit','btn.export':'Export',
+    'btn.translate':'Translate to English','btn.hide_translation':'Hide translation',
+    'proj.add':'Add Project','proj.name':'Project Name','proj.area':'Area',
+    'proj.status':'Status','proj.leader':'Project Leader','proj.budget_est':'Estimated Total Budget (₪)',
+    'proj.desc':'Description','proj.no_projects':'No projects',
+    'proj.tab.details':'📋 Details','proj.tab.budget':'💰 Budget','proj.tab.tasks':'✅ Tasks',
+    'proj.funding.header':'💰 Funding Sources','proj.expenses.header':'🧾 Expenses',
+    'proj.funding.total':'Total Pledged','proj.received':'Actually Received','proj.balance':'Balance',
+    'proj.tasks.header':'Project Subtasks',
+    'wk.section.title':'Weekly Report','wk.days':'Days worked this week (for dashboard totals)',
+    'wk.weekStart':'Week (Sunday)','wk.weekEnd':'Until (Saturday)',
+    'wk.submit':'💾 Submit Weekly Report','wk.clear':'🧹 Clear Form',
+    'common.loading':'Loading...','common.no_data':'No data',
+    'common.name':'Name','common.email':'Email','common.role':'Role',
+    'common.date':'Date','common.amount':'Amount','common.notes':'Notes',
+    'common.actions':'Actions','common.description':'Description'
+  }
+};
+
+let currentLang = localStorage.getItem('appLang') || 'he';
+
+function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.he[key] || key); }
+
+function applyI18n() {
+  document.documentElement.setAttribute('lang', currentLang);
+  document.documentElement.setAttribute('dir', currentLang === 'he' ? 'rtl' : 'ltr');
+  document.body.style.direction = currentLang === 'he' ? 'rtl' : 'ltr';
+  document.body.style.textAlign = currentLang === 'he' ? 'right' : 'left';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const txt = t(key);
+    if (txt) el.textContent = txt;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const txt = t(key);
+    if (txt) el.placeholder = txt;
+  });
+  // Highlight the active language button
+  const he = document.getElementById('i18n-he-btn');
+  const en = document.getElementById('i18n-en-btn');
+  if (he && en) {
+    he.style.background = currentLang === 'he' ? 'rgba(255,255,255,0.2)' : 'transparent';
+    en.style.background = currentLang === 'en' ? 'rgba(255,255,255,0.2)' : 'transparent';
+  }
+}
+
+function setAppLang(lang) {
+  if (!I18N[lang]) return;
+  currentLang = lang;
+  try { localStorage.setItem('appLang', lang); } catch(e) {}
+  applyI18n();
+  // Re-render dynamic lists that have Hebrew strings embedded
+  try { if (typeof loadProjects === 'function' && projectsCache && projectsCache.length) loadProjects(); } catch(e) {}
+  try { if (typeof renderTasks === 'function' && tasksCache && tasksCache.length) renderTasks(); } catch(e) {}
+  try { renderWeeklyReportUI(); } catch(e) {}
+}
+
+// ===== Google Translate on-demand (for user-generated data) =====
+// Uses config/app.translateApiKey if present. Graceful no-op if missing.
+let _translateApiKey = null;
+async function ensureTranslateKey() {
+  if (_translateApiKey !== null) return _translateApiKey;
+  try {
+    const doc = await db.collection('config').doc('app').get();
+    _translateApiKey = doc.exists && doc.data().translateApiKey ? doc.data().translateApiKey : '';
+  } catch(e) { _translateApiKey = ''; }
+  return _translateApiKey;
+}
+
+async function translateText(text, target) {
+  if (!text || !text.trim()) return '';
+  const key = await ensureTranslateKey();
+  if (!key) throw new Error('Translate API key not configured. Admin: set config/app.translateApiKey in Firestore.');
+  const url = 'https://translation.googleapis.com/language/translate/v2?key=' + encodeURIComponent(key);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: text, target: target || 'en', format: 'text' })
+  });
+  if (!res.ok) throw new Error('Translate HTTP ' + res.status);
+  const data = await res.json();
+  return data?.data?.translations?.[0]?.translatedText || '';
+}
+
+// Inline translation UI helper: attach to any element with class .translatable-text
+async function translateElement(btn, srcId) {
+  const src = document.getElementById(srcId);
+  if (!src) return;
+  const existing = src.nextElementSibling && src.nextElementSibling.classList.contains('translation-box') ? src.nextElementSibling : null;
+  if (existing) { existing.remove(); btn.textContent = t('btn.translate'); return; }
+  btn.disabled = true; btn.textContent = '⏳…';
+  try {
+    const translated = await translateText(src.textContent, currentLang === 'he' ? 'en' : 'he');
+    const box = document.createElement('div');
+    box.className = 'translation-box';
+    box.style.cssText = 'margin-top:8px;padding:10px;background:#f0f9ff;border-right:3px solid #0ea5e9;border-radius:6px;font-size:0.9rem;white-space:pre-wrap';
+    box.innerHTML = '<div style="font-size:0.75rem;color:#0369a1;margin-bottom:4px">🌐 ' + (currentLang==='he'?'English':'עברית') + '</div>' + translated.replace(/</g,'&lt;');
+    src.after(box);
+    btn.textContent = t('btn.hide_translation');
+  } catch(e) {
+    toast(e.message || 'Translation failed', 'error');
+    btn.textContent = t('btn.translate');
+  } finally { btn.disabled = false; }
+}
+
+// Utility: escape text for HTML attribute usage (for data-orig roundtrip)
+function escapeHtmlAttr(s) {
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function unescapeHtmlAttr(s) {
+  return String(s==null?'':s)
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&');
+}
+
+// Translate all .translatable nodes inside the currently-open report modal.
+// Toggle: if already translated, restore originals.
+async function translateModalContent(btn) {
+  const nodes = document.querySelectorAll('#plugaModalBody .translatable');
+  if (!nodes.length) return;
+  // Toggle: if already showing translation, restore originals
+  const first = nodes[0];
+  if (first.dataset.translated === '1') {
+    nodes.forEach(n => {
+      const orig = n.getAttribute('data-orig');
+      if (orig != null) n.textContent = unescapeHtmlAttr(orig);
+      n.dataset.translated = '0';
+    });
+    btn.textContent = '🌐 ' + t('btn.translate');
+    return;
+  }
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '⏳ ' + (currentLang==='he' ? 'מתרגם…' : 'Translating…');
+  try {
+    const target = currentLang === 'he' ? 'en' : 'he';
+    // Collect all texts and translate in parallel (one call each — simple & robust)
+    const texts = Array.from(nodes).map(n => n.textContent || '');
+    const translations = await Promise.all(texts.map(t => translateText(t, target).catch(err => '[⚠ '+err.message+']')));
+    nodes.forEach((n,i) => { n.textContent = translations[i]; n.dataset.translated = '1'; });
+    btn.textContent = '🌐 ' + t('btn.hide_translation');
+  } catch(e) {
+    toast(e.message || 'Translation failed', 'error');
+    btn.textContent = origText;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Apply i18n on initial load
+document.addEventListener('DOMContentLoaded', () => { try { applyI18n(); } catch(e) {} });
+
 function canViewAllPluga() { return userRole === 'admin' || userRole === 'team'; }
 function canSubmitPluga() { return userRole === 'admin' || userRole === 'team' || CONTRACT_ROLES.includes(userRole); }
 function currentContractRole() {
@@ -1322,6 +1563,21 @@ function buildWeeklyFormHTML(roleKey) {
       <div class="form-field"><label>שבוע (יום ראשון)</label><input type="date" id="wk_weekStart" value="${w.start}"></div>
       <div class="form-field"><label>עד (יום שבת)</label><input type="date" id="wk_weekEnd" value="${w.end}"></div>
       <div class="form-field"><label>${cfg.unitPrompt}</label><input type="text" id="wk_unit" placeholder=""></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/-1">
+        <label>ימי עבודה השבוע (לחישוב סה"כ ימים בדשבורד)</label>
+        <div id="wk_daysRow" style="display:flex;gap:6px;flex-wrap:wrap;background:#f9fafb;padding:8px;border-radius:8px;border:1px solid #e5e7eb">
+          ${['א','ב','ג','ד','ה','ו','ש'].map((d,i)=>`
+            <label style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;user-select:none">
+              <input type="checkbox" class="wk_dayChk" data-day="${i}" style="margin:0">
+              <span>${d}'</span>
+            </label>
+          `).join('')}
+          <span id="wk_daysCount" style="margin-right:auto;color:#6b7280;font-size:0.85rem;align-self:center">0 ימים</span>
+        </div>
+      </div>
     </div>
 
     ${extraQsHTML ? `<div class="form-row">${extraQsHTML}</div>` : ''}
@@ -1368,6 +1624,7 @@ function renderWeeklyReportUI() {
     card.style.display = '';
     title.textContent = `${CONTRACT_CONFIG[role].icon} דיווח שבועי — ${CONTRACT_CONFIG[role].roleLabel}`;
     body.innerHTML = buildWeeklyFormHTML(role);
+    wireWeeklyDaysRow();
     if (historyCard) historyCard.style.display = '';
     if (filterRow) filterRow.style.display = 'none';
     if (dailyCard) dailyCard.style.display = 'none';
@@ -1404,6 +1661,31 @@ function onAdminRolePick() {
   if (!sel || !container) return;
   if (!sel.value) { container.innerHTML = '<div class="empty-state">לצפייה / מילוי דיווח — בחר/י תפקיד למעלה.</div>'; return; }
   container.innerHTML = buildWeeklyFormHTML(sel.value);
+  wireWeeklyDaysRow();
+}
+
+// Update the live count next to day checkboxes
+function wireWeeklyDaysRow() {
+  const row = document.getElementById('wk_daysRow');
+  const counter = document.getElementById('wk_daysCount');
+  if (!row || !counter) return;
+  const update = () => {
+    const n = row.querySelectorAll('.wk_dayChk:checked').length;
+    counter.textContent = n + (n===1 ? ' יום' : ' ימים');
+  };
+  row.querySelectorAll('.wk_dayChk').forEach(c => c.addEventListener('change', update));
+  update();
+}
+
+function collectWorkedDays() {
+  const row = document.getElementById('wk_daysRow');
+  if (!row) return [];
+  const days = [];
+  row.querySelectorAll('.wk_dayChk:checked').forEach(c => {
+    const d = parseInt(c.getAttribute('data-day'),10);
+    if (!isNaN(d)) days.push(d);
+  });
+  return days.sort((a,b)=>a-b);
 }
 
 async function addPlugaReport() {
@@ -1430,10 +1712,15 @@ async function addPlugaReport() {
   });
   if (!answers.overview) { toast('יש למלא את סקירת הפעילות','error'); return; }
 
+  const workedDays = collectWorkedDays();
+  if (workedDays.length === 0) { toast('יש לסמן לפחות יום עבודה אחד השבוע','error'); return; }
+
   const data = {
     contractRole: role,
     roleLabel: cfg.roleLabel,
     weekStart, weekEnd, unit,
+    workedDays,
+    workedDaysCount: workedDays.length,
     contractAck: true,
     contractAckText: LEGAL_ACK_TEMPLATE(cfg.roleLabel, cfg.goalSummary),
     ackAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1502,22 +1789,30 @@ function renderPlugaTable() {
   let rows = _plugaCache;
   if (filterUser) rows = rows.filter(r => (r.userName||r.createdBy) === filterUser);
   if (filterRole) rows = rows.filter(r => (r.contractRole||r.userRole) === filterRole);
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">אין דיווחים עדיין</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין דיווחים עדיין</td></tr>'; return; }
   const isAdmin = userRole === 'admin';
+  // Track sum for footer
+  let totalDays = 0;
   tbody.innerHTML = rows.map(r => {
     const week = `${r.weekStart||'—'} → ${r.weekEnd||'—'}`;
     const roleKey = r.contractRole || r.userRole || '';
     const roleName = ROLES[roleKey] || roleKey || '—';
     const ackIcon = r.contractAck ? '✅' : '—';
+    const dCount = (r.workedDaysCount!=null) ? r.workedDaysCount : (r.workedDays?r.workedDays.length:(r.fieldDays||'—'));
+    if (typeof dCount === 'number') totalDays += dCount;
     const del = isAdmin ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delDoc('pluga_weekly_reports','${r.id}',loadPlugaReports)">🗑</button>` : '';
-    return `<tr style="cursor:pointer" onclick="openPlugaView('${r.id}')"><td>${week}</td><td>${roleName}</td><td>${r.userName||r.createdBy||'—'}</td><td style="text-align:center">${ackIcon}</td><td>👁 פתח ${del}</td></tr>`;
+    return `<tr style="cursor:pointer" onclick="openPlugaView('${r.id}')"><td>${week}</td><td>${roleName}</td><td>${r.userName||r.createdBy||'—'}</td><td style="text-align:center">${dCount}</td><td style="text-align:center">${ackIcon}</td><td>👁 פתח ${del}</td></tr>`;
   }).join('');
+  // Footer row with total work days
+  if (totalDays > 0 && rows.length > 1) {
+    tbody.innerHTML += `<tr style="font-weight:600;background:#f1f5f9;border-top:2px solid #cbd5e1"><td colspan="3" style="text-align:left">סה"כ ימי עבודה (${rows.length} דיווחים):</td><td style="text-align:center">${totalDays}</td><td colspan="2"></td></tr>`;
+  }
 }
 
 function openPlugaView(id) {
   const r = _plugaCache.find(x => x.id === id);
   if (!r) return;
-  const sec = (title, content) => content ? `<div style="margin:14px 0"><h4 style="margin:0 0 6px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">${title}</h4><div style="white-space:pre-wrap">${content}</div></div>` : '';
+  const sec = (title, content) => content ? `<div style="margin:14px 0"><h4 style="margin:0 0 6px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">${title}</h4><div class="translatable" data-orig="${escapeHtmlAttr(content)}" style="white-space:pre-wrap">${content}</div></div>` : '';
   const roleKey = r.contractRole || r.userRole || '';
   const cfg = CONTRACT_CONFIG[roleKey] || null;
   const roleName = cfg ? `${cfg.icon} ${cfg.roleLabel}` : (ROLES[roleKey] || roleKey || 'דיווח שבועי');
@@ -1557,7 +1852,12 @@ function openPlugaView(id) {
           return v==null||v==='' ? '' : `<div><strong>${q?q.label:k}:</strong> ${v}</div>`;
         }).join('')
       : '';
+    const dayNames = ['א','ב','ג','ד','ה','ו','ש'];
+    const daysLine = (r.workedDays && r.workedDays.length)
+      ? `<div style="margin:8px 0;padding:10px;background:#ecfdf5;border-right:3px solid #047857;border-radius:6px"><strong>📅 ימי עבודה השבוע:</strong> ${r.workedDays.map(d=>`יום ${dayNames[d]||'?'}'`).join(' · ')} <span style="color:#6b7280">(${r.workedDaysCount||r.workedDays.length} ימים)</span></div>`
+      : '';
     body = `
+      ${daysLine}
       ${extraLine ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0;background:#f8fafc;padding:10px;border-radius:8px">${extraLine}</div>` : ''}
       ${sec('📝 סקירת פעילות', a.overview)}
       ${sec('⚠ אתגרים ופערים', a.challenges)}
@@ -1571,9 +1871,10 @@ function openPlugaView(id) {
     <h2 style="margin:0 0 4px">${roleName} — דיווח שבועי</h2>
     <div style="color:#64748b;margin-bottom:8px">${r.userName||r.createdBy||''} · ${r.weekStart||'—'} → ${r.weekEnd||'—'}${r.unit?' · '+r.unit:''}</div>
     ${body}
-    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="translateModalContent(this)" id="plugaTranslateBtn">🌐 ${t('btn.translate')}</button>
       <button class="btn btn-secondary" onclick="window.print()">🖨 הדפס / שמור PDF</button>
-      <button class="btn btn-secondary" onclick="closePlugaModal()">סגור</button>
+      <button class="btn btn-secondary" onclick="closePlugaModal()">${t('btn.close')}</button>
     </div>`;
   document.getElementById('plugaModal').style.display = 'flex';
 }
@@ -1615,21 +1916,77 @@ async function addDonor() {
 }
 
 // ===== PROJECTS =====
+// ===== PROJECTS =====
+const FUNDING_TYPES = {
+  brigade:      'מימון חטיבה',
+  association:  'מימון העמותה',
+  partnership:  'שותפות',
+  reserveDays:  'ימי מילואים',
+  donation:     'תרומה ייעודית',
+  government:   'מענק ממשלתי',
+  other:        'אחר'
+};
+const FUNDING_STATUSES = {
+  pledged: 'התחייבות',
+  approved: 'מאושר',
+  received: 'התקבל',
+  declined: 'נדחה'
+};
+const EXPENSE_CATEGORIES = {
+  personnel: 'שכר/קבלנות',
+  logistics: 'לוגיסטיקה',
+  materials: 'חומרים/ציוד',
+  travel: 'נסיעות',
+  food: 'כיבוד/אוכל',
+  marketing: 'שיווק',
+  other: 'אחר'
+};
+
+let projectsCache = [];
+
+function populateProjectLeaderSelect() {
+  const sel = document.getElementById('projLeader');
+  if (!sel) return;
+  const cur = sel.value;
+  // Only team members (not "viewer") can be leaders
+  const leaders = teamCache.filter(t => t.role !== 'viewer');
+  sel.innerHTML = '<option value="">— ללא מוביל —</option>' +
+    leaders.map(t => `<option value="${t.email}">${t.name||t.email}${t.role?' ('+(ROLES[t.role]||t.role)+')':''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
 async function loadProjects() {
   const snap = await db.collection('projects').orderBy('createdAt','desc').get();
-  const rows = [];
+  projectsCache = [];
   let activeCount = 0;
-  snap.forEach(doc => { const d = doc.data(); rows.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
+  snap.forEach(doc => { const d = doc.data(); projectsCache.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
   document.getElementById('dash-projects').textContent = activeCount;
+  populateProjectLeaderSelect();
   const container = document.getElementById('projList');
-  if (!rows.length) { container.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>אין פרויקטים</p></div>'; return; }
+  if (!projectsCache.length) { container.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>אין פרויקטים</p></div>'; return; }
   const canDel = userRole === 'admin' || userRole === 'team';
-  container.innerHTML = rows.map(r => {
+  container.innerHTML = projectsCache.map(r => {
     const statusColor = r.status==='active'?'status-active':r.status==='planning'?'status-pending':'status-inactive';
-    return `<div style="padding:14px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><strong>${r.name||'—'}</strong><br><span style="font-size:0.8rem;color:#666">${PURPOSES[r.area]||'—'} · תקציב: ₪${(r.budget||0).toLocaleString()}</span></div>
-      <div style="display:flex;align-items:center;gap:8px"><span class="status-dot ${statusColor}"></span><span style="font-size:0.85rem">${STATUSES[r.status]||'—'}</span>
-      ${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'projects\',\''+r.id+'\')">מחק</button>':''}</div>
+    const leader = r.leaderEmail ? (teamCache.find(t => t.email === r.leaderEmail)?.name || r.leaderEmail) : '— ללא מוביל —';
+    const fundingTotal = (r.fundingSources||[]).reduce((s,f)=>s+(Number(f.amount)||0),0);
+    const receivedTotal = (r.fundingSources||[]).filter(f=>f.status==='received').reduce((s,f)=>s+(Number(f.amount)||0),0);
+    const expensesTotal = (r.expenses||[]).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const plannedBudget = r.budget||0;
+    const tasksOfProject = (tasksCache||[]).filter(t => t.projectId === r.id);
+    const tasksOpen = tasksOfProject.filter(t => t.status !== 'done').length;
+    return `<div style="padding:14px;border-bottom:1px solid #f0f0f0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div style="flex:1;min-width:240px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="status-dot ${statusColor}"></span><strong style="font-size:1.05rem">${r.name||'—'}</strong><span style="font-size:0.78rem;color:#6b7280;background:#f1f5f9;padding:1px 6px;border-radius:10px">${STATUSES[r.status]||''}</span></div>
+          <div style="font-size:0.82rem;color:#666;margin-top:4px">🎯 ${PURPOSES[r.area]||'—'} · 👤 ${leader}</div>
+          <div style="font-size:0.82rem;color:#666;margin-top:4px">💰 משוער: ₪${plannedBudget.toLocaleString()} · גויס: ₪${fundingTotal.toLocaleString()} · התקבל: ₪${receivedTotal.toLocaleString()} · הוצא: ₪${expensesTotal.toLocaleString()}</div>
+          ${tasksOfProject.length?`<div style="font-size:0.82rem;color:#666;margin-top:4px">✅ ${tasksOfProject.length} משימות${tasksOpen?` · ${tasksOpen} פתוחות`:''}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openProjectModal('${r.id}')">📂 פתח</button>
+          ${canDel?`<button class="btn btn-danger btn-sm" onclick="delDoc('projects','${r.id}')">מחק</button>`:''}
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1640,17 +1997,356 @@ async function addProject() {
   const status = document.getElementById('projStatus').value;
   const budget = parseInt(document.getElementById('projBudget').value) || 0;
   const desc = document.getElementById('projDesc').value.trim();
+  const leaderEmail = document.getElementById('projLeader').value || '';
   if (!name) { toast('יש להזין שם','error'); return; }
   try {
-    const docRef = await db.collection('projects').add({ name, area, status, budget, desc, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const docRef = await db.collection('projects').add({
+      name, area, status, budget, desc, leaderEmail,
+      fundingSources: [], expenses: [],
+      createdBy: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
     console.log('[SAVE OK] projects doc id:', docRef.id);
     ['projName','projBudget','projDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('projLeader').value = '';
     toast('פרויקט נוסף (ID: ' + docRef.id.substring(0,8) + ')');
     loadProjects();
   } catch(e) {
     console.error('[SAVE FAIL] projects:', e);
     toast('שגיאה בשמירת פרויקט: ' + (e.message||e), 'error');
   }
+}
+
+// ---- Project Details Modal ----
+let _currentProjectId = null;
+let _currentProjTab = 'details';
+
+function openProjectModal(id) {
+  _currentProjectId = id;
+  _currentProjTab = 'details';
+  const p = projectsCache.find(x => x.id === id);
+  if (!p) { toast('פרויקט לא נמצא','error'); return; }
+  document.getElementById('projModalTitle').textContent = p.name || 'פרויקט';
+  document.querySelectorAll('.proj-tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = b.getAttribute('data-tab')==='details' ? '#fff' : 'transparent';
+    if (b.getAttribute('data-tab')==='details') b.classList.add('active');
+  });
+  renderProjectTab();
+  document.getElementById('projectModal').style.display = 'flex';
+}
+
+function closeProjectModal() {
+  document.getElementById('projectModal').style.display = 'none';
+  _currentProjectId = null;
+}
+
+function switchProjTab(tab, btn) {
+  _currentProjTab = tab;
+  document.querySelectorAll('.proj-tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'transparent';
+  });
+  btn.classList.add('active');
+  btn.style.background = '#fff';
+  renderProjectTab();
+}
+
+function renderProjectTab() {
+  const body = document.getElementById('projModalBody');
+  const p = projectsCache.find(x => x.id === _currentProjectId);
+  if (!p) { body.innerHTML = '<div class="empty-state">פרויקט לא נמצא</div>'; return; }
+  if (_currentProjTab === 'details')     body.innerHTML = renderProjectDetails(p);
+  else if (_currentProjTab === 'budget') body.innerHTML = renderProjectBudget(p);
+  else if (_currentProjTab === 'tasks')  renderProjectTasks(p, body);
+}
+
+function renderProjectDetails(p) {
+  const leader = p.leaderEmail ? (teamCache.find(t => t.email === p.leaderEmail)?.name || p.leaderEmail) : '—';
+  const canEdit = userRole === 'admin' || userRole === 'team';
+  const leaderOpts = '<option value="">— ללא מוביל —</option>' +
+    teamCache.filter(t=>t.role!=='viewer').map(t => `<option value="${t.email}"${p.leaderEmail===t.email?' selected':''}>${t.name||t.email}</option>`).join('');
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;background:#f9fafb;padding:14px;border-radius:8px;margin-bottom:16px">
+      <div><strong>שם:</strong> ${p.name||'—'}</div>
+      <div><strong>תחום:</strong> ${PURPOSES[p.area]||'—'}</div>
+      <div><strong>סטטוס:</strong> ${STATUSES[p.status]||'—'}</div>
+      <div><strong>מוביל:</strong> ${leader}</div>
+    </div>
+    ${canEdit?`
+    <h4 style="margin:0 0 8px;color:var(--primary)">עריכת פרטים</h4>
+    <div class="form-row">
+      <div class="form-field"><label>שם</label><input type="text" id="pd_name" value="${(p.name||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-field"><label>סטטוס</label>
+        <select id="pd_status"><option value="active"${p.status==='active'?' selected':''}>פעיל</option><option value="planning"${p.status==='planning'?' selected':''}>בתכנון</option><option value="done"${p.status==='done'?' selected':''}>הושלם</option></select>
+      </div>
+      <div class="form-field"><label>מוביל</label><select id="pd_leader">${leaderOpts}</select></div>
+      <div class="form-field"><label>תקציב משוער (₪)</label><input type="number" id="pd_budget" value="${p.budget||0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/-1"><label>תיאור</label><textarea id="pd_desc" rows="3">${p.desc||''}</textarea></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveProjectDetails()">💾 שמור שינויים</button>
+    `:`<div style="padding:12px;background:#fef3c7;border-radius:8px">${p.desc||'אין תיאור'}</div>`}
+  `;
+}
+
+async function saveProjectDetails() {
+  const id = _currentProjectId;
+  const upd = {
+    name: document.getElementById('pd_name').value.trim(),
+    status: document.getElementById('pd_status').value,
+    leaderEmail: document.getElementById('pd_leader').value || '',
+    budget: parseInt(document.getElementById('pd_budget').value)||0,
+    desc: document.getElementById('pd_desc').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy: currentUser.email
+  };
+  if (!upd.name) { toast('שם חובה','error'); return; }
+  try {
+    await db.collection('projects').doc(id).update(upd);
+    toast('עודכן');
+    await loadProjects();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+function renderProjectBudget(p) {
+  const canEdit = userRole === 'admin' || userRole === 'team';
+  const funds = p.fundingSources || [];
+  const exps = p.expenses || [];
+  const fundingTotal = funds.reduce((s,f)=>s+(Number(f.amount)||0),0);
+  const receivedTotal = funds.filter(f=>f.status==='received').reduce((s,f)=>s+(Number(f.amount)||0),0);
+  const expensesTotal = exps.reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const planned = p.budget||0;
+  const balance = receivedTotal - expensesTotal;
+
+  const fundingRows = funds.length ? funds.map((f,i) => `
+    <tr>
+      <td>${f.name||'—'}</td>
+      <td>${FUNDING_TYPES[f.source]||f.source||'—'}</td>
+      <td style="text-align:left">₪${(Number(f.amount)||0).toLocaleString()}</td>
+      <td><span style="background:${f.status==='received'?'#dcfce7':f.status==='approved'?'#dbeafe':f.status==='declined'?'#fee2e2':'#fef3c7'};padding:2px 8px;border-radius:10px;font-size:0.82rem">${FUNDING_STATUSES[f.status]||f.status||'—'}</span></td>
+      <td style="font-size:0.82rem;color:#666">${f.notes||''}</td>
+      ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="removeFundingSource(${i})">🗑</button></td>`:''}
+    </tr>`).join('') : `<tr><td colspan="${canEdit?6:5}" class="empty-state">אין מקורות מימון עדיין</td></tr>`;
+
+  const expenseRows = exps.length ? exps.map((e,i) => `
+    <tr>
+      <td>${e.date||'—'}</td>
+      <td>${e.description||'—'}</td>
+      <td>${EXPENSE_CATEGORIES[e.category]||e.category||'—'}</td>
+      <td style="text-align:left">₪${(Number(e.amount)||0).toLocaleString()}</td>
+      ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="removeExpense(${i})">🗑</button></td>`:''}
+    </tr>`).join('') : `<tr><td colspan="${canEdit?5:4}" class="empty-state">אין הוצאות עדיין</td></tr>`;
+
+  const fundingOpts = Object.entries(FUNDING_TYPES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  const fStatOpts = Object.entries(FUNDING_STATUSES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  const expCatOpts = Object.entries(EXPENSE_CATEGORIES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+      <div style="padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:0.82rem;color:#6b7280">תקציב משוער</div><div style="font-size:1.3rem;font-weight:600">₪${planned.toLocaleString()}</div></div>
+      <div style="padding:12px;background:#dbeafe;border-radius:8px"><div style="font-size:0.82rem;color:#1e40af">סה"כ גויס</div><div style="font-size:1.3rem;font-weight:600">₪${fundingTotal.toLocaleString()}</div></div>
+      <div style="padding:12px;background:#dcfce7;border-radius:8px"><div style="font-size:0.82rem;color:#166534">התקבל בפועל</div><div style="font-size:1.3rem;font-weight:600">₪${receivedTotal.toLocaleString()}</div></div>
+      <div style="padding:12px;background:#fee2e2;border-radius:8px"><div style="font-size:0.82rem;color:#991b1b">סה"כ הוצאות</div><div style="font-size:1.3rem;font-weight:600">₪${expensesTotal.toLocaleString()}</div></div>
+      <div style="padding:12px;background:${balance>=0?'#ecfdf5':'#fef2f2'};border-radius:8px"><div style="font-size:0.82rem;color:#6b7280">יתרה</div><div style="font-size:1.3rem;font-weight:600;color:${balance>=0?'#047857':'#991b1b'}">₪${balance.toLocaleString()}</div></div>
+    </div>
+
+    <h4 style="margin:16px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">💰 מקורות מימון</h4>
+    <table class="data-table" style="margin-bottom:12px">
+      <thead><tr><th>שם המקור</th><th>סוג</th><th>סכום</th><th>סטטוס</th><th>הערות</th>${canEdit?'<th></th>':''}</tr></thead>
+      <tbody>${fundingRows}</tbody>
+    </table>
+    ${canEdit?`
+    <div class="form-row" style="margin-bottom:8px">
+      <div class="form-field"><label>שם המקור</label><input type="text" id="fs_name" placeholder="למשל: חטיבת חשמונאים"></div>
+      <div class="form-field"><label>סוג מימון</label><select id="fs_source">${fundingOpts}</select></div>
+      <div class="form-field"><label>סכום (₪)</label><input type="number" id="fs_amount" placeholder="0"></div>
+      <div class="form-field"><label>סטטוס</label><select id="fs_status">${fStatOpts}</select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-field" style="grid-column:1/-1"><label>הערות</label><input type="text" id="fs_notes" placeholder="הערות (אופציונלי)"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addFundingSource()">+ הוסף מקור מימון</button>
+    `:''}
+
+    <h4 style="margin:24px 0 8px;color:var(--primary);border-bottom:1px solid #e5e7eb;padding-bottom:4px">🧾 הוצאות</h4>
+    <table class="data-table" style="margin-bottom:12px">
+      <thead><tr><th>תאריך</th><th>תיאור</th><th>קטגוריה</th><th>סכום</th>${canEdit?'<th></th>':''}</tr></thead>
+      <tbody>${expenseRows}</tbody>
+    </table>
+    ${canEdit?`
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-field"><label>תאריך</label><input type="date" id="ex_date" value="${todayISO()}"></div>
+      <div class="form-field"><label>תיאור</label><input type="text" id="ex_desc" placeholder="עבור מה ההוצאה"></div>
+      <div class="form-field"><label>קטגוריה</label><select id="ex_cat">${expCatOpts}</select></div>
+      <div class="form-field"><label>סכום (₪)</label><input type="number" id="ex_amount" placeholder="0"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addExpense()">+ הוסף הוצאה</button>
+    `:''}
+  `;
+}
+
+async function addFundingSource() {
+  const id = _currentProjectId;
+  const entry = {
+    id: 'fs_' + Date.now().toString(36),
+    name: document.getElementById('fs_name').value.trim(),
+    source: document.getElementById('fs_source').value,
+    amount: parseFloat(document.getElementById('fs_amount').value)||0,
+    status: document.getElementById('fs_status').value,
+    notes: document.getElementById('fs_notes').value.trim(),
+    addedAt: new Date().toISOString(),
+    addedBy: currentUser.email
+  };
+  if (!entry.name) { toast('שם מקור חובה','error'); return; }
+  if (!entry.amount) { toast('סכום חובה','error'); return; }
+  try {
+    await db.collection('projects').doc(id).update({
+      fundingSources: firebase.firestore.FieldValue.arrayUnion(entry),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('מקור מימון נוסף');
+    await loadProjects();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+async function removeFundingSource(idx) {
+  if (!confirm('למחוק מקור מימון?')) return;
+  const p = projectsCache.find(x => x.id === _currentProjectId);
+  const newList = (p.fundingSources||[]).filter((_,i) => i !== idx);
+  try {
+    await db.collection('projects').doc(_currentProjectId).update({
+      fundingSources: newList,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('נמחק');
+    await loadProjects();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+async function addExpense() {
+  const id = _currentProjectId;
+  const entry = {
+    id: 'ex_' + Date.now().toString(36),
+    date: document.getElementById('ex_date').value,
+    description: document.getElementById('ex_desc').value.trim(),
+    category: document.getElementById('ex_cat').value,
+    amount: parseFloat(document.getElementById('ex_amount').value)||0,
+    addedAt: new Date().toISOString(),
+    addedBy: currentUser.email
+  };
+  if (!entry.description) { toast('תיאור חובה','error'); return; }
+  if (!entry.amount) { toast('סכום חובה','error'); return; }
+  try {
+    await db.collection('projects').doc(id).update({
+      expenses: firebase.firestore.FieldValue.arrayUnion(entry),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('הוצאה נוספה');
+    await loadProjects();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+async function removeExpense(idx) {
+  if (!confirm('למחוק הוצאה?')) return;
+  const p = projectsCache.find(x => x.id === _currentProjectId);
+  const newList = (p.expenses||[]).filter((_,i) => i !== idx);
+  try {
+    await db.collection('projects').doc(_currentProjectId).update({
+      expenses: newList,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('נמחק');
+    await loadProjects();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+function renderProjectTasks(p, body) {
+  const canEdit = userRole === 'admin' || userRole === 'team' || p.leaderEmail === currentUser.email;
+  const projTasks = (tasksCache||[]).filter(t => t.projectId === p.id);
+  projTasks.sort((a,b) => (a.dueDate||'').localeCompare(b.dueDate||''));
+
+  const assigneeOpts = teamCache.map(t => `<option value="${t.email}">${t.name||t.email}</option>`).join('');
+  const rows = projTasks.length ? projTasks.map(t => {
+    const assigneeName = (t.assignees||[]).map(e => teamCache.find(tm=>tm.email===e)?.name || e).join(', ') || '—';
+    const statusBg = t.status==='done'?'#dcfce7':t.status==='in_progress'?'#dbeafe':'#fef3c7';
+    return `<tr>
+      <td>${t.title||'—'}</td>
+      <td>${assigneeName}</td>
+      <td>${t.dueDate||'—'}</td>
+      <td><span style="background:${statusBg};padding:2px 8px;border-radius:10px;font-size:0.82rem">${t.status==='done'?'✓ בוצע':t.status==='in_progress'?'בתהליך':'ממתין'}</span></td>
+      ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="delProjectTask('${t.id}')">🗑</button></td>`:''}
+    </tr>`;
+  }).join('') : `<tr><td colspan="${canEdit?5:4}" class="empty-state">אין תתי-משימות</td></tr>`;
+
+  body.innerHTML = `
+    <h4 style="margin:0 0 10px;color:var(--primary)">תתי-משימות של הפרויקט</h4>
+    <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">משימות אלו מופיעות גם במסך "המשימות שלי" של העובד המתויג.</p>
+    <table class="data-table" style="margin-bottom:12px">
+      <thead><tr><th>כותרת</th><th>משויך ל</th><th>יעד</th><th>סטטוס</th>${canEdit?'<th></th>':''}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${canEdit?`
+    <h4 style="margin:16px 0 8px;color:var(--primary)">➕ הוסף תת-משימה</h4>
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/span 2"><label>כותרת</label><input type="text" id="pt_title" placeholder="מה יש לעשות"></div>
+      <div class="form-field"><label>יעד</label><input type="date" id="pt_due" value="${addDays(todayISO(),7)}"></div>
+      <div class="form-field"><label>עדיפות</label><select id="pt_priority"><option value="normal">רגילה</option><option value="high">גבוהה</option><option value="low">נמוכה</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/span 2"><label>משויך ל (ניתן לבחור מרובים)</label>
+        <select id="pt_assignees" multiple size="3" style="height:auto">${assigneeOpts}</select>
+      </div>
+      <div class="form-field" style="grid-column:3/span 2"><label>תיאור (אופציונלי)</label><textarea id="pt_desc" rows="2"></textarea></div>
+    </div>
+    <button class="btn btn-primary" onclick="addProjectTask()">+ הוסף תת-משימה</button>
+    `:''}
+  `;
+}
+
+async function addProjectTask() {
+  const title = document.getElementById('pt_title').value.trim();
+  const due = document.getElementById('pt_due').value;
+  const priority = document.getElementById('pt_priority').value;
+  const desc = document.getElementById('pt_desc').value.trim();
+  const assigneesSel = document.getElementById('pt_assignees');
+  const assignees = Array.from(assigneesSel.selectedOptions).map(o => o.value);
+  if (!title) { toast('כותרת חובה','error'); return; }
+  if (!assignees.length) { toast('יש לבחור לפחות עובד אחד','error'); return; }
+  try {
+    const doc = await db.collection('tasks').add({
+      title, description: desc,
+      dueDate: due,
+      priority,
+      status: 'pending',
+      assignees,
+      projectId: _currentProjectId,
+      category: 'operational',
+      createdBy: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('תת-משימה נוספה (ID: ' + doc.id.substring(0,8) + ')');
+    document.getElementById('pt_title').value = '';
+    document.getElementById('pt_desc').value = '';
+    await loadTasks();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
+}
+
+async function delProjectTask(id) {
+  if (!confirm('למחוק משימה?')) return;
+  try {
+    await db.collection('tasks').doc(id).delete();
+    toast('נמחק');
+    await loadTasks();
+    renderProjectTab();
+  } catch(e) { toast('שגיאה: '+(e.message||e),'error'); }
 }
 
 // ===== VEHICLES =====
@@ -2261,12 +2957,16 @@ function renderTaskList() {
     const prioClass = 'badge-' + (t.priority || 'medium');
     const catClass = t.category === 'regulatory' ? 'badge-regulatory' : 'badge-' + (t.priority || 'medium');
     const rowClass = 'task-row' + (t.status === 'done' ? ' done' : '');
-    const assigneeStr = (t.assigneeNames || []).join(', ') || '—';
+    const assigneeStr = (t.assigneeNames || (t.assignees||[]).map(e => teamCache.find(tm=>tm.email===e)?.name || e)).join(', ') || '—';
     const dueStr = t.dueDate ? fmtDate(t.dueDate) : '—';
     const adminActions = userRole === 'admin' ? `<button class="btn-icon" onclick="event.stopPropagation();delTask('${t.id}')" title="מחק">🗑️</button>` : '';
+    const projBadge = t.projectId ? (() => {
+      const pr = (projectsCache||[]).find(p => p.id === t.projectId);
+      return pr ? `<div style="font-size:0.75rem;color:#6b21a8;background:#faf5ff;padding:1px 6px;border-radius:10px;display:inline-block;margin-top:2px">📂 ${pr.name}</div>` : '';
+    })() : '';
     return `<tr class="${rowClass}" onclick="openTaskDetails('${t.id}')">
       <td><span class="task-badge ${statusClass}">${statusLabel}</span></td>
-      <td><strong>${t.title||''}</strong>${t.category==='regulatory'?' ⚖️':''}</td>
+      <td><strong>${t.title||''}</strong>${t.category==='regulatory'?' ⚖️':''}${projBadge?'<br>'+projBadge:''}</td>
       <td>${assigneeStr}</td>
       <td>${dueStr}</td>
       <td><span class="task-badge ${prioClass}">${TASK_PRIORITIES[t.priority]||''}</span></td>
