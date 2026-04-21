@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r3</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r3b</div>
   </aside>
 
   <!-- Main Content -->
@@ -1835,7 +1835,26 @@ function renderExpenseRequests() {
   }).join('');
 }
 
+function showExpFormError(title, detailLines) {
+  let box = document.getElementById('expFormError');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'expFormError';
+    box.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;margin-top:12px;font-size:0.88rem;color:#7f1d1d;white-space:pre-wrap';
+    const form = document.getElementById('expAddCard') || document.getElementById('sec-expenses');
+    if (form) form.appendChild(box);
+  }
+  const lines = Array.isArray(detailLines) ? detailLines : [detailLines];
+  box.innerHTML = `<strong style="display:block;margin-bottom:6px">❌ ${title}</strong>` +
+                  lines.map(l => `<div style="margin-top:4px">${l}</div>`).join('') +
+                  `<button class="btn btn-sm" style="margin-top:8px;background:#fff;border:1px solid #fca5a5;color:#7f1d1d" onclick="document.getElementById('expFormError').remove()">סגור</button>`;
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
 async function addExpenseRequest() {
+  // Clear previous error panel
+  const old = document.getElementById('expFormError'); if (old) old.remove();
+
   const expenseDate  = document.getElementById('expDate').value;
   const amount       = parseFloat(document.getElementById('expAmount').value) || 0;
   const category     = document.getElementById('expCategory').value;
@@ -1847,6 +1866,7 @@ async function addExpenseRequest() {
   if (!amount || amount <= 0) { toast('יש להזין סכום','error'); return; }
   if (!approverEmail) { toast('יש לבחור מנהל מאשר','error'); return; }
   if (!description) { toast('יש להזין תיאור/הסבר','error'); return; }
+  if (!currentUser || !currentUser.email) { toast('לא מחובר — רענן את הדף','error'); return; }
 
   const btn = event?.target;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ שומר…'; }
@@ -1855,7 +1875,17 @@ async function addExpenseRequest() {
     let receiptFiles = [];
     if (receiptInput && receiptInput.files && receiptInput.files.length) {
       if (btn) btn.textContent = '⏳ מעלה קבצים…';
-      receiptFiles = await uploadFilesTo(receiptInput.files, 'receipts');
+      try {
+        receiptFiles = await uploadFilesTo(receiptInput.files, 'receipts');
+      } catch(ue) {
+        console.error('[EXP] upload failed', ue);
+        showExpFormError('העלאת החשבונית נכשלה', [
+          `פירוט: <code>${(ue.message||String(ue)).replace(/</g,'&lt;')}</code>`,
+          'נסה להגיש ללא החשבונית (ניתן להוסיף אחר כך) או ודא ש-Storage Rules מאפשרות העלאה.'
+        ]);
+        if (btn) { btn.disabled = false; btn.textContent = '📨 שלח בקשה לאישור'; }
+        return;
+      }
     }
 
     const record = {
@@ -1866,9 +1896,11 @@ async function addExpenseRequest() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
+    console.log('[EXP] submitting request:', {...record, receiptFiles: receiptFiles.length+' files'});
     const ref = await db.collection('expenseRequests').add(record);
+    console.log('[EXP] saved with id:', ref.id);
 
-    // Auto-create task for approver
+    // Auto-create task for approver (non-blocking — log failure but don't roll back)
     try {
       const submitterName = ((teamCache||[]).find(t=>t.email===currentUser.email)?.name) || currentUser.email;
       await db.collection('tasks').add({
@@ -1883,7 +1915,7 @@ async function addExpenseRequest() {
         createdBy: currentUser.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-    } catch(te) { console.warn('[EXP] task create failed', te); }
+    } catch(te) { console.warn('[EXP] task create failed (request saved anyway)', te); }
 
     // Reset form
     document.getElementById('expAmount').value = '';
@@ -1894,7 +1926,21 @@ async function addExpenseRequest() {
     if (typeof loadTasks === 'function') loadTasks();
   } catch (e) {
     console.error('[EXP] add failed', e);
-    toast('שגיאה בשליחה: ' + (e.message||e), 'error');
+    const code = e && (e.code || '');
+    const msg = (e.message||String(e));
+    if (code === 'permission-denied' || /permission/i.test(msg) || /Missing or insufficient/i.test(msg)) {
+      showExpFormError('שמירה נחסמה ע״י חוקי Firestore', [
+        '<strong>זה הסימן שחוקי ה-Firestore לאוסף <code>expenseRequests</code> עדיין לא הוזנו.</strong>',
+        'הוראות: Firebase Console ← Firestore Database ← Rules ← הדבק את התוכן של הקובץ',
+        '<code>firestore-rules-expenseRequests.rules</code>',
+        `פירוט טכני: <code>${msg.replace(/</g,'&lt;')}</code>`
+      ]);
+    } else {
+      showExpFormError('הבקשה לא נשמרה', [
+        `פירוט: <code>${msg.replace(/</g,'&lt;')}</code>`,
+        'פתח את ה-Console של הדפדפן (F12) לפרטים מלאים.'
+      ]);
+    }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '📨 שלח בקשה לאישור'; }
   }
