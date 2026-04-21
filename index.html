@@ -245,6 +245,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
+    <div class="nav-item" onclick="switchSection('expenses',this)"><span class="icon">🧾</span> <span data-i18n="nav.expenses">החזרי הוצאות</span></div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
     <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
     <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
@@ -254,7 +255,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.20-b</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r1</div>
   </aside>
 
   <!-- Main Content -->
@@ -377,9 +378,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="card">
         <h3>רשומות</h3>
         <table class="data-table">
-          <thead><tr><th>סוג</th><th>תאריך</th><th>סכום</th><th>מקור / ספק</th><th>מטרה</th><th>פירוט</th><th>מסמכים</th><th>פעולות</th></tr></thead>
-          <tbody id="finTableBody"><tr><td colspan="8" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>סוג</th><th>תאריך</th><th>סכום</th><th>מקור / ספק</th><th>מטרה</th><th>פירוט</th><th>מסמכים</th><th>נרשם ע״י</th><th>פעולות</th></tr></thead>
+          <tbody id="finTableBody"><tr><td colspan="9" class="empty-state">טוען...</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- FINANCE EDIT MODAL -->
+    <div id="finEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:#fff;border-radius:12px;max-width:700px;width:100%;margin-top:20px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="margin:0">✏️ עריכת רשומה פיננסית</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeFinanceEdit()">✕</button>
+        </div>
+        <div id="finEditBody"></div>
       </div>
     </div>
 
@@ -447,6 +459,84 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 
     <!-- (sec-pluga removed; weekly reports now live inside sec-reports) -->
 
+    <!-- EXPENSE REIMBURSEMENTS -->
+    <div class="section" id="sec-expenses">
+      <div class="page-header">
+        <h1 data-i18n="page.expenses.title">🧾 החזרי הוצאות</h1>
+        <p>בקשות החזר הוצאות — שליחה, אישור, ותשלום</p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">⏳</div><div class="label">ממתינות לאישור</div><div class="value" id="exp-pending">0</div></div>
+        <div class="kpi"><div class="icon">✅</div><div class="label">אושרו — ממתין לתשלום</div><div class="value" id="exp-approved" style="color:var(--warning)">0</div></div>
+        <div class="kpi"><div class="icon">💰</div><div class="label">שולמו החודש</div><div class="value" id="exp-paid-month" style="color:var(--success)">0</div></div>
+        <div class="kpi"><div class="icon">📊</div><div class="label">סה״כ שולם החודש (₪)</div><div class="value" id="exp-paid-amount" style="color:var(--success)">0</div></div>
+      </div>
+
+      <!-- New request form -->
+      <div class="card" id="expAddCard">
+        <h3>➕ בקשת החזר הוצאות חדשה</h3>
+        <p style="margin:4px 0 10px;color:#64748b;font-size:0.9rem">צרף חשבונית, ציין סכום ומטרה, ובחר את המנהל המאשר. הבקשה תקפוץ ליומן המשימות שלו לאישור.</p>
+        <div class="form-row">
+          <div class="form-field"><label>תאריך ההוצאה</label><input type="date" id="expDate"></div>
+          <div class="form-field"><label>סכום (₪)</label><input type="number" id="expAmount" placeholder="0" step="0.01"></div>
+          <div class="form-field"><label>קטגוריה</label>
+            <select id="expCategory">
+              <option value="torah">ליווי תורני</option>
+              <option value="prep">הכנה לשירות</option>
+              <option value="welfare">רווחה וסיוע</option>
+              <option value="study">לימוד תורה</option>
+              <option value="alumni">בוגרים</option>
+              <option value="vehicle">רכב ותחבורה</option>
+              <option value="office">משרד וציוד</option>
+              <option value="general">כללי</option>
+            </select>
+          </div>
+          <div class="form-field"><label>מנהל מאשר</label><select id="expApprover"><option value="">— בחר —</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור / הסבר</label><textarea id="expDescription" placeholder="על מה ההוצאה? לאיזו מטרה?"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>📎 חשבונית / קבלה</label><input type="file" id="expReceipt" multiple accept="image/*,application/pdf"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addExpenseRequest()">📨 שלח בקשה לאישור</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="card">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+          <div class="form-field" style="min-width:160px"><label>סטטוס</label>
+            <select id="expFilterStatus" onchange="renderExpenseRequests()">
+              <option value="">כל הסטטוסים</option>
+              <option value="pending">⏳ ממתינה</option>
+              <option value="approved">✅ אושרה — ממתינה לתשלום</option>
+              <option value="paid">💰 שולמה</option>
+              <option value="rejected">❌ נדחתה</option>
+            </select>
+          </div>
+          <div class="form-field" style="min-width:200px" id="expFilterScopeWrap"><label>תצוגה</label>
+            <select id="expFilterScope" onchange="renderExpenseRequests()">
+              <option value="relevant">הרלוונטיות לי (ברירת מחדל)</option>
+              <option value="mine">רק שהגשתי</option>
+              <option value="approver">רק ממתינות לאישור שלי</option>
+              <option value="all">הכול</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="card">
+        <h3>📋 בקשות החזר הוצאות</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>מגיש</th><th>סכום</th><th>קטגוריה</th><th>תיאור</th><th>חשבוניות</th><th>מאשר</th><th>סטטוס</th><th>נרשם ע״י</th><th>פעולות</th></tr></thead>
+          <tbody id="expTableBody"><tr><td colspan="10" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- DONORS -->
     <div class="section" id="sec-donors">
       <div class="page-header">
@@ -475,8 +565,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="card">
         <h3>רשימת תורמים</h3>
         <table class="data-table">
-          <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>סה״כ תרומות</th><th>מטרה</th><th>פעולות</th></tr></thead>
-          <tbody id="donTableBody"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>סה״כ תרומות</th><th>מטרה</th><th>נרשם ע״י</th><th>פעולות</th></tr></thead>
+          <tbody id="donTableBody"><tr><td colspan="7" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1022,6 +1112,7 @@ function showApp(user) {
   loadDashboard();
   loadOrgProfile();
   loadPlugaReports();
+  loadExpenseRequests();
 }
 
 // ===== TOAST =====
@@ -1059,6 +1150,29 @@ function switchSection(id, el) {
         }
         if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect();
       } catch(e) { console.warn('projects leader refresh:', e); }
+    })();
+  }
+  // Expenses: populate approver dropdown and default date
+  if (id === 'expenses') {
+    (async () => {
+      try {
+        if (!Array.isArray(teamCache) || !teamCache.length) {
+          const snap = await db.collection('team').get();
+          teamCache = [];
+          snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+        }
+        if (typeof populateExpenseApproverSelect === 'function') populateExpenseApproverSelect();
+        const d = document.getElementById('expDate');
+        if (d && !d.value) d.value = new Date().toISOString().slice(0,10);
+        // Default scope: non-managers see "mine", managers see "relevant"
+        const scope = document.getElementById('expFilterScope');
+        const isManager = (userRole === 'admin' || userRole === 'team');
+        if (scope && !scope.dataset.touched) {
+          scope.value = isManager ? 'relevant' : 'mine';
+          scope.dataset.touched = '1';
+        }
+        renderExpenseRequests();
+      } catch(e) { console.warn('expenses init:', e); }
     })();
   }
 }
@@ -1130,11 +1244,16 @@ async function loadFinance() {
   document.getElementById('dash-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
 
   const tbody = document.getElementById('finTableBody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">אין רשומות</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות</td></tr>'; return; }
+  // Expose cache for edit flow
+  financeCache = rows;
   tbody.innerHTML = rows.map(r => {
     const typeLabel = r.type === 'income' ? '<span style="color:var(--primary)">הכנסה</span>' : '<span style="color:var(--accent)">הוצאה</span>';
     const cls = r.type === 'income' ? 'amount-positive' : 'amount-negative';
+    const canEdit = userRole === 'admin' || userRole === 'team';
     const canDel = userRole === 'admin' || userRole === 'team';
+    const creatorName = (r.createdBy && (teamCache||[]).find(t => t.email === r.createdBy)?.name) || r.createdBy || '—';
+    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${creatorName}${r.updatedBy && r.updatedBy !== r.createdBy ? ' <em>(עודכן)</em>' : ''}</span>`;
 
     // Date cell
     let dateCell;
@@ -1163,6 +1282,8 @@ async function loadFinance() {
     }
 
     const desc = r.description ? `<span title="${(r.description||'').replace(/"/g,'&quot;')}">${r.description.length>40 ? r.description.slice(0,40)+'…' : r.description}</span>` : '—';
+    const editBtn = canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openFinanceEdit('${r.id}')" style="margin-left:4px">✏️</button>` : '';
+    const delBtn = canDel ? `<button class="btn btn-danger btn-sm" onclick="delDoc('finance','${r.id}')">🗑</button>` : '';
     return `<tr>
       <td>${typeLabel}</td>
       <td>${dateCell||'—'}</td>
@@ -1171,10 +1292,13 @@ async function loadFinance() {
       <td>${PURPOSES[r.purpose]||r.purpose||'—'}</td>
       <td>${desc}</td>
       <td>${docsCell}</td>
-      <td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'finance\',\''+r.id+'\')">מחק</button>':''}</td>
+      <td>${creatorCell}</td>
+      <td>${editBtn}${delBtn}</td>
     </tr>`;
   }).join('');
 }
+
+let financeCache = [];
 
 async function addFinRecord() {
   const type = document.getElementById('finType').value;
@@ -1234,6 +1358,425 @@ async function addFinRecord() {
     toast('שגיאה בשמירה: ' + (e.message||e), 'error');
   } finally {
     btn.disabled = false; btn.textContent = '+ הוסף';
+  }
+}
+
+// ===== FINANCE EDIT =====
+function openFinanceEdit(id) {
+  const r = (financeCache||[]).find(x => x.id === id);
+  if (!r) return;
+  const body = document.getElementById('finEditBody');
+  const purposeOpts = Object.entries(PURPOSES).map(([k,v])=>`<option value="${k}"${r.purpose===k?' selected':''}>${v}</option>`).join('');
+  const typeHe = r.type === 'income' ? 'הכנסה' : 'הוצאה';
+  const dateField = r.type === 'income'
+    ? `<div class="form-field"><label>תאריך</label><input type="date" id="fe_date" value="${r.date||''}"></div>`
+    : `<div class="form-field"><label>מועד רכישה</label><input type="date" id="fe_purchaseDate" value="${r.purchaseDate||''}"></div>
+       <div class="form-field"><label>מועד תשלום</label><input type="date" id="fe_paymentDate" value="${r.paymentDate||''}"></div>`;
+  const descField = r.type === 'income' ? '' :
+    `<div class="form-row"><div class="form-field" style="grid-column:1/-1"><label>פירוט</label><textarea id="fe_description" rows="2">${r.description||''}</textarea></div></div>`;
+  const filesField = r.type === 'income' ? '' :
+    `<div class="form-row">
+       <div class="form-field"><label>הוסף הצעות מחיר (PDF/תמונה)</label><input type="file" id="fe_quoteFiles" multiple accept="image/*,application/pdf"></div>
+       <div class="form-field"><label>הוסף קבלות/חשבוניות (PDF/תמונה)</label><input type="file" id="fe_receiptFiles" multiple accept="image/*,application/pdf"></div>
+     </div>
+     <div id="fe_existingFiles" style="font-size:0.85rem;color:#6b7280;margin-bottom:12px"></div>`;
+  const receiptField = r.type === 'income' ?
+    `<div class="form-row">
+       <div class="form-field"><label><input type="checkbox" id="fe_receiptIssued" ${r.receiptIssued?'checked':''}> הונפקה קבלה</label></div>
+       <div class="form-field"><label>מספר קבלה</label><input type="text" id="fe_receiptNumber" value="${r.receiptNumber||''}"></div>
+     </div>` : '';
+  const creatorName = (r.createdBy && (teamCache||[]).find(t => t.email === r.createdBy)?.name) || r.createdBy || '—';
+  body.innerHTML = `
+    <div style="background:#f9fafb;padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.9rem;color:#4b5563">
+      <strong>סוג:</strong> ${typeHe} · <strong>נוצר ע״י:</strong> ${creatorName}${r.updatedBy?` · <strong>עודכן לאחרונה ע״י:</strong> ${((teamCache||[]).find(t=>t.email===r.updatedBy)?.name)||r.updatedBy}`:''}
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>סכום (₪)</label><input type="number" id="fe_amount" value="${r.amount||0}"></div>
+      <div class="form-field"><label>${r.type==='income'?'מקור':'ספק'}</label><input type="text" id="fe_source" value="${(r.source||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-field"><label>מטרה</label><select id="fe_purpose">${purposeOpts}</select></div>
+      ${dateField}
+    </div>
+    ${descField}
+    ${receiptField}
+    ${filesField}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-secondary" onclick="closeFinanceEdit()">ביטול</button>
+      <button class="btn btn-primary" id="feSaveBtn" onclick="saveFinanceEdit('${id}')">💾 שמור שינויים</button>
+    </div>
+  `;
+  // Display existing files
+  const ef = document.getElementById('fe_existingFiles');
+  if (ef) {
+    const q = (r.quoteFiles||[]).length, rc = (r.receiptFiles||[]).length;
+    if (q || rc) ef.textContent = `קבצים קיימים: ${q} הצעות מחיר · ${rc} קבלות (קבצים חדשים יתווספו אליהם)`;
+  }
+  document.getElementById('finEditModal').style.display = 'flex';
+}
+
+function closeFinanceEdit() { document.getElementById('finEditModal').style.display = 'none'; }
+
+async function saveFinanceEdit(id) {
+  const r = (financeCache||[]).find(x => x.id === id);
+  if (!r) return;
+  const btn = document.getElementById('feSaveBtn');
+  btn.disabled = true; btn.textContent = '⏳ שומר…';
+  try {
+    const upd = {
+      amount: parseInt(document.getElementById('fe_amount').value)||0,
+      source: document.getElementById('fe_source').value.trim(),
+      purpose: document.getElementById('fe_purpose').value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
+    };
+    if (r.type === 'income') {
+      upd.date = document.getElementById('fe_date').value;
+      upd.receiptIssued = document.getElementById('fe_receiptIssued').checked;
+      upd.receiptNumber = document.getElementById('fe_receiptNumber').value.trim() || null;
+    } else {
+      upd.purchaseDate = document.getElementById('fe_purchaseDate').value;
+      upd.paymentDate = document.getElementById('fe_paymentDate').value || null;
+      upd.description = document.getElementById('fe_description').value.trim();
+      const qi = document.getElementById('fe_quoteFiles');
+      const ri = document.getElementById('fe_receiptFiles');
+      if (qi && qi.files.length) {
+        btn.textContent = '⏳ מעלה קבצים…';
+        const newQ = await uploadFilesTo(qi.files, 'quotes');
+        upd.quoteFiles = [...(r.quoteFiles||[]), ...newQ];
+      }
+      if (ri && ri.files.length) {
+        btn.textContent = '⏳ מעלה קבצים…';
+        const newR = await uploadFilesTo(ri.files, 'receipts');
+        upd.receiptFiles = [...(r.receiptFiles||[]), ...newR];
+      }
+    }
+    await db.collection('finance').doc(id).update(upd);
+    toast('✓ נשמר');
+    closeFinanceEdit();
+    loadFinance();
+  } catch(e) {
+    console.error('[FIN EDIT]', e);
+    toast('שגיאה בשמירה: ' + (e.message||e), 'error');
+  } finally { btn.disabled = false; btn.textContent = '💾 שמור שינויים'; }
+}
+
+// ===== EXPENSE REIMBURSEMENTS =====
+let expenseRequestsCache = [];
+
+function populateExpenseApproverSelect() {
+  const sel = document.getElementById('expApprover');
+  if (!sel) return;
+  const cur = sel.value;
+  // Approvers = admins + team leads (anyone with role admin or team or *-lead / mentor)
+  const approvers = (teamCache||[]).filter(t => {
+    const r = t.role || '';
+    return r === 'admin' || r === 'team' || r.includes('lead') || r.includes('mentor') || r === 'educational-director' || r === 'ram-plugati';
+  });
+  sel.innerHTML = '<option value="">— בחר מאשר —</option>' +
+    approvers.map(t => `<option value="${t.email}">${t.name||t.email}${t.role?' ('+(ROLES[t.role]||t.role)+')':''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function expenseStatusBadge(status) {
+  const map = {
+    pending:   {t:'⏳ ממתינה', bg:'#fef3c7', c:'#92400e'},
+    approved:  {t:'✅ אושרה', bg:'#dbeafe', c:'#1e40af'},
+    paid:      {t:'💰 שולמה', bg:'#dcfce7', c:'#166534'},
+    rejected:  {t:'❌ נדחתה', bg:'#fee2e2', c:'#991b1b'}
+  };
+  const m = map[status] || {t:status||'—', bg:'#f3f4f6', c:'#374151'};
+  return `<span style="background:${m.bg};color:${m.c};padding:2px 8px;border-radius:12px;font-size:0.8rem;white-space:nowrap">${m.t}</span>`;
+}
+
+async function loadExpenseRequests() {
+  try {
+    const snap = await db.collection('expenseRequests').orderBy('createdAt','desc').get();
+    expenseRequestsCache = [];
+    snap.forEach(doc => expenseRequestsCache.push({id:doc.id, ...doc.data()}));
+  } catch(e) { console.warn('[EXP] load failed', e); expenseRequestsCache = []; }
+  renderExpenseRequests();
+}
+
+function renderExpenseRequests() {
+  const tbody = document.getElementById('expTableBody');
+  if (!tbody) return;
+
+  const isManager = (userRole === 'admin' || userRole === 'team');
+  const isAdmin = (userRole === 'admin');
+  const me = currentUser ? currentUser.email : '';
+  const statusFilter = document.getElementById('expFilterStatus')?.value || '';
+  let scopeFilter = document.getElementById('expFilterScope')?.value || (isManager ? 'relevant' : 'mine');
+
+  let list = (expenseRequestsCache||[]).slice();
+
+  // Non-managers are locked to "mine" regardless of dropdown
+  if (!isManager) scopeFilter = 'mine';
+
+  list = list.filter(r => {
+    if (statusFilter && r.status !== statusFilter) return false;
+    if (scopeFilter === 'mine') return r.createdBy === me;
+    if (scopeFilter === 'approver') return r.approverEmail === me && r.status === 'pending';
+    if (scopeFilter === 'relevant') return r.createdBy === me || r.approverEmail === me || isAdmin;
+    return true; // 'all'
+  });
+
+  // KPIs (on unfiltered relevant scope for counts)
+  const nowPrefix = new Date().toISOString().slice(0,7);
+  const pendingCnt  = (expenseRequestsCache||[]).filter(r => r.status==='pending' && (isManager || r.createdBy===me || r.approverEmail===me)).length;
+  const approvedCnt = (expenseRequestsCache||[]).filter(r => r.status==='approved' && (isManager || r.createdBy===me)).length;
+  const paidRows    = (expenseRequestsCache||[]).filter(r => r.status==='paid' && (r.paidAt && (r.paidAt.toDate ? r.paidAt.toDate().toISOString().slice(0,7) : ''))===nowPrefix);
+  const paidAmount  = paidRows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const $p = document.getElementById('exp-pending');       if ($p) $p.textContent = pendingCnt;
+  const $a = document.getElementById('exp-approved');      if ($a) $a.textContent = approvedCnt;
+  const $m = document.getElementById('exp-paid-month');    if ($m) $m.textContent = paidRows.length;
+  const $A = document.getElementById('exp-paid-amount');   if ($A) $A.textContent = paidAmount.toLocaleString('he-IL');
+
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">אין בקשות בטווח הנוכחי</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(r => {
+    const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy || '—';
+    const approverName  = ((teamCache||[]).find(t=>t.email===r.approverEmail)?.name) || r.approverEmail || '—';
+    const filesHtml = (r.receiptFiles||[]).map((f,i) => `<a href="${f.url}" target="_blank" title="${f.name||''}">📎${i+1}</a>`).join(' ') || '—';
+    const catHe = PURPOSES[r.category] || ({vehicle:'רכב ותחבורה', office:'משרד וציוד'})[r.category] || r.category || '—';
+
+    const actions = [];
+    // Approver actions
+    if (r.status === 'pending' && r.approverEmail === me) {
+      actions.push(`<button class="btn btn-success btn-sm" onclick="approveExpenseRequest('${r.id}')">✓ אשר</button>`);
+      actions.push(`<button class="btn btn-danger btn-sm" onclick="rejectExpenseRequest('${r.id}')">✕ דחה</button>`);
+    }
+    // Admin can mark paid once approved
+    if (r.status === 'approved' && isAdmin) {
+      actions.push(`<button class="btn btn-primary btn-sm" onclick="markExpensePaid('${r.id}')">💰 סמן כשולם</button>`);
+    }
+    // Creator can delete while pending
+    if (r.status === 'pending' && r.createdBy === me) {
+      actions.push(`<button class="btn btn-danger btn-sm" onclick="delExpenseRequest('${r.id}')">🗑</button>`);
+    }
+
+    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${submitterName}${r.updatedBy && r.updatedBy !== r.createdBy ? ' <em>(עודכן)</em>' : ''}</span>`;
+
+    return `<tr>
+      <td>${r.expenseDate||'—'}</td>
+      <td>${submitterName}</td>
+      <td>₪${Number(r.amount||0).toLocaleString('he-IL')}</td>
+      <td>${catHe}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.description||'').replace(/"/g,'&quot;')}">${r.description||'—'}</td>
+      <td>${filesHtml}</td>
+      <td>${approverName}</td>
+      <td>${expenseStatusBadge(r.status)}</td>
+      <td>${creatorCell}</td>
+      <td>${actions.join(' ')||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function addExpenseRequest() {
+  const expenseDate  = document.getElementById('expDate').value;
+  const amount       = parseFloat(document.getElementById('expAmount').value) || 0;
+  const category     = document.getElementById('expCategory').value;
+  const approverEmail = document.getElementById('expApprover').value;
+  const description  = document.getElementById('expDescription').value.trim();
+  const receiptInput = document.getElementById('expReceipt');
+
+  if (!expenseDate) { toast('יש להזין תאריך הוצאה','error'); return; }
+  if (!amount || amount <= 0) { toast('יש להזין סכום','error'); return; }
+  if (!approverEmail) { toast('יש לבחור מנהל מאשר','error'); return; }
+  if (!description) { toast('יש להזין תיאור/הסבר','error'); return; }
+
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ שומר…'; }
+
+  try {
+    let receiptFiles = [];
+    if (receiptInput && receiptInput.files && receiptInput.files.length) {
+      if (btn) btn.textContent = '⏳ מעלה קבצים…';
+      receiptFiles = await uploadFilesTo(receiptInput.files, 'receipts');
+    }
+
+    const record = {
+      expenseDate, amount, category, approverEmail, description,
+      receiptFiles,
+      status: 'pending',
+      createdBy: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    const ref = await db.collection('expenseRequests').add(record);
+
+    // Auto-create task for approver
+    try {
+      const submitterName = ((teamCache||[]).find(t=>t.email===currentUser.email)?.name) || currentUser.email;
+      await db.collection('tasks').add({
+        title: `אישור החזר הוצאות — ${submitterName} · ₪${amount.toLocaleString('he-IL')}`,
+        description: `בקשת החזר הוצאות מאת ${submitterName}\nתאריך: ${expenseDate}\nסכום: ₪${amount}\nתיאור: ${description}`,
+        assignees: [approverEmail],
+        status: 'open',
+        priority: 'high',
+        category: 'expense-approval',
+        expenseRequestId: ref.id,
+        dueDate: new Date(Date.now() + 7*24*3600*1000).toISOString().slice(0,10),
+        createdBy: currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch(te) { console.warn('[EXP] task create failed', te); }
+
+    // Reset form
+    document.getElementById('expAmount').value = '';
+    document.getElementById('expDescription').value = '';
+    document.getElementById('expReceipt').value = '';
+    toast('✓ הבקשה נשלחה לאישור');
+    loadExpenseRequests();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch (e) {
+    console.error('[EXP] add failed', e);
+    toast('שגיאה בשליחה: ' + (e.message||e), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📨 שלח בקשה לאישור'; }
+  }
+}
+
+async function approveExpenseRequest(id) {
+  const r = (expenseRequestsCache||[]).find(x => x.id === id);
+  if (!r) return;
+  if (r.approverEmail !== currentUser.email) { toast('רק המאשר שנקבע יכול לאשר','error'); return; }
+  if (!confirm('לאשר את בקשת ההחזר? תיווצר משימה להנהלת חשבונות.')) return;
+  try {
+    await db.collection('expenseRequests').doc(id).update({
+      status: 'approved',
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      approvedBy: currentUser.email,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
+    });
+    // Close the approver's task (if any)
+    try {
+      const tSnap = await db.collection('tasks').where('expenseRequestId','==',id).where('category','==','expense-approval').get();
+      const batch = db.batch();
+      tSnap.forEach(d => batch.update(d.ref, {status:'done', doneAt: firebase.firestore.FieldValue.serverTimestamp()}));
+      await batch.commit();
+    } catch(e) { console.warn(e); }
+    // Find admins to create a payment task
+    const admins = (teamCache||[]).filter(t => t.role === 'admin').map(t => t.email);
+    if (admins.length) {
+      const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
+      await db.collection('tasks').add({
+        title: `ביצוע תשלום החזר — ${submitterName} · ₪${Number(r.amount).toLocaleString('he-IL')}`,
+        description: `בקשה אושרה ע״י ${currentUser.email}\nיש להעביר את ההחזר לעובד.\nתיאור: ${r.description||''}`,
+        assignees: admins,
+        status: 'open',
+        priority: 'high',
+        category: 'expense-payment',
+        expenseRequestId: id,
+        dueDate: new Date(Date.now() + 14*24*3600*1000).toISOString().slice(0,10),
+        createdBy: currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    toast('✓ הבקשה אושרה — הועברה להנהלת חשבונות');
+    loadExpenseRequests();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) {
+    console.error('[EXP] approve failed', e);
+    toast('שגיאה באישור: ' + (e.message||e), 'error');
+  }
+}
+
+async function rejectExpenseRequest(id) {
+  const r = (expenseRequestsCache||[]).find(x => x.id === id);
+  if (!r) return;
+  if (r.approverEmail !== currentUser.email) { toast('רק המאשר שנקבע יכול לדחות','error'); return; }
+  const reason = prompt('סיבת הדחייה (תוצג למגיש):','');
+  if (reason === null) return;
+  try {
+    await db.collection('expenseRequests').doc(id).update({
+      status: 'rejected',
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      rejectedBy: currentUser.email,
+      rejectionReason: reason || '',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
+    });
+    // Close the approver's task
+    try {
+      const tSnap = await db.collection('tasks').where('expenseRequestId','==',id).where('category','==','expense-approval').get();
+      const batch = db.batch();
+      tSnap.forEach(d => batch.update(d.ref, {status:'cancelled', doneAt: firebase.firestore.FieldValue.serverTimestamp()}));
+      await batch.commit();
+    } catch(e) { console.warn(e); }
+    toast('הבקשה נדחתה');
+    loadExpenseRequests();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) {
+    console.error('[EXP] reject failed', e);
+    toast('שגיאה בדחייה: ' + (e.message||e), 'error');
+  }
+}
+
+async function markExpensePaid(id) {
+  if (userRole !== 'admin') { toast('רק מנהל יכול לסמן כשולם','error'); return; }
+  const r = (expenseRequestsCache||[]).find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`לאשר שהחזר בסך ₪${Number(r.amount).toLocaleString('he-IL')} בוצע? תתווסף רשומה לשקיפות הפיננסית.`)) return;
+  try {
+    await db.collection('expenseRequests').doc(id).update({
+      status: 'paid',
+      paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+      paidBy: currentUser.email,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
+    });
+    // Create matching finance expense record
+    const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
+    await db.collection('finance').add({
+      type: 'expense',
+      amount: Number(r.amount)||0,
+      source: submitterName,
+      purpose: r.category || 'general',
+      purchaseDate: r.expenseDate || new Date().toISOString().slice(0,10),
+      paymentDate: new Date().toISOString().slice(0,10),
+      description: `החזר הוצאות: ${r.description||''}`,
+      receiptFiles: r.receiptFiles || [],
+      expenseRequestId: id,
+      createdBy: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Close payment task
+    try {
+      const tSnap = await db.collection('tasks').where('expenseRequestId','==',id).where('category','==','expense-payment').get();
+      const batch = db.batch();
+      tSnap.forEach(d => batch.update(d.ref, {status:'done', doneAt: firebase.firestore.FieldValue.serverTimestamp()}));
+      await batch.commit();
+    } catch(e) { console.warn(e); }
+    toast('✓ סומן כשולם ונרשם בשקיפות הפיננסית');
+    loadExpenseRequests();
+    if (typeof loadFinance === 'function') loadFinance();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) {
+    console.error('[EXP] pay failed', e);
+    toast('שגיאה: ' + (e.message||e), 'error');
+  }
+}
+
+async function delExpenseRequest(id) {
+  const r = (expenseRequestsCache||[]).find(x => x.id === id);
+  if (!r) return;
+  if (r.createdBy !== currentUser.email && userRole !== 'admin') { toast('רק המגיש או מנהל יכולים למחוק','error'); return; }
+  if (!confirm('למחוק בקשה זו? לא ניתן לבטל.')) return;
+  try {
+    await db.collection('expenseRequests').doc(id).delete();
+    // Cancel related approval tasks
+    try {
+      const tSnap = await db.collection('tasks').where('expenseRequestId','==',id).get();
+      const batch = db.batch();
+      tSnap.forEach(d => batch.update(d.ref, {status:'cancelled'}));
+      await batch.commit();
+    } catch(e) { console.warn(e); }
+    toast('נמחק');
+    loadExpenseRequests();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) {
+    console.error('[EXP] del failed', e);
+    toast('שגיאה במחיקה: ' + (e.message||e), 'error');
   }
 }
 
@@ -1346,12 +1889,14 @@ const I18N = {
     'app.subtitle': 'מערכת ניהול פנימית',
     // nav
     'nav.dashboard':'דשבורד','nav.finance':'שקיפות פיננסית','nav.reports':'דיווחי עובדים',
+    'nav.expenses':'החזרי הוצאות',
     'nav.donors':'ניהול תורמים','nav.tasks':'יומן ומשימות','nav.projects':'פרויקטים',
     'nav.vehicles':'ניהול רכבים','nav.team':'ניהול צוות','nav.logout':'התנתק',
     // page titles
     'page.dashboard.title':'דשבורד','page.dashboard.sub':'סקירה כללית של פעילות העמותה',
     'page.finance.title':'שקיפות פיננסית','page.reports.title':'דיווחי עובדים',
     'page.donors.title':'ניהול תורמים','page.tasks.title':'📋 יומן ומשימות',
+    'page.expenses.title':'🧾 החזרי הוצאות',
     'page.projects.title':'ניהול פרויקטים','page.projects.sub':'פרויקטים, מוביל, תקציב (מקורות והוצאות) ותתי-משימות',
     'page.vehicles.title':'🚗 ניהול רכבים','page.team.title':'ניהול צוות',
     // KPIs
@@ -1384,11 +1929,13 @@ const I18N = {
     'app.name': 'Hashmonaim Association',
     'app.subtitle': 'Internal Management System',
     'nav.dashboard':'Dashboard','nav.finance':'Financial Transparency','nav.reports':'Employee Reports',
+    'nav.expenses':'Expense Reimbursements',
     'nav.donors':'Donors','nav.tasks':'Tasks & Calendar','nav.projects':'Projects',
     'nav.vehicles':'Vehicles','nav.team':'Team Management','nav.logout':'Sign Out',
     'page.dashboard.title':'Dashboard','page.dashboard.sub':'Overview of association activities',
     'page.finance.title':'Financial Transparency','page.reports.title':'Employee Reports',
     'page.donors.title':'Donor Management','page.tasks.title':'📋 Tasks & Calendar',
+    'page.expenses.title':'🧾 Expense Reimbursements',
     'page.projects.title':'Project Management','page.projects.sub':'Projects, leader, budget (sources & expenses) and subtasks',
     'page.vehicles.title':'🚗 Vehicle Management','page.team.title':'Team Management',
     'kpi.income':'Total Income','kpi.expense':'Total Expenses','kpi.balance':'Balance',
@@ -1916,11 +2463,13 @@ async function loadDonors() {
   snap.forEach(doc => rows.push({id: doc.id, ...doc.data()}));
   document.getElementById('dash-donors').textContent = rows.length;
   const tbody = document.getElementById('donTableBody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">אין תורמים</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין תורמים</td></tr>'; return; }
   const canDel = userRole === 'admin' || userRole === 'team';
-  tbody.innerHTML = rows.map(r =>
-    `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.phone||'—'}</td><td dir="ltr">${r.email||'—'}</td><td class="amount-positive">₪${(r.amount||0).toLocaleString()}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'donors\',\''+r.id+'\')">מחק</button>':''}</td></tr>`
-  ).join('');
+  tbody.innerHTML = rows.map(r => {
+    const creatorName = (r.createdBy && (teamCache||[]).find(t => t.email === r.createdBy)?.name) || r.createdBy || '—';
+    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${creatorName}</span>`;
+    return `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.phone||'—'}</td><td dir="ltr">${r.email||'—'}</td><td class="amount-positive">₪${(r.amount||0).toLocaleString()}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${creatorCell}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'donors\',\''+r.id+'\')">מחק</button>':''}</td></tr>`;
+  }).join('');
 }
 
 async function addDonor() {
@@ -2937,6 +3486,8 @@ async function loadTeamForTasks() {
     populateAssignees();
     // Also refresh project leader dropdown — it depends on teamCache
     try { if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect(); } catch(e) {}
+    // And the expense approver dropdown
+    try { if (typeof populateExpenseApproverSelect === 'function') populateExpenseApproverSelect(); } catch(e) {}
     // Refresh project list too, so leader names resolve properly in the list
     try {
       if (typeof loadProjects === 'function' && Array.isArray(projectsCache) && projectsCache.length) {
