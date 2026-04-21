@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r3b</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r4</div>
   </aside>
 
   <!-- Main Content -->
@@ -823,8 +823,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="card" id="tkListCard">
         <h3>רשימת משימות</h3>
         <table class="data-table">
-          <thead><tr><th>סטטוס</th><th>כותרת</th><th>משויכים</th><th>יעד</th><th>עדיפות</th><th>קטגוריה</th><th>פעולות</th></tr></thead>
-          <tbody id="tkTableBody"><tr><td colspan="7" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>סטטוס</th><th>כותרת</th><th>משויכים</th><th>יעד</th><th>עדיפות</th><th>קטגוריה</th><th>נרשם ע״י</th><th>פעולות</th></tr></thead>
+          <tbody id="tkTableBody"><tr><td colspan="8" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
 
@@ -1491,6 +1491,43 @@ function filesCell(files, icon) {
   return files.map((f,i) => `<a href="${f.url}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;display:block">${icon} ${f.fileName||('קובץ '+(i+1))}</a>`).join('');
 }
 
+// ---- Name helper: email → name from teamCache ----
+function nameOfEmail(email) {
+  if (!email) return '—';
+  return ((teamCache||[]).find(t => t.email === email)?.name) || email;
+}
+
+// ---- Relative time formatter ----
+function relTime(ts) {
+  if (!ts) return '';
+  let d;
+  try { d = ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : new Date(ts)); } catch(e) { return ''; }
+  if (!d || isNaN(d.getTime())) return '';
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'זה עתה';
+  if (s < 3600) return `לפני ${Math.floor(s/60)} דק׳`;
+  if (s < 86400) return `לפני ${Math.floor(s/3600)} שעות`;
+  if (s < 7*86400) return `לפני ${Math.floor(s/86400)} ימים`;
+  try { return d.toLocaleDateString('he-IL'); } catch(e) { return d.toISOString().slice(0,10); }
+}
+
+// ---- Standardized "created/updated by" cell for every table ----
+// r = record with {createdBy, createdAt, updatedBy, updatedAt}
+function creatorUpdaterCell(r, opts) {
+  opts = opts || {};
+  const creatorEmail = r.createdBy || '';
+  const updaterEmail = r.updatedBy || '';
+  const creator = nameOfEmail(creatorEmail);
+  const updater = updaterEmail ? nameOfEmail(updaterEmail) : '';
+  const wasUpdated = updaterEmail && (updaterEmail !== creatorEmail || (r.updatedAt && r.createdAt && r.updatedAt !== r.createdAt));
+  const updWhen = relTime(r.updatedAt);
+  let html = `<span style="font-size:0.82rem;color:#374151;font-weight:500" title="${creatorEmail}">👤 ${creator}</span>`;
+  if (wasUpdated) {
+    html += `<div style="font-size:0.72rem;color:#9ca3af;margin-top:2px" title="${updaterEmail}${updWhen?' · '+updWhen:''}">✏️ עודכן ע״י ${updater}${updWhen?` · ${updWhen}`:''}</div>`;
+  }
+  return html;
+}
+
 async function loadFinance() {
   const snap = await db.collection('finance').orderBy('createdAt','desc').get();
   let totalInc = 0, totalExp = 0;
@@ -1517,8 +1554,7 @@ async function loadFinance() {
     const cls = r.type === 'income' ? 'amount-positive' : 'amount-negative';
     const canEdit = userRole === 'admin' || userRole === 'team';
     const canDel = userRole === 'admin' || userRole === 'team';
-    const creatorName = (r.createdBy && (teamCache||[]).find(t => t.email === r.createdBy)?.name) || r.createdBy || '—';
-    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${creatorName}${r.updatedBy && r.updatedBy !== r.createdBy ? ' <em>(עודכן)</em>' : ''}</span>`;
+    const creatorCell = creatorUpdaterCell(r);
 
     // Date cell
     let dateCell;
@@ -1818,7 +1854,7 @@ function renderExpenseRequests() {
       actions.push(`<button class="btn btn-danger btn-sm" onclick="delExpenseRequest('${r.id}')">🗑</button>`);
     }
 
-    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${submitterName}${r.updatedBy && r.updatedBy !== r.createdBy ? ' <em>(עודכן)</em>' : ''}</span>`;
+    const creatorCell = creatorUpdaterCell(r);
 
     return `<tr>
       <td>${r.expenseDate||'—'}</td>
@@ -2803,8 +2839,7 @@ async function loadDonors() {
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין תורמים</td></tr>'; return; }
   const canDel = userRole === 'admin' || userRole === 'team';
   tbody.innerHTML = rows.map(r => {
-    const creatorName = (r.createdBy && (teamCache||[]).find(t => t.email === r.createdBy)?.name) || r.createdBy || '—';
-    const creatorCell = `<span style="font-size:0.82rem;color:#6b7280" title="${r.createdBy||''}">${creatorName}</span>`;
+    const creatorCell = creatorUpdaterCell(r);
     return `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.phone||'—'}</td><td dir="ltr">${r.email||'—'}</td><td class="amount-positive">₪${(r.amount||0).toLocaleString()}</td><td>${PURPOSES[r.purpose]||'—'}</td><td>${creatorCell}</td><td>${canDel?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'donors\',\''+r.id+'\')">מחק</button>':''}</td></tr>`;
   }).join('');
 }
@@ -2897,6 +2932,7 @@ async function loadProjects() {
     const plannedBudget = r.budget||0;
     const tasksOfProject = (tasksCache||[]).filter(t => t.projectId === r.id);
     const tasksOpen = tasksOfProject.filter(t => t.status !== 'done').length;
+    const creatorBadge = creatorUpdaterCell(r);
     return `<div style="padding:14px;border-bottom:1px solid #f0f0f0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div style="flex:1;min-width:240px">
@@ -2904,6 +2940,7 @@ async function loadProjects() {
           <div style="font-size:0.82rem;color:#666;margin-top:4px">🎯 ${PURPOSES[r.area]||'—'} · 👤 ${leader}</div>
           <div style="font-size:0.82rem;color:#666;margin-top:4px">💰 משוער: ₪${plannedBudget.toLocaleString()} · גויס: ₪${fundingTotal.toLocaleString()} · התקבל: ₪${receivedTotal.toLocaleString()} · הוצא: ₪${expensesTotal.toLocaleString()}</div>
           ${tasksOfProject.length?`<div style="font-size:0.82rem;color:#666;margin-top:4px">✅ ${tasksOfProject.length} משימות${tasksOpen?` · ${tasksOpen} פתוחות`:''}</div>`:''}
+          <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">${creatorBadge}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="openProjectModal('${r.id}')">📂 פתח</button>
@@ -3128,7 +3165,8 @@ async function addFundingSource() {
   try {
     await db.collection('projects').doc(id).update({
       fundingSources: firebase.firestore.FieldValue.arrayUnion(entry),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
     });
     toast('מקור מימון נוסף');
     await loadProjects();
@@ -3143,7 +3181,8 @@ async function removeFundingSource(idx) {
   try {
     await db.collection('projects').doc(_currentProjectId).update({
       fundingSources: newList,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
     });
     toast('נמחק');
     await loadProjects();
@@ -3167,7 +3206,8 @@ async function addExpense() {
   try {
     await db.collection('projects').doc(id).update({
       expenses: firebase.firestore.FieldValue.arrayUnion(entry),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
     });
     toast('הוצאה נוספה');
     await loadProjects();
@@ -3182,7 +3222,8 @@ async function removeExpense(idx) {
   try {
     await db.collection('projects').doc(_currentProjectId).update({
       expenses: newList,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.email
     });
     toast('נמחק');
     await loadProjects();
@@ -3803,7 +3844,7 @@ function renderVehicleFaults() {
   tbody.innerHTML = open.map(f => {
     const v = (vehiclesCache||[]).find(x => x.id === f.vehicleId);
     const vehName = v ? [v.make,v.model,v.plate].filter(Boolean).join(' ') : '—';
-    const reporter = ((teamCache||[]).find(t=>t.email===f.createdBy)?.name) || f.createdBy;
+    const reporter = creatorUpdaterCell(f);
     const filesHtml = (f.files||[]).map((ff,i) => `<a href="${ff.url}" target="_blank" title="${ff.name||''}">📎${i+1}</a>`).join(' ') || '—';
     const actions = [];
     if (isManager) {
@@ -4206,7 +4247,7 @@ async function loadTasks() {
   } catch(e) {
     console.error('loadTasks:', e);
     document.getElementById('tkTableBody').innerHTML =
-      '<tr><td colspan="7" class="empty-state">שגיאה בטעינה</td></tr>';
+      '<tr><td colspan="8" class="empty-state">שגיאה בטעינה</td></tr>';
   }
 }
 
@@ -4242,7 +4283,7 @@ function renderTaskList() {
   const list = filterTasks();
   const tbody = document.getElementById('tkTableBody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין משימות התואמות לפילטרים</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">אין משימות התואמות לפילטרים</td></tr>';
     return;
   }
   // Manager sort: mine first, then by dueDate. Non-managers already only see theirs.
@@ -4271,6 +4312,7 @@ function renderTaskList() {
       const pr = (projectsCache||[]).find(p => p.id === t.projectId);
       return pr ? `<div style="font-size:0.75rem;color:#6b21a8;background:#faf5ff;padding:1px 6px;border-radius:10px;display:inline-block;margin-top:2px">📂 ${pr.name}</div>` : '';
     })() : '';
+    const creatorCell = creatorUpdaterCell(t);
     return `<tr class="${rowClass}" onclick="openTaskDetails('${t.id}')">
       <td><span class="task-badge ${statusClass}">${statusLabel}</span></td>
       <td><strong>${t.title||''}</strong>${t.category==='regulatory'?' ⚖️':''}${projBadge?'<br>'+projBadge:''}</td>
@@ -4278,6 +4320,7 @@ function renderTaskList() {
       <td>${dueStr}</td>
       <td><span class="task-badge ${prioClass}">${TASK_PRIORITIES[t.priority]||''}</span></td>
       <td>${TASK_CATEGORIES[t.category]||t.category||''}</td>
+      <td>${creatorCell}</td>
       <td>${adminActions}</td>
     </tr>`;
   }).join('');
@@ -4465,7 +4508,7 @@ async function openTaskDetails(id) {
 
 async function setTaskStatus(id, status) {
   try {
-    const upd = {status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()};
+    const upd = {status, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email};
     if (status === 'done') { upd.completedAt = firebase.firestore.FieldValue.serverTimestamp(); upd.completedBy = currentUser.email; }
     await db.collection('tasks').doc(id).update(upd);
     toast('סטטוס עודכן');
@@ -4511,7 +4554,7 @@ async function addTaskComment(id) {
       text,
       createdAt: Date.now()
     }]);
-    await db.collection('tasks').doc(id).update({comments, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('tasks').doc(id).update({comments, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email});
     input.value = '';
     toast('תגובה נוספה');
     await loadTasks();
@@ -4524,7 +4567,7 @@ async function toggleChecklist(id, idx, checked) {
     const t = tasksCache.find(x => x.id === id);
     const checklist = [...(t.checklist || [])];
     if (checklist[idx]) { checklist[idx].done = checked; }
-    await db.collection('tasks').doc(id).update({checklist, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('tasks').doc(id).update({checklist, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email});
     await loadTasks();
   } catch(e) { toast('שגיאה: ' + e.message, 'error'); }
 }
