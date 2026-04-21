@@ -152,15 +152,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .view-switcher button.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
 
 @media(max-width:768px){
-  .sidebar{transform:translateX(100%)}
-  .sidebar.open{transform:translateX(0)}
-  .main{margin-right:0}
+  .sidebar{transform:translateX(100%);width:82vw;max-width:300px;z-index:1000}
+  .sidebar.open{transform:translateX(0);box-shadow:-6px 0 20px rgba(0,0,0,0.25)}
+  .main{margin-right:0;padding:16px;padding-top:72px!important}
   .mobile-header{display:flex!important}
+  .page-header{margin-bottom:16px}
+  .page-header h1{font-size:1.2rem}
+  .page-header p{font-size:0.82rem}
+  .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+  .kpi{padding:12px 8px}
+  .kpi .value{font-size:1.2rem}
+  .kpi .label{font-size:0.72rem}
+  .card{padding:14px;margin-bottom:12px}
+  .card h3{font-size:0.98rem}
+  .form-row{grid-template-columns:1fr;gap:8px}
+  .data-table{font-size:0.82rem}
+  .data-table th,.data-table td{padding:8px 6px}
+  /* Horizontal scroll wrapper for any table inside a card */
+  .card > .table-wrap, .card .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .card table{min-width:520px}
+  .btn{padding:8px 14px;font-size:0.85rem}
+  .btn-sm{padding:6px 10px;font-size:0.78rem}
+  .modal{padding:10px}
+  .modal-content{padding:18px;max-width:100%;margin-top:10px;margin-bottom:20px}
+  /* Notif panel on mobile: full width */
+  #notifPanel{left:8px!important;right:8px!important;width:auto!important;max-width:none!important}
+  /* Sidebar: higher than overlay so it's clickable */
+  .overlay.show{z-index:999}
+  /* Hide desktop bell on mobile explicitly */
+  #notifBellDesktop{display:none!important}
 }
-.mobile-header{display:none;position:fixed;top:0;right:0;left:0;height:56px;background:var(--primary-dark);color:#fff;align-items:center;padding:0 16px;z-index:99}
-.mobile-header .hamburger{font-size:1.5rem;cursor:pointer;background:none;border:none;color:#fff}
-.mobile-header h2{font-size:1rem;margin-right:12px}
+.mobile-header{display:none;position:fixed;top:0;right:0;left:0;height:56px;background:var(--primary-dark);color:#fff;align-items:center;padding:0 12px;z-index:99;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.mobile-header .hamburger{font-size:1.4rem;cursor:pointer;background:none;border:none;color:#fff;padding:8px;border-radius:6px;flex:0 0 auto}
+.mobile-header .hamburger:hover{background:rgba(255,255,255,0.1)}
+.mobile-header .mh-back{display:none;font-size:1.3rem;cursor:pointer;background:none;border:none;color:#fff;padding:8px;border-radius:6px;flex:0 0 auto}
+.mobile-header .mh-back:hover{background:rgba(255,255,255,0.1)}
+.mobile-header .mh-back.show{display:inline-flex;align-items:center;justify-content:center}
+.mobile-header h2{font-size:0.98rem;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 @media(min-width:769px){#notifBellDesktop{display:block!important}}
+/* Ensure all tables inside .card can scroll horizontally on narrow screens */
+.card{overflow-x:auto}
 .notif-item{padding:10px;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background 0.15s}
 .notif-item:hover{background:#f3f4f6}
 .notif-item.unread{background:#eff6ff;border-right:3px solid var(--primary)}
@@ -238,8 +269,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 
   <!-- Mobile Header -->
   <div class="mobile-header">
-    <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2 data-i18n="app.name" style="flex:1">עמותת החשמונאים</h2>
+    <button class="hamburger" onclick="toggleSidebar()" title="תפריט">☰</button>
+    <button class="mh-back" id="mhBack" onclick="navigateBack()" title="חזור">→</button>
+    <h2 id="mobileTitle">דשבורד</h2>
     <button id="notifBellBtn" onclick="toggleNotifPanel(event)" title="התראות" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;position:relative;padding:8px">🔔<span id="notifBadge" style="display:none;position:absolute;top:2px;left:2px;background:#ef4444;color:#fff;font-size:0.65rem;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center">0</span></button>
   </div>
   <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
@@ -290,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r2</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r3</div>
   </aside>
 
   <!-- Main Content -->
@@ -1285,14 +1317,55 @@ function toast(msg, type='success') {
 }
 
 // ===== NAVIGATION =====
-function switchSection(id, el) {
+const SECTION_TITLES = {
+  dashboard: 'דשבורד',
+  me: 'האזור האישי שלי',
+  finance: 'שקיפות פיננסית',
+  projects: 'פרויקטים',
+  reports: 'דיווחי עובדים',
+  expenses: 'החזרי הוצאות',
+  donors: 'ניהול תורמים',
+  tasks: 'יומן ומשימות',
+  vehicles: 'ניהול רכבים',
+  team: 'ניהול צוות'
+};
+let _navHistory = ['dashboard'];
+let _suppressHistoryPush = false;
+
+function switchSection(id, el, opts) {
+  opts = opts || {};
+  const sec = document.getElementById('sec-' + id);
+  if (!sec) return;
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
+  sec.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  } else {
+    // Try to find the matching nav-item to highlight
+    const match = document.querySelector('.nav-item[onclick*="switchSection(\'' + id + '\'"]');
+    if (match) match.classList.add('active');
+  }
+  // Update mobile title + back button visibility
+  const mt = document.getElementById('mobileTitle');
+  if (mt) mt.textContent = SECTION_TITLES[id] || id;
+  const backBtn = document.getElementById('mhBack');
+  if (backBtn) backBtn.classList.toggle('show', id !== 'dashboard');
+  // Track history (skip when invoked from popstate to avoid loops)
+  if (!opts.fromPop) {
+    if (_navHistory[_navHistory.length-1] !== id) {
+      _navHistory.push(id);
+      if (_navHistory.length > 50) _navHistory.shift();
+    }
+    if (!_suppressHistoryPush && typeof history !== 'undefined' && history.pushState) {
+      try { history.pushState({section:id}, '', '#' + id); } catch(e) {}
+    }
+  }
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
+  // Scroll to top of main content
+  try { window.scrollTo({top:0, behavior:'instant'}); } catch(e) { window.scrollTo(0,0); }
   // Contract employees: when entering tasks, default filter to "my tasks"
   if (id === 'tasks' && typeof CONTRACT_ROLES !== 'undefined' && CONTRACT_ROLES.includes(userRole)) {
     const f = document.getElementById('tkFilterAssignee');
@@ -1342,6 +1415,37 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('show');
 }
+
+function navigateBack() {
+  // Prefer browser history (works with hashchange for deep-links)
+  if (_navHistory.length > 1) {
+    _navHistory.pop(); // remove current
+    const prev = _navHistory[_navHistory.length - 1] || 'dashboard';
+    _suppressHistoryPush = true;
+    switchSection(prev, null, {fromPop:true});
+    _suppressHistoryPush = false;
+  } else {
+    _suppressHistoryPush = true;
+    switchSection('dashboard', null, {fromPop:true});
+    _suppressHistoryPush = false;
+  }
+}
+
+// Browser back button → navigate back in app
+window.addEventListener('popstate', (e) => {
+  const target = (e.state && e.state.section) || (location.hash.replace('#','')) || 'dashboard';
+  _suppressHistoryPush = true;
+  switchSection(target, null, {fromPop:true});
+  _suppressHistoryPush = false;
+});
+
+// On initial load, honor hash (#vehicles etc.)
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = (location.hash||'').replace('#','');
+  if (hash && document.getElementById('sec-'+hash)) {
+    setTimeout(() => switchSection(hash, null), 300);
+  }
+});
 
 // ===== FINANCE =====
 function toggleFinType() {
@@ -1877,29 +1981,40 @@ async function markExpensePaid(id) {
   if (userRole !== 'admin') { toast('רק מנהל יכול לסמן כשולם','error'); return; }
   const r = (expenseRequestsCache||[]).find(x => x.id === id);
   if (!r) return;
-  if (!confirm(`לאשר שהחזר בסך ₪${Number(r.amount).toLocaleString('he-IL')} בוצע? תתווסף רשומה לשקיפות הפיננסית.`)) return;
+  if (r.status === 'paid') { toast('כבר סומן כשולם','error'); return; }
+  if (!confirm(`לאשר שהחזר בסך ₪${Number(r.amount).toLocaleString('he-IL')} בוצע?\nתתווסף אוטומטית רשומת הוצאה לשקיפות הפיננסית (עם החשבוניות המצורפות).`)) return;
   try {
+    // Idempotency: if already linked finance record exists, skip creation
+    let financeRefId = r.financeRecordId || null;
+    if (!financeRefId) {
+      const existing = await db.collection('finance').where('expenseRequestId','==',id).limit(1).get();
+      if (!existing.empty) financeRefId = existing.docs[0].id;
+    }
+    const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
+    if (!financeRefId) {
+      const docRef = await db.collection('finance').add({
+        type: 'expense',
+        amount: Number(r.amount)||0,
+        source: submitterName,
+        purpose: r.category || 'reimbursement',
+        purchaseDate: r.expenseDate || new Date().toISOString().slice(0,10),
+        paymentDate: new Date().toISOString().slice(0,10),
+        description: `החזר הוצאות: ${r.description||''}`.trim(),
+        receiptFiles: r.receiptFiles || [],
+        expenseRequestId: id,
+        fromExpenseRequest: true,
+        createdBy: currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      financeRefId = docRef.id;
+    }
     await db.collection('expenseRequests').doc(id).update({
       status: 'paid',
       paidAt: firebase.firestore.FieldValue.serverTimestamp(),
       paidBy: currentUser.email,
+      financeRecordId: financeRefId,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: currentUser.email
-    });
-    // Create matching finance expense record
-    const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
-    await db.collection('finance').add({
-      type: 'expense',
-      amount: Number(r.amount)||0,
-      source: submitterName,
-      purpose: r.category || 'general',
-      purchaseDate: r.expenseDate || new Date().toISOString().slice(0,10),
-      paymentDate: new Date().toISOString().slice(0,10),
-      description: `החזר הוצאות: ${r.description||''}`,
-      receiptFiles: r.receiptFiles || [],
-      expenseRequestId: id,
-      createdBy: currentUser.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     // Close payment task
     try {
@@ -1907,6 +2022,19 @@ async function markExpensePaid(id) {
       const batch = db.batch();
       tSnap.forEach(d => batch.update(d.ref, {status:'done', doneAt: firebase.firestore.FieldValue.serverTimestamp()}));
       await batch.commit();
+    } catch(e) { console.warn(e); }
+    // Notify submitter
+    try {
+      if (typeof createNotification === 'function' && r.createdBy && r.createdBy !== currentUser.email) {
+        createNotification({
+          userEmail: r.createdBy,
+          title: '💰 ההחזר שלך שולם',
+          body: `₪${Number(r.amount).toLocaleString('he-IL')} · נרשם בשקיפות הפיננסית`,
+          link: 'section:expenses',
+          channels: ['in-app','push','email'],
+          level: 'success'
+        });
+      }
     } catch(e) { console.warn(e); }
     toast('✓ סומן כשולם ונרשם בשקיפות הפיננסית');
     loadExpenseRequests();
@@ -6055,16 +6183,18 @@ async function createNotification({userEmail, title, body, link, channels, level
 
 // ----- Browser Push (FCM) -----
 async function enableBrowserPush() {
-  if (!('Notification' in window)) { toast('הדפדפן לא תומך בהתראות','error'); return; }
+  if (!('Notification' in window)) {
+    showPushInfoModal('notSupported');
+    return;
+  }
   if (!FCM_VAPID_KEY) {
-    toast('Push לא מוגדר עדיין — המנהל צריך להזין VAPID key','error');
-    console.warn('[PUSH] FCM_VAPID_KEY missing — see deployment notes');
+    showPushInfoModal('notConfigured');
     return;
   }
   try {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { toast('לא אושרה גישה','error'); return; }
-    if (!firebase.messaging) { toast('FCM לא זמין','error'); return; }
+    if (perm !== 'granted') { showPushInfoModal('denied'); return; }
+    if (!firebase.messaging) { showPushInfoModal('fcmUnavailable'); return; }
     const messaging = firebase.messaging();
     const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY });
     if (token && currentUser) {
@@ -6080,8 +6210,77 @@ async function enableBrowserPush() {
     });
   } catch(e) {
     console.error('[PUSH]', e);
-    toast('שגיאה בהפעלת Push: ' + (e.message||e), 'error');
+    showPushInfoModal('error', e.message || String(e));
   }
+}
+
+function showPushInfoModal(reason, detail) {
+  const isAdmin = (userRole === 'admin');
+  const contents = {
+    notSupported: {
+      icon: '⚠️',
+      title: 'הדפדפן לא תומך בהתראות',
+      body: `<p>הדפדפן שלך לא תומך ב-Web Push (לדוגמה, Safari במצב פרטי, או דפדפן ישן).</p>
+             <p>בינתיים, ההתראות בתוך האפליקציה (פעמון) ממשיכות לעבוד.</p>
+             <p><strong>פתרון:</strong> להשתמש ב-Chrome/Edge/Firefox עדכני, או להתקין את האפליקציה כ-PWA (תפריט ⋮ → "התקן אפליקציה").</p>`
+    },
+    notConfigured: {
+      icon: '🔧',
+      title: 'התראות Push — דורשות הגדרה ראשונית',
+      body: `<p style="background:#dcfce7;padding:10px;border-radius:8px">
+               <strong>✓ זה עובד:</strong> ההתראות בתוך האפליקציה (פעמון) וההתראות באימייל (אם הוגדרו) פעילות עכשיו.
+             </p>
+             <p style="background:#fef3c7;padding:10px;border-radius:8px;margin-top:8px">
+               <strong>⚙️ דורש הגדרה חד-פעמית:</strong> כדי לקבל התראות Push גם כשהדפדפן סגור, מנהל המערכת צריך להזין VAPID Key.
+             </p>
+             ${isAdmin ? `
+               <h3 style="margin-top:16px">הגדרה (למנהל בלבד):</h3>
+               <ol style="font-size:0.9rem;line-height:1.7;padding-right:20px">
+                 <li>היכנס ל-<a href="https://console.firebase.google.com/project/ruach-hashmonait/settings/cloudmessaging" target="_blank" style="color:var(--primary)">Firebase Console — Cloud Messaging</a></li>
+                 <li>גלול ל-<strong>Web Push certificates</strong> → לחץ <strong>Generate key pair</strong></li>
+                 <li>העתק את ה-Public Key (מתחיל ב-B...)</li>
+                 <li>ב-<code>index.html</code> חפש את השורה: <code>window.FCM_VAPID_KEY = ''</code> והדבק בין המרכאות</li>
+                 <li>שמור → commit → push ל-GitHub Pages</li>
+               </ol>
+             ` : `<p style="font-size:0.9rem;color:#6b7280;margin-top:10px">פנה למנהל המערכת להפעלת Push.</p>`}`
+    },
+    denied: {
+      icon: '🚫',
+      title: 'הגישה להתראות נדחתה',
+      body: `<p>לא אישרת את הבקשה להתראות בדפדפן.</p>
+             <p><strong>איך לתקן:</strong></p>
+             <ol style="font-size:0.9rem;padding-right:20px">
+               <li>לחץ על האייקון 🔒 (או ℹ) בתיבת הכתובת</li>
+               <li>מצא "התראות" / "Notifications"</li>
+               <li>שנה ל-"אפשר" / "Allow"</li>
+               <li>רענן את הדף ונסה שוב</li>
+             </ol>`
+    },
+    fcmUnavailable: {
+      icon: '⚠️',
+      title: 'שירות ה-FCM לא זמין',
+      body: `<p>ייתכן שסקריפט ה-Firebase Messaging לא נטען.</p>
+             <p>נסה לרענן את הדף (Ctrl+Shift+R). אם זה חוזר, ייתכן שיש חסימה ב-Service Worker.</p>`
+    },
+    error: {
+      icon: '❌',
+      title: 'שגיאה בהפעלת Push',
+      body: `<p>פרטי שגיאה: <code style="background:#fee;padding:2px 6px;border-radius:4px">${(detail||'').replace(/</g,'&lt;')}</code></p>
+             <p>בדוק את ה-Console (F12) לפרטים נוספים. לעיתים קרובות זה קורה אם ה-VAPID Key שגוי.</p>`
+    }
+  };
+  const c = contents[reason] || contents.error;
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modal-content" style="max-width:560px">
+    <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+    <h2 style="margin-top:0">${c.icon} ${c.title}</h2>
+    ${c.body}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-primary" onclick="this.closest('.modal').remove()">הבנתי</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
 }
 
 // Subscribe on login
