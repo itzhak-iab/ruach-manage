@@ -4,10 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>מערכת ניהול - עמותת החשמונאים</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a8a9a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="חשמונאים">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--primary:#1a8a9a;--primary-dark:#0d6e7a;--accent:#e67e22;--dark:#1a1a2e;--light:#f0f2f5;--card:#fff;--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:12px}
@@ -152,6 +160,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .mobile-header{display:none;position:fixed;top:0;right:0;left:0;height:56px;background:var(--primary-dark);color:#fff;align-items:center;padding:0 16px;z-index:99}
 .mobile-header .hamburger{font-size:1.5rem;cursor:pointer;background:none;border:none;color:#fff}
 .mobile-header h2{font-size:1rem;margin-right:12px}
+@media(min-width:769px){#notifBellDesktop{display:block!important}}
+.notif-item{padding:10px;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background 0.15s}
+.notif-item:hover{background:#f3f4f6}
+.notif-item.unread{background:#eff6ff;border-right:3px solid var(--primary)}
+.notif-item .ntitle{font-weight:600;margin-bottom:3px;font-size:0.92rem}
+.notif-item .nbody{color:#4b5563;font-size:0.82rem;margin-bottom:3px}
+.notif-item .ntime{color:#9ca3af;font-size:0.72rem}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99}
 .overlay.show{display:block}
 
@@ -224,9 +239,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   <!-- Mobile Header -->
   <div class="mobile-header">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2 data-i18n="app.name">עמותת החשמונאים</h2>
+    <h2 data-i18n="app.name" style="flex:1">עמותת החשמונאים</h2>
+    <button id="notifBellBtn" onclick="toggleNotifPanel(event)" title="התראות" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;position:relative;padding:8px">🔔<span id="notifBadge" style="display:none;position:absolute;top:2px;left:2px;background:#ef4444;color:#fff;font-size:0.65rem;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center">0</span></button>
   </div>
   <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Floating notifications bell (desktop) -->
+  <button id="notifBellDesktop" onclick="toggleNotifPanel(event)" title="התראות" style="position:fixed;top:16px;left:16px;background:#fff;border:1px solid #e5e7eb;border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:1.2rem;box-shadow:var(--shadow);z-index:500;display:none">🔔<span id="notifBadgeDesktop" style="display:none;position:absolute;top:-2px;left:-2px;background:#ef4444;color:#fff;font-size:0.65rem;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center">0</span></button>
+
+  <!-- Notifications panel -->
+  <div id="notifPanel" style="display:none;position:fixed;top:60px;left:16px;right:auto;width:360px;max-width:calc(100vw - 32px);max-height:70vh;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.15);z-index:10001;padding:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0;font-size:1rem">🔔 התראות</h3>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="markAllNotifRead()" title="סמן הכול כנקרא">✓</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleNotifPanel(event)" title="סגור">✕</button>
+      </div>
+    </div>
+    <div id="notifList"><div class="empty-state">אין התראות</div></div>
+    <div id="notifPushRow" style="display:none;padding:8px;border-top:1px solid #f3f4f6;margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="enableBrowserPush()" style="width:100%">🔔 הפעל התראות Push בדפדפן</button>
+    </div>
+  </div>
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
@@ -242,6 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
     </div>
     <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד</span></div>
+    <div class="nav-item" onclick="switchSection('me',this)"><span class="icon">👤</span> <span data-i18n="nav.me">האזור האישי שלי</span></div>
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
@@ -255,7 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r1</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r2</div>
   </aside>
 
   <!-- Main Content -->
@@ -304,6 +339,72 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <p style="color:var(--muted);font-size:0.85rem;margin-top:6px">ספירת רשומות בכל אוסף ב-Firestore + בדיקת גישה ל-Storage. אם מספר עולה אחרי שמירה חדשה — הרשומה נכתבה בהצלחה.</p>
         <div id="dash-diag-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px"></div>
         <div id="dash-diag-storage" style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:6px;font-size:0.9rem"></div>
+      </div>
+    </div>
+
+    <!-- MY PERSONAL AREA -->
+    <div class="section" id="sec-me">
+      <div class="page-header">
+        <h1 data-i18n="page.me.title">👤 האזור האישי שלי</h1>
+        <p id="me-welcome">שלום, ...</p>
+      </div>
+
+      <!-- Personal KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi"><div class="icon">📌</div><div class="label">המשימות הפתוחות שלי</div><div class="value" id="me-open-tasks">0</div></div>
+        <div class="kpi"><div class="icon">⚠️</div><div class="label">באיחור</div><div class="value" id="me-overdue" style="color:var(--danger)">0</div></div>
+        <div class="kpi"><div class="icon">⏳</div><div class="label">ממתין לאישור שלי</div><div class="value" id="me-approvals" style="color:var(--warning)">0</div></div>
+        <div class="kpi"><div class="icon">📅</div><div class="label">שעות החודש</div><div class="value" id="me-hours-month">0</div></div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="card" style="background:linear-gradient(135deg,#ecfdf5 0%,#eff6ff 100%)">
+        <h3>⚡ פעולות מהירות</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
+          <button class="btn btn-primary" onclick="switchSectionByName('reports')">📝 הגש דיווח יומי/שבועי</button>
+          <button class="btn btn-primary" onclick="switchSectionByName('expenses')">🧾 בקשת החזר הוצאות</button>
+          <button class="btn btn-secondary" onclick="switchSectionByName('tasks')">📋 כל המשימות שלי</button>
+          <button class="btn btn-secondary" onclick="switchSectionByName('projects')">🎯 פרויקטים</button>
+        </div>
+      </div>
+
+      <!-- My open tasks -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">📌 המשימות הפתוחות שלי</h3>
+          <small style="color:#64748b">ממוינות לפי תאריך יעד</small>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>משימה</th><th>פרויקט</th><th>תאריך יעד</th><th>עדיפות</th><th>סטטוס</th><th></th></tr></thead>
+          <tbody id="me-tasks-body"><tr><td colspan="6" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Items awaiting my approval -->
+      <div class="card" id="me-approvals-card" style="display:none">
+        <h3>⏳ ממתינות לאישור שלי</h3>
+        <table class="data-table">
+          <thead><tr><th>סוג</th><th>מגיש</th><th>פרטים</th><th>תאריך</th><th></th></tr></thead>
+          <tbody id="me-approvals-body"><tr><td colspan="5" class="empty-state">אין פריטים ממתינים</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- My expense requests -->
+      <div class="card">
+        <h3>🧾 בקשות החזר הוצאות שלי</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>סכום</th><th>תיאור</th><th>מאשר</th><th>סטטוס</th></tr></thead>
+          <tbody id="me-expenses-body"><tr><td colspan="5" class="empty-state">אין בקשות</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- My recent reports -->
+      <div class="card">
+        <h3>📋 הדיווחים האחרונים שלי</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>סוג</th><th>שעות</th><th>תחום</th><th>הערות</th></tr></thead>
+          <tbody id="me-reports-body"><tr><td colspan="5" class="empty-state">אין דיווחים</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -781,8 +882,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 
       <!-- Alerts banner -->
       <div class="card" id="vehicleAlertsCard" style="display:none;border-right:4px solid var(--accent)">
-        <h3>⚠️ תזכורות לחידוש</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">⚠️ תזכורות לחידוש</h3>
+          <button class="btn btn-secondary btn-sm" onclick="createVehicleTasksFromAlerts()" id="vehTasksBtn" style="display:none">📋 צור משימות אוטומטיות</button>
+        </div>
         <div id="vehicleAlertsList"></div>
+      </div>
+
+      <!-- Routines Schedule -->
+      <div class="card" id="vehicleRoutinesCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">📅 לוח שגרות רכב</h3>
+          <small style="color:#64748b">טיפולים תקופתיים לפי ק״מ וזמן · בירוקרטיה שנתית</small>
+        </div>
+        <div id="vehicleRoutinesList" style="margin-top:10px"><div class="empty-state">טוען...</div></div>
       </div>
 
       <!-- Vehicle cards -->
@@ -896,6 +1009,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <table class="data-table">
           <thead><tr><th>תאריך</th><th>רכב</th><th>סוג</th><th>פירוט</th><th>ספק</th><th>עלות</th><th>מסמכים</th><th>פעולות</th></tr></thead>
           <tbody id="eventsTableBody"><tr><td colspan="8" class="empty-state">טוען...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Fault / Incident Report -->
+      <div class="card" id="faultAddCard" style="border-right:4px solid var(--danger)">
+        <h3>🚨 דו״ח תקלה / אירוע דרך</h3>
+        <p style="margin:4px 0 10px;color:#64748b;font-size:0.9rem">דווח על תקלה, נזק, תאונה או בעיה ברכב. הדיווח ייצור אוטומטית משימת טיפול למנהל.</p>
+        <div class="form-row">
+          <div class="form-field"><label>רכב</label><select id="faultVehicle"></select></div>
+          <div class="form-field"><label>תאריך ושעה</label><input type="datetime-local" id="faultWhen"></div>
+          <div class="form-field"><label>חומרה</label>
+            <select id="faultSeverity">
+              <option value="low">🟢 נמוכה — לא דחוף</option>
+              <option value="medium" selected>🟡 בינונית — דורש טיפול</option>
+              <option value="high">🟠 גבוהה — רכב מוגבל</option>
+              <option value="critical">🔴 קריטית — רכב לא בטיח לשימוש</option>
+            </select>
+          </div>
+          <div class="form-field"><label>סוג התקלה</label>
+            <select id="faultType">
+              <option value="mechanical">תקלה מכנית</option>
+              <option value="electrical">תקלה חשמלית</option>
+              <option value="tire">צמיג / פנצ׳ר</option>
+              <option value="accident">תאונה / נזק</option>
+              <option value="warning-light">נורת אזהרה</option>
+              <option value="fluids">שמן / נוזלים</option>
+              <option value="noise">רעש חריג</option>
+              <option value="other">אחר</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור מפורט</label><textarea id="faultDescription" placeholder="מה קרה? מה הסימפטומים? מתי התחיל?" rows="3"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>מיקום</label><input type="text" id="faultLocation" placeholder="איפה הרכב כרגע?"></div>
+          <div class="form-field"><label>ק״מ בעת התקלה</label><input type="number" id="faultOdometer" placeholder="0"></div>
+          <div class="form-field" style="grid-column:1/span 2"><label>📷 צרף תמונות/מסמכים</label><input type="file" id="faultFiles" multiple accept="image/*,application/pdf"></div>
+        </div>
+        <button class="btn btn-danger" onclick="addVehicleFault()" id="faultAddBtn">🚨 דווח על תקלה</button>
+      </div>
+
+      <!-- Faults Table -->
+      <div class="card">
+        <h3>🚨 דיווחי תקלות פתוחים</h3>
+        <table class="data-table">
+          <thead><tr><th>תאריך</th><th>רכב</th><th>חומרה</th><th>סוג</th><th>תיאור</th><th>מדווח</th><th>מצורפים</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+          <tbody id="faultsTableBody"><tr><td colspan="9" class="empty-state">אין תקלות פתוחות</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1888,12 +2049,13 @@ const I18N = {
     'app.name': 'עמותת החשמונאים',
     'app.subtitle': 'מערכת ניהול פנימית',
     // nav
-    'nav.dashboard':'דשבורד','nav.finance':'שקיפות פיננסית','nav.reports':'דיווחי עובדים',
+    'nav.dashboard':'דשבורד','nav.me':'האזור האישי שלי','nav.finance':'שקיפות פיננסית','nav.reports':'דיווחי עובדים',
     'nav.expenses':'החזרי הוצאות',
     'nav.donors':'ניהול תורמים','nav.tasks':'יומן ומשימות','nav.projects':'פרויקטים',
     'nav.vehicles':'ניהול רכבים','nav.team':'ניהול צוות','nav.logout':'התנתק',
     // page titles
     'page.dashboard.title':'דשבורד','page.dashboard.sub':'סקירה כללית של פעילות העמותה',
+    'page.me.title':'👤 האזור האישי שלי',
     'page.finance.title':'שקיפות פיננסית','page.reports.title':'דיווחי עובדים',
     'page.donors.title':'ניהול תורמים','page.tasks.title':'📋 יומן ומשימות',
     'page.expenses.title':'🧾 החזרי הוצאות',
@@ -1928,11 +2090,12 @@ const I18N = {
   en: {
     'app.name': 'Hashmonaim Association',
     'app.subtitle': 'Internal Management System',
-    'nav.dashboard':'Dashboard','nav.finance':'Financial Transparency','nav.reports':'Employee Reports',
+    'nav.dashboard':'Dashboard','nav.me':'My Personal Area','nav.finance':'Financial Transparency','nav.reports':'Employee Reports',
     'nav.expenses':'Expense Reimbursements',
     'nav.donors':'Donors','nav.tasks':'Tasks & Calendar','nav.projects':'Projects',
     'nav.vehicles':'Vehicles','nav.team':'Team Management','nav.logout':'Sign Out',
     'page.dashboard.title':'Dashboard','page.dashboard.sub':'Overview of association activities',
+    'page.me.title':'👤 My Personal Area',
     'page.finance.title':'Financial Transparency','page.reports.title':'Employee Reports',
     'page.donors.title':'Donor Management','page.tasks.title':'📋 Tasks & Calendar',
     'page.expenses.title':'🧾 Expense Reimbursements',
@@ -3277,6 +3440,348 @@ async function addVehicleEvent() {
     btn.disabled = false; btn.textContent = '+ הוסף אירוע';
   }
 }
+
+// ===== VEHICLE ROUTINES (maintenance schedule) =====
+// Standard maintenance intervals
+const VEH_ROUTINES = [
+  { key:'oil',       label:'החלפת שמן + פילטר',     kmInterval: 15000, monthsInterval: 12, icon:'🛢️' },
+  { key:'airFilter', label:'פילטר אוויר',           kmInterval: 30000, monthsInterval: 24, icon:'🌬️' },
+  { key:'brakes',    label:'בדיקת ברקסים',          kmInterval: 20000, monthsInterval: 12, icon:'🛑' },
+  { key:'tires',     label:'החלפת צמיגים',          kmInterval: 60000, monthsInterval: 60, icon:'🛞' },
+  { key:'rotation',  label:'סבב צמיגים + איזון',    kmInterval: 10000, monthsInterval: 12, icon:'🔄' },
+  { key:'coolant',   label:'נוזל קירור',            kmInterval: 40000, monthsInterval: 24, icon:'💧' },
+];
+
+function daysFromMonths(months) { return Math.round(months * 30.44); }
+
+function lastEventForVehicle(vehicleId, type) {
+  // Find latest event of that type for this vehicle
+  if (!Array.isArray(vehicleEventsCache)) return null;
+  const hits = vehicleEventsCache.filter(e => e.vehicleId === vehicleId && (e.routineKey === type || (e.type === 'service' && (e.notes||'').includes(type))));
+  if (!hits.length) return null;
+  return hits.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+}
+
+function renderVehicleRoutines() {
+  const wrap = document.getElementById('vehicleRoutinesList');
+  if (!wrap) return;
+  if (!vehiclesCache.length) { wrap.innerHTML = '<div class="empty-state">אין רכבים רשומים</div>'; return; }
+
+  const today = new Date();
+  const cards = vehiclesCache.map(v => {
+    const title = [v.make,v.model,v.plate].filter(Boolean).join(' ') || 'רכב';
+    const currentKm = v.odometer || 0;
+
+    const rows = VEH_ROUTINES.map(r => {
+      const last = lastEventForVehicle(v.id, r.key);
+      const lastKm = last ? (last.odometer || 0) : (v.lastServiceKm || 0);
+      const lastDate = last ? last.date : (v.createdAt?.toDate?.().toISOString().slice(0,10) || null);
+
+      const kmSince = currentKm - lastKm;
+      const kmToNext = r.kmInterval - kmSince;
+      let daysToNext = null;
+      if (lastDate) {
+        const ms = new Date(lastDate).getTime() + r.monthsInterval*30.44*24*3600*1000 - today.getTime();
+        daysToNext = Math.round(ms / (24*3600*1000));
+      }
+
+      // Overdue if either triggers
+      const kmOver = kmToNext <= 0;
+      const timeOver = daysToNext !== null && daysToNext <= 0;
+      const kmSoon = !kmOver && kmToNext < r.kmInterval * 0.15; // within 15%
+      const timeSoon = !timeOver && daysToNext !== null && daysToNext < 30;
+
+      const overdue = kmOver || timeOver;
+      const soon = !overdue && (kmSoon || timeSoon);
+      const statusBg = overdue ? '#fee2e2' : (soon ? '#fef3c7' : '#dcfce7');
+      const statusC  = overdue ? '#991b1b' : (soon ? '#92400e' : '#166534');
+      const statusTxt = overdue ? 'באיחור' : (soon ? 'קרוב' : 'תקין');
+
+      const kmTxt = kmOver ? `חריגה ${Math.abs(kmToNext).toLocaleString()} ק״מ` : `בעוד ${kmToNext.toLocaleString()} ק״מ`;
+      const tTxt = daysToNext === null ? '—' : (timeOver ? `חריגה ${Math.abs(daysToNext)} ימים` : `בעוד ${daysToNext} ימים`);
+
+      return `<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6">
+        <span style="flex:1">${r.icon} <strong>${r.label}</strong></span>
+        <span style="color:#64748b;font-size:0.85rem">${kmTxt} · ${tTxt}</span>
+        <span style="background:${statusBg};color:${statusC};padding:2px 8px;border-radius:10px;font-size:0.78rem;white-space:nowrap">${statusTxt}</span>
+      </div>`;
+    }).join('');
+
+    return `<details style="border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:10px" ${v === vehiclesCache[0] ? 'open' : ''}>
+      <summary style="cursor:pointer;font-weight:600">🚗 ${title} · ${currentKm.toLocaleString()} ק״מ</summary>
+      <div style="margin-top:8px">${rows}</div>
+    </details>`;
+  }).join('');
+  wrap.innerHTML = cards;
+}
+
+// Show "create tasks" button when there are alerts
+function updateVehicleTasksButton() {
+  const btn = document.getElementById('vehTasksBtn');
+  if (!btn) return;
+  const isManager = userRole === 'admin' || userRole === 'team';
+  btn.style.display = (isManager && document.getElementById('vehicleAlertsCard').style.display !== 'none') ? 'inline-block' : 'none';
+}
+
+// Create tasks for upcoming vehicle alerts
+async function createVehicleTasksFromAlerts() {
+  if (!(userRole === 'admin' || userRole === 'team')) { toast('רק מנהלים יכולים ליצור משימות','error'); return; }
+  const admins = (teamCache||[]).filter(t => t.role === 'admin').map(t => t.email);
+  if (!admins.length) { toast('אין מנהלים להקצות להם','error'); return; }
+
+  let created = 0;
+  for (const v of vehiclesCache) {
+    const title = [v.make,v.model,v.plate].filter(Boolean).join(' ') || 'רכב';
+    const checks = [
+      ['רישיון רכב','licenseExp','license'],
+      ['ביטוח חובה','insuranceCompExp','insurance-comp'],
+      ['ביטוח מקיף','insuranceFullExp','insurance-full'],
+      ['טסט','testExp','test']
+    ];
+    for (const [label, field, tag] of checks) {
+      const days = daysUntil(v[field]);
+      if (days === null || days > 30) continue;
+      // Check if task already exists
+      const existing = (tasksCache||[]).find(t =>
+        t.category === 'vehicle-renewal' &&
+        t.vehicleId === v.id &&
+        t.vehicleField === tag &&
+        t.status !== 'done' && t.status !== 'cancelled'
+      );
+      if (existing) continue;
+      const dueDate = v[field];
+      await db.collection('tasks').add({
+        title: `חידוש ${label} — ${title}`,
+        description: `חידוש ${label} פג בתאריך ${dueDate} (בעוד ${days} ימים).\nרכב: ${title}`,
+        assignees: admins,
+        status: 'open',
+        priority: days < 7 ? 'urgent' : (days < 14 ? 'high' : 'medium'),
+        category: 'vehicle-renewal',
+        vehicleId: v.id,
+        vehicleField: tag,
+        dueDate,
+        createdBy: currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      created++;
+    }
+  }
+  toast(created ? `נוצרו ${created} משימות ✓` : 'כל התזכורות כבר במשימות');
+  if (typeof loadTasks === 'function') loadTasks();
+}
+
+// ===== VEHICLE FAULTS =====
+let vehicleFaultsCache = [];
+
+function populateFaultVehicleSelect() {
+  const sel = document.getElementById('faultVehicle');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = vehiclesCache.map(v =>
+    `<option value="${v.id}">${[v.make,v.model,v.plate].filter(Boolean).join(' ')}</option>`
+  ).join('') || '<option value="">(אין רכבים)</option>';
+  if (cur) sel.value = cur;
+}
+
+function faultSeverityBadge(s) {
+  const m = {
+    low:      {t:'🟢 נמוכה',  bg:'#dcfce7', c:'#166534'},
+    medium:   {t:'🟡 בינונית',bg:'#fef3c7', c:'#92400e'},
+    high:     {t:'🟠 גבוהה',  bg:'#fed7aa', c:'#9a3412'},
+    critical: {t:'🔴 קריטית', bg:'#fee2e2', c:'#991b1b'}
+  };
+  const x = m[s||'medium'] || m.medium;
+  return `<span style="background:${x.bg};color:${x.c};padding:2px 8px;border-radius:10px;font-size:0.78rem">${x.t}</span>`;
+}
+
+function faultStatusBadge(s) {
+  const m = {
+    open:     {t:'פתוחה',    bg:'#dbeafe', c:'#1e40af'},
+    'in-repair':{t:'בטיפול', bg:'#fef3c7', c:'#92400e'},
+    resolved: {t:'טופלה',    bg:'#dcfce7', c:'#166534'},
+    cancelled:{t:'בוטלה',    bg:'#f3f4f6', c:'#6b7280'}
+  };
+  const x = m[s||'open'] || m.open;
+  return `<span style="background:${x.bg};color:${x.c};padding:2px 8px;border-radius:10px;font-size:0.78rem">${x.t}</span>`;
+}
+
+const FAULT_TYPES = {
+  mechanical:'תקלה מכנית', electrical:'תקלה חשמלית', tire:'צמיג/פנצ׳ר',
+  accident:'תאונה/נזק', 'warning-light':'נורת אזהרה', fluids:'שמן/נוזלים',
+  noise:'רעש חריג', other:'אחר'
+};
+
+async function loadVehicleFaults() {
+  try {
+    const snap = await db.collection('vehicleFaults').orderBy('createdAt','desc').limit(50).get();
+    vehicleFaultsCache = [];
+    snap.forEach(doc => vehicleFaultsCache.push({id:doc.id, ...doc.data()}));
+  } catch(e) { console.warn('[FAULT] load failed', e); vehicleFaultsCache = []; }
+  renderVehicleFaults();
+}
+
+function renderVehicleFaults() {
+  const tbody = document.getElementById('faultsTableBody');
+  if (!tbody) return;
+  const isManager = userRole === 'admin' || userRole === 'team';
+  const open = (vehicleFaultsCache||[]).filter(f => f.status !== 'resolved' && f.status !== 'cancelled');
+  if (!open.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין תקלות פתוחות ✨</td></tr>'; return; }
+  tbody.innerHTML = open.map(f => {
+    const v = (vehiclesCache||[]).find(x => x.id === f.vehicleId);
+    const vehName = v ? [v.make,v.model,v.plate].filter(Boolean).join(' ') : '—';
+    const reporter = ((teamCache||[]).find(t=>t.email===f.createdBy)?.name) || f.createdBy;
+    const filesHtml = (f.files||[]).map((ff,i) => `<a href="${ff.url}" target="_blank" title="${ff.name||''}">📎${i+1}</a>`).join(' ') || '—';
+    const actions = [];
+    if (isManager) {
+      if (f.status === 'open') actions.push(`<button class="btn btn-secondary btn-sm" onclick="setFaultStatus('${f.id}','in-repair')">🔧 התחל טיפול</button>`);
+      if (f.status !== 'resolved') actions.push(`<button class="btn btn-success btn-sm" onclick="setFaultStatus('${f.id}','resolved')">✓ סגור</button>`);
+    }
+    return `<tr>
+      <td>${(f.when||'').replace('T',' ')||'—'}</td>
+      <td>${vehName}</td>
+      <td>${faultSeverityBadge(f.severity)}</td>
+      <td>${FAULT_TYPES[f.faultType]||f.faultType||'—'}</td>
+      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(f.description||'').replace(/"/g,'&quot;')}">${f.description||'—'}</td>
+      <td>${reporter}</td>
+      <td>${filesHtml}</td>
+      <td>${faultStatusBadge(f.status)}</td>
+      <td>${actions.join(' ')||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function addVehicleFault() {
+  const vehicleId = document.getElementById('faultVehicle').value;
+  const whenInput = document.getElementById('faultWhen').value;
+  const severity = document.getElementById('faultSeverity').value;
+  const faultType = document.getElementById('faultType').value;
+  const description = document.getElementById('faultDescription').value.trim();
+  const location = document.getElementById('faultLocation').value.trim();
+  const odometer = parseInt(document.getElementById('faultOdometer').value) || null;
+  const fileInput = document.getElementById('faultFiles');
+
+  if (!vehicleId) { toast('יש לבחור רכב','error'); return; }
+  if (!description) { toast('יש לתאר את התקלה','error'); return; }
+
+  const btn = document.getElementById('faultAddBtn');
+  btn.disabled = true; btn.textContent = '⏳ שומר…';
+
+  try {
+    let files = [];
+    if (fileInput.files && fileInput.files.length) {
+      btn.textContent = '⏳ מעלה קבצים…';
+      files = await uploadFilesTo(fileInput.files, 'vehicle-faults');
+    }
+    const when = whenInput || new Date().toISOString().slice(0,16);
+    const record = {
+      vehicleId, when, severity, faultType, description, location, odometer, files,
+      status: 'open',
+      createdBy: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await db.collection('vehicleFaults').add(record);
+
+    // Auto-create task for admins
+    const v = vehiclesCache.find(x => x.id === vehicleId);
+    const vehName = v ? [v.make,v.model,v.plate].filter(Boolean).join(' ') : 'רכב';
+    const admins = (teamCache||[]).filter(t => t.role === 'admin').map(t => t.email);
+    if (admins.length) {
+      const sevEmoji = {low:'🟢', medium:'🟡', high:'🟠', critical:'🔴'}[severity]||'🟡';
+      const pr = {low:'low', medium:'medium', high:'high', critical:'urgent'}[severity]||'medium';
+      await db.collection('tasks').add({
+        title: `${sevEmoji} תקלת רכב — ${vehName}`,
+        description: `דיווח תקלה מאת ${currentUser.email}\nרכב: ${vehName}\nסוג: ${FAULT_TYPES[faultType]}\nחומרה: ${severity}\nמיקום: ${location||'—'}\n\n${description}`,
+        assignees: admins,
+        status: 'open',
+        priority: pr,
+        category: 'vehicle-fault',
+        vehicleId,
+        faultId: ref.id,
+        dueDate: new Date(Date.now() + (severity==='critical'?1:severity==='high'?3:7)*24*3600*1000).toISOString().slice(0,10),
+        createdBy: currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // Reset form
+    ['faultDescription','faultLocation','faultOdometer','faultWhen'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('faultFiles').value = '';
+    toast('דיווח התקלה נשלח ✓');
+    loadVehicleFaults();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) {
+    console.error('[FAULT] add failed', e);
+    toast('שגיאה: ' + (e.message||e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🚨 דווח על תקלה';
+  }
+}
+
+async function setFaultStatus(id, status) {
+  if (!(userRole === 'admin' || userRole === 'team')) { toast('אין הרשאה','error'); return; }
+  try {
+    const upd = { status, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.email };
+    if (status === 'resolved') { upd.resolvedAt = firebase.firestore.FieldValue.serverTimestamp(); upd.resolvedBy = currentUser.email; }
+    await db.collection('vehicleFaults').doc(id).update(upd);
+    // Close related task
+    try {
+      const tSnap = await db.collection('tasks').where('faultId','==',id).get();
+      const batch = db.batch();
+      tSnap.forEach(d => {
+        if (status === 'resolved') batch.update(d.ref, {status:'done', doneAt: firebase.firestore.FieldValue.serverTimestamp()});
+        else if (status === 'in-repair') batch.update(d.ref, {status:'in-progress'});
+      });
+      await batch.commit();
+    } catch(e) { console.warn(e); }
+    toast('עודכן');
+    loadVehicleFaults();
+    if (typeof loadTasks === 'function') loadTasks();
+  } catch(e) { console.error(e); toast('שגיאה: ' + (e.message||e), 'error'); }
+}
+
+// Patch loadVehicles to also refresh routines + faults + populate fault dropdown
+(function patchLoadVehicles(){
+  const orig = window.loadVehicles;
+  window.loadVehicles = async function() {
+    const r = await orig.apply(this, arguments);
+    try {
+      populateFaultVehicleSelect();
+      renderVehicleRoutines();
+      updateVehicleTasksButton();
+      // Default fault "when" to now
+      const w = document.getElementById('faultWhen');
+      if (w && !w.value) w.value = new Date().toISOString().slice(0,16);
+    } catch(e) { console.warn('[VEH] patch', e); }
+    return r;
+  };
+})();
+
+// Patch loadVehicleEvents to keep a cache for routines calculations
+let vehicleEventsCache = [];
+(function patchLoadVehicleEvents(){
+  const orig = window.loadVehicleEvents;
+  if (!orig) return;
+  window.loadVehicleEvents = async function() {
+    try {
+      const snap = await db.collection('vehicleEvents').orderBy('date','desc').limit(200).get();
+      vehicleEventsCache = [];
+      snap.forEach(doc => vehicleEventsCache.push({id:doc.id, ...doc.data()}));
+      renderVehicleRoutines();
+    } catch(e) { console.warn(e); }
+    return orig.apply(this, arguments);
+  };
+})();
+
+// Load faults on initial load
+(function scheduleFaultsInit(){
+  const interval = setInterval(() => {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      loadVehicleFaults();
+      clearInterval(interval);
+    }
+  }, 700);
+  setTimeout(() => clearInterval(interval), 10000);
+})();
 
 // ===== TEAM =====
 async function loadTeam() {
@@ -5222,6 +5727,442 @@ th{background:#f0f0f0}
 
 // Set default date for reports
 document.getElementById('repDate').valueAsDate = new Date();
+
+// ===================================================================
+// ===== PERSONAL AREA =====
+// ===================================================================
+
+function switchSectionByName(name) {
+  const el = document.querySelector(`.nav-item[onclick*="switchSection('${name}'"]`);
+  switchSection(name, el);
+}
+
+function priorityBadge(p) {
+  const m = {low:{t:'נמוכה',bg:'#f3f4f6',c:'#374151'}, medium:{t:'רגילה',bg:'#dbeafe',c:'#1e40af'}, high:{t:'גבוהה',bg:'#fee2e2',c:'#991b1b'}, urgent:{t:'דחופה',bg:'#fecaca',c:'#7f1d1d'}};
+  const x = m[p||'medium'] || m.medium;
+  return `<span style="background:${x.bg};color:${x.c};padding:2px 8px;border-radius:10px;font-size:0.78rem">${x.t}</span>`;
+}
+
+function taskStatusBadge(s) {
+  const m = {open:{t:'פתוחה',bg:'#dbeafe',c:'#1e40af'}, 'in-progress':{t:'בביצוע',bg:'#fef3c7',c:'#92400e'}, done:{t:'הושלמה',bg:'#dcfce7',c:'#166534'}, cancelled:{t:'בוטלה',bg:'#f3f4f6',c:'#6b7280'}};
+  const x = m[s||'open'] || m.open;
+  return `<span style="background:${x.bg};color:${x.c};padding:2px 8px;border-radius:10px;font-size:0.78rem">${x.t}</span>`;
+}
+
+function loadPersonalArea() {
+  if (!currentUser) return;
+  const me = currentUser.email;
+  const myName = ((teamCache||[]).find(t => t.email === me)?.name) || me;
+  const myRole = ROLES[userRole] || userRole || '';
+
+  // Welcome line
+  const welcome = document.getElementById('me-welcome');
+  if (welcome) welcome.textContent = `שלום ${myName}${myRole?' · '+myRole:''} — להלן כל מה שרלוונטי לך היום`;
+
+  // --- My open tasks ---
+  const myTasks = (tasksCache||[]).filter(t =>
+    (t.assignees||[]).includes(me) && t.status !== 'done' && t.status !== 'cancelled'
+  ).sort((a,b) => (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+
+  const today = new Date().toISOString().slice(0,10);
+  const overdueCount = myTasks.filter(t => t.dueDate && t.dueDate < today).length;
+  document.getElementById('me-open-tasks').textContent = myTasks.length;
+  document.getElementById('me-overdue').textContent = overdueCount;
+
+  const tb = document.getElementById('me-tasks-body');
+  if (tb) {
+    if (!myTasks.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty-state">אין משימות פתוחות ✨</td></tr>';
+    } else {
+      tb.innerHTML = myTasks.slice(0,20).map(t => {
+        const projName = t.projectId ? ((projectsCache||[]).find(p => p.id === t.projectId)?.name || '—') : '—';
+        const isLate = t.dueDate && t.dueDate < today;
+        const dueCell = t.dueDate ? `<span style="${isLate?'color:var(--danger);font-weight:600':''}">${t.dueDate}${isLate?' ⚠':''}</span>` : '—';
+        return `<tr>
+          <td>${t.title||'—'}</td>
+          <td style="color:#6b7280">${projName}</td>
+          <td>${dueCell}</td>
+          <td>${priorityBadge(t.priority)}</td>
+          <td>${taskStatusBadge(t.status)}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="openTaskDetails&&openTaskDetails('${t.id}')">פתח</button></td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // --- Approvals waiting for me ---
+  const pendingExpenses = (expenseRequestsCache||[]).filter(r => r.status === 'pending' && r.approverEmail === me);
+  document.getElementById('me-approvals').textContent = pendingExpenses.length;
+  const apprCard = document.getElementById('me-approvals-card');
+  const apprBody = document.getElementById('me-approvals-body');
+  if (apprCard && apprBody) {
+    if (pendingExpenses.length) {
+      apprCard.style.display = 'block';
+      apprBody.innerHTML = pendingExpenses.map(r => {
+        const subName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
+        return `<tr>
+          <td>🧾 החזר הוצאות</td>
+          <td>${subName}</td>
+          <td>₪${Number(r.amount||0).toLocaleString('he-IL')} — ${r.description||''}</td>
+          <td>${r.expenseDate||'—'}</td>
+          <td>
+            <button class="btn btn-success btn-sm" onclick="approveExpenseRequest('${r.id}')">✓ אשר</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectExpenseRequest('${r.id}')">✕ דחה</button>
+          </td>
+        </tr>`;
+      }).join('');
+    } else {
+      apprCard.style.display = 'none';
+    }
+  }
+
+  // --- My expense requests ---
+  const myExpenses = (expenseRequestsCache||[]).filter(r => r.createdBy === me).slice(0,10);
+  const eb = document.getElementById('me-expenses-body');
+  if (eb) {
+    if (!myExpenses.length) {
+      eb.innerHTML = '<tr><td colspan="5" class="empty-state">לא הגשת בקשות עדיין</td></tr>';
+    } else {
+      eb.innerHTML = myExpenses.map(r => {
+        const apName = ((teamCache||[]).find(t=>t.email===r.approverEmail)?.name) || r.approverEmail;
+        return `<tr>
+          <td>${r.expenseDate||'—'}</td>
+          <td>₪${Number(r.amount||0).toLocaleString('he-IL')}</td>
+          <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.description||'').replace(/"/g,'&quot;')}">${r.description||'—'}</td>
+          <td>${apName||'—'}</td>
+          <td>${expenseStatusBadge(r.status)}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // --- My hours this month + reports ---
+  loadMyReportsInto();
+}
+
+async function loadMyReportsInto() {
+  if (!currentUser) return;
+  const me = currentUser.email;
+  try {
+    const snap = await db.collection('reports').where('createdBy','==',me).orderBy('date','desc').limit(15).get();
+    const rows = [];
+    let hoursMonth = 0;
+    const nowPref = new Date().toISOString().slice(0,7);
+    snap.forEach(doc => {
+      const d = doc.data();
+      rows.push({id:doc.id, ...d});
+      if (d.date && d.date.startsWith(nowPref)) hoursMonth += Number(d.hours)||0;
+    });
+    const h = document.getElementById('me-hours-month');
+    if (h) h.textContent = hoursMonth;
+    const rb = document.getElementById('me-reports-body');
+    if (rb) {
+      if (!rows.length) {
+        rb.innerHTML = '<tr><td colspan="5" class="empty-state">לא הגשת דיווחים עדיין</td></tr>';
+      } else {
+        rb.innerHTML = rows.map(r =>
+          `<tr><td>${r.date||'—'}</td><td>יומי</td><td>${r.hours||0}</td><td>${PURPOSES[r.area]||r.area||'—'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.notes||'').replace(/"/g,'&quot;')}">${r.notes||'—'}</td></tr>`
+        ).join('');
+      }
+    }
+  } catch(e) { console.warn('[ME] reports load failed', e); }
+}
+
+// Hook into switchSection so entering "me" always refreshes
+(function patchSwitchSectionForMe(){
+  const orig = window.switchSection;
+  window.switchSection = function(id, el) {
+    const r = orig.apply(this, arguments);
+    if (id === 'me') {
+      // Run after any other handlers settle
+      setTimeout(loadPersonalArea, 50);
+    }
+    return r;
+  };
+})();
+
+// Also load personal area as part of initial load so KPIs appear fast on first open
+(function schedulePersonalInit(){
+  const interval = setInterval(() => {
+    if (typeof tasksCache !== 'undefined' && Array.isArray(tasksCache) && (tasksCache.length || typeof currentUser !== 'undefined')) {
+      try { if (currentUser) loadPersonalArea(); } catch(e) {}
+      clearInterval(interval);
+    }
+  }, 600);
+  setTimeout(() => clearInterval(interval), 10000);
+})();
+
+// ===================================================================
+// ===== NOTIFICATIONS — PWA / In-app / Push / Email =====
+// ===================================================================
+
+// ----- Configuration (set these in Firebase Console) -----
+// VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+const FCM_VAPID_KEY = window.FCM_VAPID_KEY || '';
+// EmailJS config — https://dashboard.emailjs.com/
+const EMAILJS_PUBLIC_KEY = window.EMAILJS_PUBLIC_KEY || '';
+const EMAILJS_SERVICE_ID = window.EMAILJS_SERVICE_ID || '';
+const EMAILJS_TEMPLATE_ID = window.EMAILJS_TEMPLATE_ID || '';
+
+// ----- PWA Service Worker registration -----
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').then(reg => {
+      console.log('[SW] registered', reg.scope);
+    }).catch(err => console.warn('[SW] registration failed', err));
+  });
+}
+
+// ----- EmailJS init (safe no-op if keys missing) -----
+try {
+  if (EMAILJS_PUBLIC_KEY && window.emailjs) {
+    window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+} catch(e) { console.warn('[EmailJS] init failed', e); }
+
+// ----- In-app notifications -----
+let notificationsCache = [];
+let notifUnsub = null;
+
+function timeAgo(d) {
+  if (!d) return '—';
+  const dt = d.toDate ? d.toDate() : new Date(d);
+  const s = Math.round((Date.now() - dt.getTime())/1000);
+  if (s < 60) return 'זה עתה';
+  if (s < 3600) return `לפני ${Math.round(s/60)} דק׳`;
+  if (s < 86400) return `לפני ${Math.round(s/3600)} שעות`;
+  if (s < 604800) return `לפני ${Math.round(s/86400)} ימים`;
+  return dt.toLocaleDateString('he-IL');
+}
+
+function toggleNotifPanel(e) {
+  if (e) e.stopPropagation();
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if (!open) {
+    renderNotifications();
+    // Check if push not yet enabled — show prompt
+    if ('Notification' in window) {
+      const row = document.getElementById('notifPushRow');
+      if (row) row.style.display = (Notification.permission === 'default') ? 'block' : 'none';
+    }
+  }
+}
+
+// Close on outside click
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notifPanel');
+  if (!panel || panel.style.display === 'none') return;
+  if (panel.contains(e.target)) return;
+  const b1 = document.getElementById('notifBellBtn');
+  const b2 = document.getElementById('notifBellDesktop');
+  if (b1 && b1.contains(e.target)) return;
+  if (b2 && b2.contains(e.target)) return;
+  panel.style.display = 'none';
+});
+
+function subscribeToNotifications() {
+  if (!currentUser || !db) return;
+  if (notifUnsub) { try { notifUnsub(); } catch(e){} notifUnsub = null; }
+  notifUnsub = db.collection('notifications')
+    .where('userEmail','==',currentUser.email)
+    .orderBy('createdAt','desc')
+    .limit(50)
+    .onSnapshot(snap => {
+      notificationsCache = [];
+      snap.forEach(doc => notificationsCache.push({id:doc.id, ...doc.data()}));
+      updateNotifBadge();
+      renderNotifications();
+    }, err => console.warn('[NOTIF]', err));
+}
+
+function updateNotifBadge() {
+  const unread = notificationsCache.filter(n => !n.read).length;
+  ['notifBadge','notifBadgeDesktop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (unread > 0) { el.style.display = 'block'; el.textContent = unread > 99 ? '99+' : unread; }
+    else { el.style.display = 'none'; }
+  });
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  if (!notificationsCache.length) {
+    list.innerHTML = '<div class="empty-state">אין התראות</div>';
+    return;
+  }
+  list.innerHTML = notificationsCache.map(n => {
+    const cls = n.read ? 'notif-item' : 'notif-item unread';
+    const linkHandler = n.link ? `onclick="handleNotifClick('${n.id}','${(n.link||'').replace(/'/g,"\\'")}')"` : `onclick="markNotifRead('${n.id}')"`;
+    return `<div class="${cls}" ${linkHandler}>
+      <div class="ntitle">${n.title||''}</div>
+      <div class="nbody">${n.body||''}</div>
+      <div class="ntime">${timeAgo(n.createdAt)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function markNotifRead(id) {
+  try { await db.collection('notifications').doc(id).update({read:true, readAt: firebase.firestore.FieldValue.serverTimestamp()}); }
+  catch(e) { console.warn(e); }
+}
+
+async function handleNotifClick(id, link) {
+  await markNotifRead(id);
+  if (link && link.startsWith('section:')) {
+    const name = link.slice('section:'.length);
+    switchSectionByName(name);
+    const panel = document.getElementById('notifPanel');
+    if (panel) panel.style.display = 'none';
+  }
+}
+
+async function markAllNotifRead() {
+  const unread = notificationsCache.filter(n => !n.read);
+  if (!unread.length) return;
+  const batch = db.batch();
+  unread.forEach(n => batch.update(db.collection('notifications').doc(n.id), {read:true, readAt: firebase.firestore.FieldValue.serverTimestamp()}));
+  try { await batch.commit(); toast('סומנו כנקראו ✓'); } catch(e) { console.warn(e); }
+}
+
+// ----- Create a notification (write to Firestore; SW/server can dispatch push/email) -----
+async function createNotification({userEmail, title, body, link, channels, level}) {
+  if (!userEmail || !title) return;
+  try {
+    await db.collection('notifications').add({
+      userEmail, title, body: body||'',
+      link: link||'',
+      channels: channels || ['in-app'],
+      level: level || 'info',
+      read: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: (currentUser ? currentUser.email : 'system')
+    });
+  } catch(e) { console.warn('[NOTIF] create failed', e); }
+  // Fire-and-forget: send email via EmailJS if requested and configured
+  if ((channels||[]).includes('email') && EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && window.emailjs) {
+    try {
+      await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: userEmail, subject: title, message: body||'', link: link||''
+      });
+    } catch(e) { console.warn('[EmailJS] send failed', e); }
+  }
+}
+
+// ----- Browser Push (FCM) -----
+async function enableBrowserPush() {
+  if (!('Notification' in window)) { toast('הדפדפן לא תומך בהתראות','error'); return; }
+  if (!FCM_VAPID_KEY) {
+    toast('Push לא מוגדר עדיין — המנהל צריך להזין VAPID key','error');
+    console.warn('[PUSH] FCM_VAPID_KEY missing — see deployment notes');
+    return;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('לא אושרה גישה','error'); return; }
+    if (!firebase.messaging) { toast('FCM לא זמין','error'); return; }
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY });
+    if (token && currentUser) {
+      await db.collection('team').doc(currentUser.email).set({ fcmTokens: firebase.firestore.FieldValue.arrayUnion(token) }, { merge: true });
+      toast('התראות Push הופעלו ✓');
+      const row = document.getElementById('notifPushRow'); if (row) row.style.display = 'none';
+    }
+    // Foreground message handler → show in-app
+    messaging.onMessage(payload => {
+      const t = payload.notification?.title || payload.data?.title || 'התראה';
+      const b = payload.notification?.body || payload.data?.body || '';
+      try { new Notification(t, {body:b, icon:'icon-192.png'}); } catch(e) {}
+    });
+  } catch(e) {
+    console.error('[PUSH]', e);
+    toast('שגיאה בהפעלת Push: ' + (e.message||e), 'error');
+  }
+}
+
+// Subscribe on login
+(function waitForLoginThenSubscribe(){
+  const iv = setInterval(() => {
+    if (currentUser && db) {
+      try { subscribeToNotifications(); } catch(e) {}
+      clearInterval(iv);
+    }
+  }, 800);
+  setTimeout(() => clearInterval(iv), 30000);
+})();
+
+// Expose for use in other modules (expense/fault/vehicle) to create notifications server-side style
+window.createNotification = createNotification;
+
+// ===== Helper: generate notification for each assignee when a task is created =====
+// Patch addExpenseRequest/addVehicleFault/createVehicleTasksFromAlerts to also create notifications
+(function patchNotificationHooks(){
+  // Expense approval notify
+  const origApproveExpense = window.approveExpenseRequest;
+  // (approval/rejection notifications could be added here if needed)
+
+  // Wrap addExpenseRequest to notify approver
+  const origAddExp = window.addExpenseRequest;
+  if (origAddExp) {
+    window.addExpenseRequest = async function(){
+      const r = await origAddExp.apply(this, arguments);
+      // Find most recent pending that the current user created
+      setTimeout(async () => {
+        try {
+          const snap = await db.collection('expenseRequests').where('createdBy','==',currentUser.email).orderBy('createdAt','desc').limit(1).get();
+          snap.forEach(doc => {
+            const d = doc.data();
+            if (d.approverEmail) {
+              createNotification({
+                userEmail: d.approverEmail,
+                title: '🧾 בקשת החזר הוצאות חדשה',
+                body: `${(teamCache||[]).find(t=>t.email===d.createdBy)?.name || d.createdBy} · ₪${Number(d.amount).toLocaleString('he-IL')}`,
+                link: 'section:expenses',
+                channels: ['in-app','push','email'],
+                level: 'info'
+              });
+            }
+          });
+        } catch(e) { console.warn(e); }
+      }, 500);
+      return r;
+    };
+  }
+
+  // Wrap addVehicleFault to notify admins
+  const origAddFault = window.addVehicleFault;
+  if (origAddFault) {
+    window.addVehicleFault = async function(){
+      const r = await origAddFault.apply(this, arguments);
+      setTimeout(async () => {
+        try {
+          const admins = (teamCache||[]).filter(t => t.role === 'admin').map(t => t.email);
+          const snap = await db.collection('vehicleFaults').where('createdBy','==',currentUser.email).orderBy('createdAt','desc').limit(1).get();
+          snap.forEach(doc => {
+            const d = doc.data();
+            const v = (vehiclesCache||[]).find(x => x.id === d.vehicleId);
+            const vehName = v ? [v.make,v.model,v.plate].filter(Boolean).join(' ') : 'רכב';
+            const sevEmoji = {low:'🟢', medium:'🟡', high:'🟠', critical:'🔴'}[d.severity]||'🟡';
+            admins.forEach(em => createNotification({
+              userEmail: em,
+              title: `${sevEmoji} תקלת רכב — ${vehName}`,
+              body: (d.description||'').slice(0,120),
+              link: 'section:vehicles',
+              channels: ['in-app', d.severity==='critical'?'push':'in-app'],
+              level: d.severity==='critical' ? 'urgent' : 'warning'
+            }));
+          });
+        } catch(e) { console.warn(e); }
+      }, 500);
+      return r;
+    };
+  }
+})();
+
 </script>
 </body>
 </html>
