@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r5</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r6</div>
   </aside>
 
   <!-- Main Content -->
@@ -1680,7 +1680,7 @@ function openFinanceEdit(id) {
        <div class="form-field"><label>הוסף הצעות מחיר (PDF/תמונה)</label><input type="file" id="fe_quoteFiles" multiple accept="image/*,application/pdf"></div>
        <div class="form-field"><label>הוסף קבלות/חשבוניות (PDF/תמונה)</label><input type="file" id="fe_receiptFiles" multiple accept="image/*,application/pdf"></div>
      </div>
-     <div id="fe_existingFiles" style="font-size:0.85rem;color:#6b7280;margin-bottom:12px"></div>`;
+     <div id="fe_existingFiles" style="font-size:0.85rem;color:#6b7280;margin:6px 0 12px"></div>`;
   const receiptField = r.type === 'income' ?
     `<div class="form-row">
        <div class="form-field"><label><input type="checkbox" id="fe_receiptIssued" ${r.receiptIssued?'checked':''}> הונפקה קבלה</label></div>
@@ -1705,13 +1705,52 @@ function openFinanceEdit(id) {
       <button class="btn btn-primary" id="feSaveBtn" onclick="saveFinanceEdit('${id}')">💾 שמור שינויים</button>
     </div>
   `;
-  // Display existing files
-  const ef = document.getElementById('fe_existingFiles');
-  if (ef) {
-    const q = (r.quoteFiles||[]).length, rc = (r.receiptFiles||[]).length;
-    if (q || rc) ef.textContent = `קבצים קיימים: ${q} הצעות מחיר · ${rc} קבלות (קבצים חדשים יתווספו אליהם)`;
-  }
+  // Init state for file deletions and render the existing-files list with delete buttons
+  _feFilesState = {
+    id,
+    quoteFiles: [...(r.quoteFiles||[])],
+    receiptFiles: [...(r.receiptFiles||[])]
+  };
+  renderFinanceEditFiles();
   document.getElementById('finEditModal').style.display = 'flex';
+}
+
+// Holds pending file-deletion state during a finance edit session
+let _feFilesState = null;
+
+function renderFinanceEditFiles() {
+  const ef = document.getElementById('fe_existingFiles');
+  if (!ef || !_feFilesState) return;
+  const { quoteFiles, receiptFiles } = _feFilesState;
+  if (!quoteFiles.length && !receiptFiles.length) {
+    ef.innerHTML = '<em style="color:#9ca3af">אין מסמכים קיימים — אפשר להעלות חדשים למעלה</em>';
+    return;
+  }
+  const renderList = (arr, kind, emoji, label) => {
+    if (!arr.length) return '';
+    return `<div style="margin-top:8px"><strong>${emoji} ${label} (${arr.length}):</strong>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+        ${arr.map((f,i) => `
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem">
+            <a href="${f.url}" target="_blank" style="color:#1a8a9a;text-decoration:none" title="${f.name||''}">${f.name || (emoji+' קובץ '+(i+1))}</a>
+            <button type="button" onclick="removeFinanceEditFile('${kind}', ${i})" title="הסר קובץ" style="background:#fee2e2;color:#991b1b;border:none;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:0.9rem;line-height:1">×</button>
+          </span>`).join('')}
+      </div></div>`;
+  };
+  ef.innerHTML =
+    renderList(quoteFiles, 'quote', '📋', 'הצעות מחיר') +
+    renderList(receiptFiles, 'receipt', '🧾', 'קבלות / חשבוניות') +
+    `<div style="margin-top:8px;color:#6b7280;font-size:0.8rem">× להסרה · קבצים חדשים שתעלה/י למעלה יתווספו לרשימה.</div>`;
+}
+
+function removeFinanceEditFile(kind, idx) {
+  if (!_feFilesState) return;
+  const arr = kind === 'quote' ? _feFilesState.quoteFiles : _feFilesState.receiptFiles;
+  const f = arr[idx];
+  if (!f) return;
+  if (!confirm('להסיר את הקובץ "' + (f.name||'ללא שם') + '" מהרשומה? (הקובץ לא יימחק מהשרת, רק יפסיק להיות מקושר לרשומה)')) return;
+  arr.splice(idx, 1);
+  renderFinanceEditFiles();
 }
 
 function closeFinanceEdit() { document.getElementById('finEditModal').style.display = 'none'; }
@@ -1739,16 +1778,22 @@ async function saveFinanceEdit(id) {
       upd.description = document.getElementById('fe_description').value.trim();
       const qi = document.getElementById('fe_quoteFiles');
       const ri = document.getElementById('fe_receiptFiles');
+      // Start from the (possibly-trimmed) existing lists held in editor state
+      let quoteFiles = (_feFilesState && _feFilesState.id === id) ? [..._feFilesState.quoteFiles]   : [...(r.quoteFiles||[])];
+      let receiptFiles = (_feFilesState && _feFilesState.id === id) ? [..._feFilesState.receiptFiles] : [...(r.receiptFiles||[])];
       if (qi && qi.files.length) {
         btn.textContent = '⏳ מעלה קבצים…';
         const newQ = await uploadFilesTo(qi.files, 'quotes');
-        upd.quoteFiles = [...(r.quoteFiles||[]), ...newQ];
+        quoteFiles = [...quoteFiles, ...newQ];
       }
       if (ri && ri.files.length) {
         btn.textContent = '⏳ מעלה קבצים…';
         const newR = await uploadFilesTo(ri.files, 'receipts');
-        upd.receiptFiles = [...(r.receiptFiles||[]), ...newR];
+        receiptFiles = [...receiptFiles, ...newR];
       }
+      // Always write the fields — they may have been trimmed even without uploads
+      upd.quoteFiles = quoteFiles;
+      upd.receiptFiles = receiptFiles;
     }
     await db.collection('finance').doc(id).update(upd);
     toast('✓ נשמר');
@@ -2385,19 +2430,68 @@ async function ensureTranslateKey() {
   return _translateApiKey;
 }
 
+// MyMemory free public translation API — no auth required, ~5000 chars/day per IP.
+// Used as a fallback when the admin hasn't set up a paid Google Translate key.
+async function translateViaMyMemory(text, target) {
+  // MyMemory requires a langpair "src|dst". Source defaults to auto-detect via 'he' or 'en'.
+  const src = target === 'he' ? 'en' : 'he';
+  // Chunk long texts — MyMemory caps single requests at ~500 chars
+  const MAX = 450;
+  if (text.length <= MAX) {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + src + '%7C' + target;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('MyMemory HTTP ' + res.status);
+    const data = await res.json();
+    return data?.responseData?.translatedText || '';
+  }
+  // Split on sentence-ish boundaries
+  const parts = [];
+  let rest = text;
+  while (rest.length > MAX) {
+    let cut = rest.lastIndexOf('. ', MAX);
+    if (cut < MAX * 0.5) cut = rest.lastIndexOf(' ', MAX);
+    if (cut < 20) cut = MAX;
+    parts.push(rest.slice(0, cut));
+    rest = rest.slice(cut).trimStart();
+  }
+  if (rest.length) parts.push(rest);
+  const translated = [];
+  for (const p of parts) {
+    const r = await translateViaMyMemory(p, target);
+    translated.push(r);
+  }
+  return translated.join(' ');
+}
+
 async function translateText(text, target) {
   if (!text || !text.trim()) return '';
-  const key = await ensureTranslateKey();
-  if (!key) throw new Error('Translate API key not configured. Admin: set config/app.translateApiKey in Firestore.');
-  const url = 'https://translation.googleapis.com/language/translate/v2?key=' + encodeURIComponent(key);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: text, target: target || 'en', format: 'text' })
-  });
-  if (!res.ok) throw new Error('Translate HTTP ' + res.status);
-  const data = await res.json();
-  return data?.data?.translations?.[0]?.translatedText || '';
+  target = target || 'en';
+  // Try the admin-configured Google Translate key first (if present)
+  try {
+    const key = await ensureTranslateKey();
+    if (key) {
+      const url = 'https://translation.googleapis.com/language/translate/v2?key=' + encodeURIComponent(key);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, target, format: 'text' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const out = data?.data?.translations?.[0]?.translatedText;
+        if (out) return out;
+      }
+      // fall through to MyMemory on non-ok / empty
+    }
+  } catch(e) { console.warn('[translate] google key path failed, falling back:', e.message||e); }
+  // Fallback: free MyMemory API (no auth)
+  try {
+    const out = await translateViaMyMemory(text, target);
+    if (out) return out;
+    throw new Error('empty response');
+  } catch(e) {
+    throw new Error('התרגום נכשל: ' + (e.message||e));
+  }
 }
 
 // Inline translation UI helper: attach to any element with class .translatable-text
@@ -2866,13 +2960,46 @@ function openPlugaView(id) {
     ${body}
     <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="translateModalContent(this)" id="plugaTranslateBtn">🌐 ${t('btn.translate')}</button>
-      <button class="btn btn-secondary" onclick="window.print()">🖨 הדפס / שמור PDF</button>
+      <button class="btn btn-secondary" onclick="printPlugaReport('${r.id}')">🖨 הדפס / שמור PDF</button>
       <button class="btn btn-secondary" onclick="closePlugaModal()">${t('btn.close')}</button>
     </div>`;
   document.getElementById('plugaModal').style.display = 'flex';
 }
 
 function closePlugaModal() { document.getElementById('plugaModal').style.display = 'none'; }
+
+// Dedicated print/PDF export — opens a new window with just the report,
+// since window.print() on the full page clips modal overlays and prints blank.
+function printPlugaReport(id) {
+  const r = (_plugaCache||[]).find(x => x.id === id);
+  if (!r) { toast('דיווח לא נמצא','error'); return; }
+  const body = document.getElementById('plugaModalBody');
+  if (!body) { toast('אין תוכן להדפסה','error'); return; }
+  // Clone the innerHTML, but strip out the action buttons footer
+  const clone = body.cloneNode(true);
+  clone.querySelectorAll('button').forEach(b => b.remove());
+  const title = (r.roleLabel || 'דיווח שבועי') + ' — ' + (r.userName || r.createdBy || '');
+  const w = window.open('', '_blank', 'width=900,height=1200');
+  if (!w) { toast('הדפדפן חסם את חלון ההדפסה. אפשר חלונות קופצים לאתר','error'); return; }
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+    <title>${title.replace(/</g,'&lt;')}</title>
+    <style>
+      @page { margin: 18mm 14mm; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#111; line-height:1.55; padding:10px; }
+      h2 { color:#0d2137; margin:0 0 4px; font-size:1.3rem; }
+      h4 { color:#1a8a9a; margin:14px 0 4px; font-size:1.05rem; border-bottom:1px solid #ddd; padding-bottom:2px; }
+      .hdr { color:#555; font-size:0.9rem; margin-bottom:14px; border-bottom:2px solid #0d2137; padding-bottom:8px; }
+      .translatable { white-space: pre-wrap; }
+      div { page-break-inside: avoid; }
+      @media print { .no-print { display:none !important; } }
+    </style></head><body>
+    <div class="hdr">הודפס: ${new Date().toLocaleString('he-IL')} · עמותת החשמונאים — מערכת ניהול רוח</div>
+    ${clone.innerHTML}
+    <script>window.onload = () => { setTimeout(() => { window.print(); }, 300); };<\/script>
+  </body></html>`);
+  w.document.close();
+}
 
 // ===== DONORS =====
 async function loadDonors() {
