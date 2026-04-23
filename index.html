@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r7</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r8</div>
   </aside>
 
   <!-- Main Content -->
@@ -489,8 +489,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field" id="finSourceField"><label>מקור</label><input type="text" id="finSource" placeholder="שם התורם / מקור"></div>
           <div class="form-field"><label>מטרה</label>
             <select id="finPurpose">
-              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
-              <option value="study">העצמת לימוד התורה בחטיבה</option><option value="alumni">תוכניות בוגרים</option><option value="general">כללי</option>
+              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
+              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
+              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
+              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
+              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
+              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
+              <option value="general">כללי</option>
             </select>
           </div>
         </div>
@@ -596,8 +601,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>שעות עבודה</label><input type="number" id="repHours" placeholder="0" step="0.5"></div>
           <div class="form-field"><label>תחום</label>
             <select id="repArea">
-              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
-              <option value="study">לימוד תורה</option><option value="alumni">בוגרים</option><option value="admin">מנהלה</option><option value="general">כללי</option>
+              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
+              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
+              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
+              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
+              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
+              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
+              <option value="admin">מנהלה</option>
+              <option value="general">כללי</option>
             </select>
           </div>
         </div>
@@ -642,11 +653,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>סכום (₪)</label><input type="number" id="expAmount" placeholder="0" step="0.01"></div>
           <div class="form-field"><label>קטגוריה</label>
             <select id="expCategory">
-              <option value="torah">ליווי תורני</option>
-              <option value="prep">הכנה לשירות</option>
-              <option value="welfare">רווחה וסיוע</option>
-              <option value="study">לימוד תורה</option>
-              <option value="alumni">בוגרים</option>
+              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
+              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
+              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
+              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
+              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
+              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
               <option value="vehicle">רכב ותחבורה</option>
               <option value="office">משרד וציוד</option>
               <option value="general">כללי</option>
@@ -711,8 +723,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>סכום תרומה (₪)</label><input type="number" id="donAmount" placeholder="0"></div>
           <div class="form-field"><label>מטרה</label>
             <select id="donPurpose">
-              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
-              <option value="study">העצמת לימוד התורה</option><option value="alumni">בוגרים</option><option value="general">כללי</option>
+              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
+              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
+              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
+              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
+              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
+              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
+              <option value="general">כללי</option>
             </select>
           </div>
         </div>
@@ -884,8 +901,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <div class="form-field"><label>שם הפרויקט</label><input type="text" id="projName" placeholder="שם"></div>
           <div class="form-field"><label>תחום</label>
             <select id="projArea">
-              <option value="torah">ליווי תורני</option><option value="prep">הכנה לשירות</option><option value="welfare">רווחה וסיוע</option>
-              <option value="study">לימוד תורה</option><option value="alumni">בוגרים</option><option value="general">כללי</option>
+              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
+              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
+              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
+              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
+              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
+              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
             </select>
           </div>
           <div class="form-field"><label>סטטוס</label>
@@ -1212,7 +1233,35 @@ const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
 
-const PURPOSES = {torah:'ליווי תורני',prep:'הכנה לשירות',welfare:'רווחה וסיוע',study:'העצמת לימוד התורה בחטיבה',alumni:'תוכניות בוגרים',general:'כללי',admin:'מנהלה'};
+// ===== PURPOSE / AREA DICTIONARIES =====
+// The 6 canonical "areas" = the operational programs of the association.
+// Their keys are used across projects, finance, donations, employee reports.
+// Legacy keys (torah, prep, welfare, study, alumni, general, admin, office, vehicle)
+// are kept for backward compatibility with existing records that used them.
+const AREA_KEYS = ['ruach-hashmonait','lev-david','beit-neeman','welfare-fund','torah-empowerment','shaar-yetzia'];
+const PURPOSES = {
+  // === Canonical 6 areas ===
+  'ruach-hashmonait':  'רוח חשמונאית — ליווי תורני חינוכי',
+  'lev-david':         'לב דוד — הכנה לשירות משמעותי',
+  'beit-neeman':       'בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה',
+  'welfare-fund':      'קרן הרווחה והסיוע לחייל ולחטיבה',
+  'torah-empowerment': 'העצמת לימוד התורה בחטיבה',
+  'shaar-yetzia':      'שער יציאה — חשמונאים לעתיד ישראל',
+  // === Legacy keys — kept so existing records render correctly ===
+  torah:   'רוח חשמונאית — ליווי תורני חינוכי',        // old alias for ruach-hashmonait
+  prep:    'לב דוד — הכנה לשירות משמעותי',              // old alias for lev-david
+  welfare: 'קרן הרווחה והסיוע לחייל ולחטיבה',            // old alias for welfare-fund
+  study:   'העצמת לימוד התורה בחטיבה',                   // old alias for torah-empowerment
+  alumni:  'שער יציאה — חשמונאים לעתיד ישראל',          // old alias for shaar-yetzia
+  general: 'כללי',
+  admin:   'מנהלה',
+  vehicle: 'רכב ותחבורה',
+  office:  'משרד וציוד'
+};
+// Build a standard <option> list of the 6 canonical areas. Used by every project/area dropdown.
+function areaOptionsHTML(selected) {
+  return AREA_KEYS.map(k => `<option value="${k}"${selected===k?' selected':''}>${PURPOSES[k]}</option>`).join('');
+}
 const MONTHS = {1:'ינואר',2:'פברואר',3:'מרץ',4:'אפריל',5:'מאי',6:'יוני',7:'יולי',8:'אוגוסט',9:'ספטמבר',10:'אוקטובר',11:'נובמבר',12:'דצמבר'};
 const STATUSES = {active:'פעיל',planning:'בתכנון',done:'הושלם'};
 const ROLES = {admin:'מנהל',team:'צוות','ram-plugati':'ר"מ פלוגתי','resilience-lead':'מוביל תוכנית חוסן ואמונה','educational-director':'מנהל חינוכי','grooms-rams-mentor':'מוביל תחום חתנים ומדריך ר"מים',viewer:'צופה'};
