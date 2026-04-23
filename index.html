@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.21-r4</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r5</div>
   </aside>
 
   <!-- Main Content -->
@@ -2535,10 +2535,28 @@ function buildWeeklyFormHTML(roleKey) {
 
     <h4 style="margin:18px 0 8px;color:${cfg.accent};border-bottom:1px solid #e5e7eb;padding-bottom:4px">✍️ אישור עמידה בחוזה</h4>
     <div style="background:#fffbeb;border:1px solid #fde68a;padding:14px 16px;border-radius:10px;line-height:1.8;font-size:0.92rem">
-      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
-        <input type="checkbox" id="wk_contractAck" style="margin-top:6px;flex-shrink:0;width:18px;height:18px">
-        <span>${ackText}</span>
-      </label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #fbbf24">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:500">
+          <input type="radio" name="wk_ackMode" value="simple" id="wk_ackModeSimple" checked onchange="toggleAckMode()">
+          <span>אישור קצר — סימון עמידה ביעד</span>
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:500">
+          <input type="radio" name="wk_ackMode" value="detailed" id="wk_ackModeDetailed" onchange="toggleAckMode()">
+          <span>פירוט מלא של הפעילות</span>
+        </label>
+      </div>
+
+      <div id="wk_ackSimpleBox">
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" id="wk_contractAck" style="margin-top:6px;flex-shrink:0;width:18px;height:18px">
+          <span>${ackText}</span>
+        </label>
+      </div>
+
+      <div id="wk_ackDetailedBox" style="display:none">
+        <div style="color:#92400e;font-size:0.88rem;margin-bottom:8px">פירוט זה מחליף את האישור הכללי ומשמש כראיה לעמידה בחוזה. יש לפרט <strong>אילו סעיפים בחוזה</strong> מולאו וכיצד (לדוגמה: מס' ימים בשטח, מס' שיחות/שיעורים, אילו מחלקות כוסו, תיאומי פיקוד שנערכו, פערים שהוצפו וכו').</div>
+        <textarea id="wk_contractAckDetailed" rows="7" placeholder="לדוגמה:\n• נוכחות שטח: 4 ימים השבוע (א', ב', ד', ה'), כ-7 שעות ביום\n• שיחות אישיות: 5 (פירוט: חייל X בנושא…, חייל Y בנושא…)\n• מפגשי זמינות: 3 (יום א' בט"ש, יום ג' בערב, יום ה' בפנאי)\n• תיאומים פיקודיים: עם מ"פ פלוגה 2 ומג"ד גדוד 890\n• פער שהוצף למוביל התוכנית: ..." style="width:100%;font-family:inherit;line-height:1.6;resize:vertical"></textarea>
+      </div>
     </div>
 
     <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
@@ -2612,6 +2630,15 @@ function onAdminRolePick() {
   wireWeeklyDaysRow();
 }
 
+// Switch between "simple ack" (checkbox) and "detailed breakdown" (free-text)
+function toggleAckMode() {
+  const mode = document.querySelector('input[name="wk_ackMode"]:checked')?.value || 'simple';
+  const simple = document.getElementById('wk_ackSimpleBox');
+  const detailed = document.getElementById('wk_ackDetailedBox');
+  if (simple)   simple.style.display   = mode === 'simple' ? '' : 'none';
+  if (detailed) detailed.style.display = mode === 'detailed' ? '' : 'none';
+}
+
 // Update the live count next to day checkboxes
 function wireWeeklyDaysRow() {
   const row = document.getElementById('wk_daysRow');
@@ -2646,10 +2673,16 @@ async function addPlugaReport() {
   const weekStart = document.getElementById('wk_weekStart')?.value || '';
   const weekEnd   = document.getElementById('wk_weekEnd')?.value || '';
   const unit      = document.getElementById('wk_unit')?.value.trim() || '';
-  const ack       = document.getElementById('wk_contractAck')?.checked || false;
+
+  // Ack modes: 'simple' (just checkbox) OR 'detailed' (free-text breakdown replacing the checkbox)
+  const modeEl = document.querySelector('input[name="wk_ackMode"]:checked');
+  const ackMode = modeEl ? modeEl.value : 'simple';
+  const ackChecked = document.getElementById('wk_contractAck')?.checked || false;
+  const ackDetailed = (document.getElementById('wk_contractAckDetailed')?.value || '').trim();
 
   if (!weekStart || !weekEnd) { toast('יש למלא את טווח השבוע','error'); return; }
-  if (!ack) { toast('יש לסמן את אישור העמידה ביעד החוזי','error'); return; }
+  if (ackMode === 'simple' && !ackChecked) { toast('יש לסמן את אישור העמידה ביעד החוזי','error'); return; }
+  if (ackMode === 'detailed' && ackDetailed.length < 30) { toast('יש לפרט את הפעילות בחוזה (לפחות כמה שורות)','error'); return; }
 
   const answers = {};
   COMMON_Q_BLOCK.forEach(q => { answers[q.id] = document.getElementById('wk_'+q.id)?.value.trim() || ''; });
@@ -2670,7 +2703,11 @@ async function addPlugaReport() {
     workedDays,
     workedDaysCount: workedDays.length,
     contractAck: true,
-    contractAckText: LEGAL_ACK_TEMPLATE(cfg.roleLabel, cfg.goalSummary),
+    contractAckMode: ackMode, // 'simple' or 'detailed'
+    contractAckText: ackMode === 'detailed'
+      ? ackDetailed
+      : LEGAL_ACK_TEMPLATE(cfg.roleLabel, cfg.goalSummary),
+    contractAckDetailed: ackMode === 'detailed' ? ackDetailed : '',
     ackAt: firebase.firestore.FieldValue.serverTimestamp(),
     answers,
     extras,
@@ -2745,7 +2782,9 @@ function renderPlugaTable() {
     const week = `${r.weekStart||'—'} → ${r.weekEnd||'—'}`;
     const roleKey = r.contractRole || r.userRole || '';
     const roleName = ROLES[roleKey] || roleKey || '—';
-    const ackIcon = r.contractAck ? '✅' : '—';
+    const ackIcon = r.contractAck
+      ? (r.contractAckMode === 'detailed' ? '📋 מפורט' : '✅')
+      : '—';
     const dCount = (r.workedDaysCount!=null) ? r.workedDaysCount : (r.workedDays?r.workedDays.length:(r.fieldDays||'—'));
     if (typeof dCount === 'number') totalDays += dCount;
     const del = isAdmin ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delDoc('pluga_weekly_reports','${r.id}',loadPlugaReports)">🗑</button>` : '';
@@ -2811,7 +2850,13 @@ function openPlugaView(id) {
       ${sec('⚠ אתגרים ופערים', a.challenges)}
       ${sec('✨ רגעי שיא והזדמנויות', a.highlights)}
       ${sec('📅 מבט קדימה / סיוע נדרש', a.nextWeek)}
-      ${r.contractAckText ? `<div style="margin-top:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:0.88rem;line-height:1.6"><strong style="color:#92400e">✍️ אישור חוזי חתום (${r.contractAck?'מאושר':'לא מאושר'}):</strong><br>${r.contractAckText}</div>` : ''}
+      ${r.contractAckText ? (() => {
+        const isDetailed = r.contractAckMode === 'detailed' || (r.contractAckDetailed && r.contractAckDetailed.length);
+        const heading = isDetailed
+          ? '📋 פירוט מלא של הפעילות (אישור עמידה בחוזה):'
+          : `✍️ אישור חוזי חתום (${r.contractAck?'מאושר':'לא מאושר'}):`;
+        return `<div style="margin-top:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:0.88rem;line-height:1.6;white-space:pre-wrap"><strong style="color:#92400e">${heading}</strong><br>${r.contractAckText}</div>`;
+      })() : ''}
     `;
   }
 
