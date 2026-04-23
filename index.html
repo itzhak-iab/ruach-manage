@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r6</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r7</div>
   </aside>
 
   <!-- Main Content -->
@@ -450,6 +450,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div class="kpi"><div class="icon">📥</div><div class="label">סך הכנסות</div><div class="value" id="fin-income">₪0</div></div>
         <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="fin-expense">₪0</div></div>
         <div class="kpi"><div class="icon">💵</div><div class="label">יתרה</div><div class="value" id="fin-balance">₪0</div></div>
+        <div class="kpi"><div class="icon">🎯</div><div class="label">תקציב מתוכנן לפרויקטים</div><div class="value" id="fin-planned">₪0</div></div>
+        <div class="kpi"><div class="icon">📊</div><div class="label">פער קדימה (עדיין דרוש)</div><div class="value" id="fin-gap" style="color:#c53030">₪0</div></div>
+      </div>
+
+      <!-- Forward-looking project budgets -->
+      <div class="card" id="finForwardCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">🎯 תקציב קדימה — פרויקטים פעילים ובתכנון</h3>
+          <button class="btn btn-secondary btn-sm" onclick="toggleFwdTable()" id="fwdToggleBtn">▼ הסתר</button>
+        </div>
+        <p style="color:#64748b;margin:4px 0 10px;font-size:0.88rem">מה כבר גויס, מה התקבל בפועל, ומה עוד דרוש לסגירת פער המימון בכל פרויקט.</p>
+        <div id="fwdTableWrap" class="table-wrap" style="overflow-x:auto">
+          <table class="data-table" id="fwdTable">
+            <thead><tr>
+              <th>פרויקט</th>
+              <th>סטטוס</th>
+              <th>תקציב מתוכנן</th>
+              <th>גויס (מאושר+התקבל)</th>
+              <th>התקבל בפועל</th>
+              <th>הוצא בפועל</th>
+              <th>פער למימון</th>
+            </tr></thead>
+            <tbody id="fwdTableBody"><tr><td colspan="7" class="empty-state">טוען...</td></tr></tbody>
+            <tfoot><tr id="fwdTableFoot" style="font-weight:600;background:#f1f5f9"></tr></tfoot>
+          </table>
+        </div>
       </div>
 
       <!-- Add Income -->
@@ -1544,6 +1570,8 @@ async function loadFinance() {
   document.getElementById('dash-income').textContent = '₪' + totalInc.toLocaleString();
   document.getElementById('dash-expense').textContent = '₪' + totalExp.toLocaleString();
   document.getElementById('dash-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
+  // Forward-looking budget (depends on projects — renders whatever's already in cache; will re-render on project load)
+  try { renderForwardBudget(); } catch(e) { console.warn('[fwd budget]', e); }
 
   const tbody = document.getElementById('finTableBody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות</td></tr>'; return; }
@@ -1600,6 +1628,85 @@ async function loadFinance() {
 }
 
 let financeCache = [];
+
+// ===== FORWARD-LOOKING BUDGET =====
+// Aggregates project budgets, funding raised, actual income/expenses per project,
+// and the remaining gap that still needs to be funded.
+function renderForwardBudget() {
+  const tbody = document.getElementById('fwdTableBody');
+  const foot  = document.getElementById('fwdTableFoot');
+  const plannedKPI = document.getElementById('fin-planned');
+  const gapKPI = document.getElementById('fin-gap');
+  if (!tbody || !foot) return;
+
+  // Forward-looking = active + planning (not 'done')
+  const projects = (projectsCache||[]).filter(p => p.status !== 'done');
+  if (!projects.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין פרויקטים פעילים / בתכנון</td></tr>';
+    foot.innerHTML = '';
+    if (plannedKPI) plannedKPI.textContent = '₪0';
+    if (gapKPI)     gapKPI.textContent     = '₪0';
+    return;
+  }
+
+  let sumPlanned = 0, sumRaised = 0, sumReceived = 0, sumSpent = 0, sumGap = 0;
+  const rows = projects.map(p => {
+    const planned = Number(p.budget) || 0;
+    const funds = p.fundingSources || [];
+    // "Raised" = approved + received (committed). Declined/requested → not counted yet.
+    const raised = funds
+      .filter(f => f.status === 'received' || f.status === 'approved')
+      .reduce((s,f) => s + (Number(f.amount)||0), 0);
+    const received = funds
+      .filter(f => f.status === 'received')
+      .reduce((s,f) => s + (Number(f.amount)||0), 0);
+    const spent = (p.expenses||[]).reduce((s,e) => s + (Number(e.amount)||0), 0);
+    // Gap = whichever is larger still to raise: (planned - raised) or (spent - received) floor 0
+    const gap = Math.max(0, planned - raised);
+    sumPlanned += planned;
+    sumRaised  += raised;
+    sumReceived += received;
+    sumSpent   += spent;
+    sumGap     += gap;
+    const statusPill = `<span style="background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:10px;font-size:0.8rem">${STATUSES[p.status]||p.status||'—'}</span>`;
+    const leader = p.leaderEmail ? ((teamCache||[]).find(t => t.email === p.leaderEmail)?.name || p.leaderEmail) : '';
+    const gapClass = gap > 0 ? 'amount-negative' : '';
+    const gapText = gap > 0 ? `₪${gap.toLocaleString()}` : '✓ ממומן';
+    return `<tr style="cursor:pointer" onclick="openProjectModal('${p.id}')" title="פתח פרויקט">
+      <td><strong>${p.name||'—'}</strong>${leader?`<div style="font-size:0.78rem;color:#6b7280">👤 ${leader}</div>`:''}</td>
+      <td>${statusPill}</td>
+      <td style="text-align:left">₪${planned.toLocaleString()}</td>
+      <td style="text-align:left">₪${raised.toLocaleString()}</td>
+      <td style="text-align:left">₪${received.toLocaleString()}</td>
+      <td style="text-align:left;color:#8b5a0a">₪${spent.toLocaleString()}</td>
+      <td style="text-align:left" class="${gapClass}"><strong>${gapText}</strong></td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = rows;
+  foot.innerHTML = `
+    <td>סה״כ (${projects.length} פרויקטים)</td>
+    <td></td>
+    <td style="text-align:left">₪${sumPlanned.toLocaleString()}</td>
+    <td style="text-align:left">₪${sumRaised.toLocaleString()}</td>
+    <td style="text-align:left">₪${sumReceived.toLocaleString()}</td>
+    <td style="text-align:left;color:#8b5a0a">₪${sumSpent.toLocaleString()}</td>
+    <td style="text-align:left;color:${sumGap>0?'#c53030':'#047857'}"><strong>${sumGap>0?'₪'+sumGap.toLocaleString():'✓ מכוסה'}</strong></td>
+  `;
+  if (plannedKPI) plannedKPI.textContent = '₪' + sumPlanned.toLocaleString();
+  if (gapKPI) {
+    gapKPI.textContent = '₪' + sumGap.toLocaleString();
+    gapKPI.style.color = sumGap > 0 ? '#c53030' : '#047857';
+  }
+}
+
+function toggleFwdTable() {
+  const wrap = document.getElementById('fwdTableWrap');
+  const btn  = document.getElementById('fwdToggleBtn');
+  if (!wrap || !btn) return;
+  const hidden = wrap.style.display === 'none';
+  wrap.style.display = hidden ? '' : 'none';
+  btn.textContent = hidden ? '▼ הסתר' : '◀ הצג';
+}
 
 async function addFinRecord() {
   const type = document.getElementById('finType').value;
@@ -3092,6 +3199,8 @@ async function loadProjects() {
   snap.forEach(doc => { const d = doc.data(); projectsCache.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
   document.getElementById('dash-projects').textContent = activeCount;
   populateProjectLeaderSelect();
+  // Refresh the financial-transparency "forward budget" panel since it aggregates projects
+  try { renderForwardBudget(); } catch(e) {}
   const container = document.getElementById('projList');
   if (!projectsCache.length) { container.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>אין פרויקטים</p></div>'; return; }
   const canDel = userRole === 'admin' || userRole === 'team';
