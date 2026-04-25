@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.23-r8</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.25-r9</div>
   </aside>
 
   <!-- Main Content -->
@@ -5322,6 +5322,80 @@ const REPORT_TEMPLATES = {
       <div class="rpt-sigs">
         <div class="rpt-sig">${d.chairPerson || '_________________'}<br><small>יו"ר הישיבה</small></div>
         <div class="rpt-sig">_________________<br><small>רושם הפרוטוקול</small></div>
+      </div>
+    `
+  },
+
+  // ============ 3b. פרוטוקול ישיבת עמותה (כללי) ============
+  assoc_meeting_protocol: {
+    icon: '🗒️',
+    title: 'פרוטוקול ישיבת עמותה',
+    description: 'פרוטוקול גמיש לישיבות צוות, ועדה, או ישיבת עבודה',
+    sections: [
+      {heading: 'פרטי הישיבה', fields: [
+        {id:'meetingTitle', label:'נושא / כותרת הישיבה', type:'text', required:true, placeholder:'למשל: ישיבת ועדה תוכנית — תכנון רבעון Q3'},
+        {id:'meetingType', label:'סוג ישיבה', type:'select', options:['ישיבת צוות','ישיבת ועדה','ישיבת תכנון','ישיבת מעקב פרויקט','ישיבה מיוחדת','אחר'], default:'ישיבת צוות'},
+        {id:'meetingDate', label:'תאריך', type:'date', required:true},
+        {id:'meetingNumber', label:'מספר ישיבה (אופציונלי)', type:'text', placeholder:'למשל: 3/2026'},
+        {id:'startTime', label:'שעת התחלה', type:'time'},
+        {id:'endTime', label:'שעת סיום', type:'time'},
+        {id:'location', label:'מיקום / פלטפורמה', type:'text', placeholder:'משרדי העמותה / זום / טלפון'}
+      ]},
+      {heading: 'נוכחים', fields: [
+        {id:'chairPerson', label:'יו"ר הישיבה', type:'text', required:true},
+        {id:'recorder', label:'רושם/ת הפרוטוקול', type:'text'},
+        {id:'attendees', label:'משתתפים', type:'textarea', rows:4, placeholder:'שם 1 — תפקיד\nשם 2 — תפקיד\n...'},
+        {id:'absentees', label:'נעדרו / התנצלו', type:'textarea', rows:2},
+        {id:'guests', label:'אורחים / מוזמנים', type:'textarea', rows:2}
+      ]},
+      {heading: 'סדר יום ודיון', fields: [
+        {id:'agenda', label:'סדר יום', type:'textarea', rows:4, placeholder:'1. אישור פרוטוקול קודם\n2. עדכוני סטטוס פרויקטים\n3. ...'},
+        {id:'discussion', label:'עיקרי הדיון', type:'textarea', rows:6, placeholder:'תיאור עיקרי הדיון לפי סדר היום...'},
+        {id:'decisions', label:'החלטות', type:'textarea', rows:5, placeholder:'1. הוחלט ל...\n2. אושר ש...'},
+        {id:'actionItems', label:'משימות לביצוע (מי, מה, עד מתי)', type:'textarea', rows:5, placeholder:'• [שם] — [משימה] — עד [תאריך]\n• ...'}
+      ]},
+      {heading: 'סיכום', fields: [
+        {id:'nextMeetingDate', label:'תאריך הישיבה הבאה (אופציונלי)', type:'date'},
+        {id:'notes', label:'הערות נוספות', type:'textarea', rows:3}
+      ]}
+    ],
+    signatures: [{role:'יו"ר הישיבה'},{role:'רושם/ת הפרוטוקול'}],
+    render: (d) => `
+      <div class="rpt-header">
+        <h1>פרוטוקול ישיבת עמותה</h1>
+        <div class="sub">${ORG_INFO.name}${d.meetingNumber ? ' · ישיבה מס\' ' + d.meetingNumber : ''}</div>
+      </div>
+      ${d.meetingTitle ? `<h2 style="margin-top:12px">${d.meetingTitle}</h2>` : ''}
+      <div class="rpt-row"><strong>סוג ישיבה:</strong> ${d.meetingType || '___'}</div>
+      <div class="rpt-row"><strong>תאריך:</strong> ${d.meetingDate ? fmtDate(d.meetingDate) : '___'}</div>
+      <div class="rpt-row"><strong>שעה:</strong> ${d.startTime || '___'}${d.endTime ? ' - ' + d.endTime : ''}</div>
+      <div class="rpt-row"><strong>מיקום:</strong> ${d.location || '___'}</div>
+      <div class="rpt-row"><strong>יו"ר:</strong> ${d.chairPerson || '___'}</div>
+      ${d.recorder ? `<div class="rpt-row"><strong>רושם/ת הפרוטוקול:</strong> ${d.recorder}</div>` : ''}
+
+      <h2>נוכחים</h2>
+      ${d.attendees ? `<div class="rpt-block">${d.attendees}</div>` : '<div class="rpt-row">—</div>'}
+      ${d.absentees ? `<h2>נעדרו / התנצלו</h2><div class="rpt-block">${d.absentees}</div>` : ''}
+      ${d.guests ? `<h2>אורחים</h2><div class="rpt-block">${d.guests}</div>` : ''}
+
+      <h2>סדר יום</h2>
+      ${d.agenda ? `<div class="rpt-block">${d.agenda}</div>` : '<div class="rpt-row">—</div>'}
+
+      <h2>עיקרי הדיון</h2>
+      ${d.discussion ? `<div class="rpt-block">${d.discussion}</div>` : '<div class="rpt-row">—</div>'}
+
+      <h2>החלטות</h2>
+      ${d.decisions ? `<div class="rpt-block">${d.decisions}</div>` : '<div class="rpt-row">—</div>'}
+
+      ${d.actionItems ? `<h2>משימות לביצוע</h2><div class="rpt-block">${d.actionItems}</div>` : ''}
+
+      ${d.nextMeetingDate ? `<div class="rpt-row" style="margin-top:16px"><strong>הישיבה הבאה:</strong> ${fmtDate(d.nextMeetingDate)}</div>` : ''}
+      ${d.notes ? `<h2>הערות</h2><div class="rpt-block">${d.notes}</div>` : ''}
+
+      <p style="margin-top:24px">הישיבה ננעלה בשעה ${d.endTime || '___'}.</p>
+      <div class="rpt-sigs">
+        <div class="rpt-sig">${d.chairPerson || '_________________'}<br><small>יו"ר הישיבה</small></div>
+        <div class="rpt-sig">${d.recorder || '_________________'}<br><small>רושם/ת הפרוטוקול</small></div>
       </div>
     `
   },
