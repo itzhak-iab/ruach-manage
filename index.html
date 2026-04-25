@@ -310,6 +310,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד</span></div>
     <div class="nav-item" onclick="switchSection('me',this)"><span class="icon">👤</span> <span data-i18n="nav.me">האזור האישי שלי</span></div>
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
+    <div class="nav-item" onclick="switchSection('workplan',this)"><span class="icon">🗺️</span> <span data-i18n="nav.workplan">תוכנית עבודה שנתית</span></div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
     <div class="nav-item" onclick="switchSection('expenses',this)"><span class="icon">🧾</span> <span data-i18n="nav.expenses">החזרי הוצאות</span></div>
@@ -322,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.25-r9</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.25-r10</div>
   </aside>
 
   <!-- Main Content -->
@@ -450,8 +451,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div class="kpi"><div class="icon">📥</div><div class="label">סך הכנסות</div><div class="value" id="fin-income">₪0</div></div>
         <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="fin-expense">₪0</div></div>
         <div class="kpi"><div class="icon">💵</div><div class="label">יתרה</div><div class="value" id="fin-balance">₪0</div></div>
+        <div class="kpi"><div class="icon">💼</div><div class="label">סך תשלומי שכר</div><div class="value" id="fin-salary">₪0</div></div>
         <div class="kpi"><div class="icon">🎯</div><div class="label">תקציב מתוכנן לפרויקטים</div><div class="value" id="fin-planned">₪0</div></div>
         <div class="kpi"><div class="icon">📊</div><div class="label">פער קדימה (עדיין דרוש)</div><div class="value" id="fin-gap" style="color:#c53030">₪0</div></div>
+      </div>
+
+      <!-- Salary breakdown -->
+      <div class="card" id="finSalaryCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">💼 פירוט שכר עובדים</h3>
+          <button class="btn btn-secondary btn-sm" onclick="toggleSalaryTable()" id="salaryToggleBtn">▼ הסתר</button>
+        </div>
+        <p style="color:#64748b;margin:4px 0 10px;font-size:0.88rem">סך תשלומי השכר ששולמו, בפירוט לפי עובד. רק רשומות שסומנו כ"תשלום שכר".</p>
+        <div id="salaryTableWrap" class="table-wrap" style="overflow-x:auto">
+          <table class="data-table" id="salaryTable">
+            <thead><tr>
+              <th>עובד</th>
+              <th>תפקיד</th>
+              <th>מספר תשלומים</th>
+              <th>חודשי שכר נרשמו</th>
+              <th>סה"כ שולם</th>
+            </tr></thead>
+            <tbody id="salaryTableBody"><tr><td colspan="5" class="empty-state">אין רשומות שכר</td></tr></tbody>
+            <tfoot><tr id="salaryTableFoot" style="font-weight:600;background:#f1f5f9"></tr></tfoot>
+          </table>
+        </div>
       </div>
 
       <!-- Forward-looking project budgets -->
@@ -515,6 +539,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 
         <!-- ===== EXPENSE FIELDS ===== -->
         <div id="finExpenseExtra" style="display:none">
+          <div class="form-row" style="background:#fef3c7;padding:10px;border-radius:8px;margin-bottom:10px">
+            <div class="form-field" style="grid-column:1/-1">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+                <input type="checkbox" id="finIsSalary" style="width:auto;margin:0" onchange="toggleSalaryFields()"> 💼 תשלום שכר עובד
+              </label>
+              <small style="color:#92400e">סמנו אם זוהי משכורת חודשית או תשלום עבור שירותי עובד/יועץ</small>
+            </div>
+            <div class="form-field" id="finSalaryEmployeeWrap" style="display:none;grid-column:1/-1">
+              <label>עובד</label>
+              <select id="finSalaryEmployee"><option value="">— בחר עובד —</option></select>
+            </div>
+            <div class="form-field" id="finSalaryMonthWrap" style="display:none">
+              <label>חודש שכר</label>
+              <input type="month" id="finSalaryMonth">
+            </div>
+          </div>
           <div class="form-row">
             <div class="form-field"><label>מועד רכישה</label><input type="date" id="finPurchaseDate"></div>
             <div class="form-field"><label>מועד תשלום</label><input type="date" id="finPaymentDate"></div>
@@ -545,6 +585,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <thead><tr><th>סוג</th><th>תאריך</th><th>סכום</th><th>מקור / ספק</th><th>מטרה</th><th>פירוט</th><th>מסמכים</th><th>נרשם ע״י</th><th>פעולות</th></tr></thead>
           <tbody id="finTableBody"><tr><td colspan="9" class="empty-state">טוען...</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ANNUAL WORK PLAN                                             -->
+    <!-- ============================================================ -->
+    <div class="section" id="sec-workplan">
+      <div class="page-header">
+        <h1 data-i18n="page.workplan.title">🗺️ תוכנית עבודה שנתית</h1>
+        <p>יעדי השנה לכל אחד מ-6 התחומים, מדדי תוצאה (KPIs), וציר רבעוני המקושר לפרויקטים ולמשימות</p>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#eff6ff 0%,#ecfdf5 100%);border-right:4px solid var(--primary);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="margin:0 0 4px">תוכנית עבודה — שנת <span id="wpYearLabel">—</span></h3>
+          <p style="margin:0;color:#475569;font-size:0.9rem">בנו וסקרו את התוכנית. ניתן להציג לתורמים פוטנציאליים במצב הצגה.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="wpYearSelect" onchange="loadWorkplan()" style="padding:8px 12px;border-radius:6px;border:1px solid #cbd5e1"></select>
+          <button class="btn btn-secondary" onclick="openPresentationMode()">🖥️ מצב הצגה</button>
+          <button class="btn btn-secondary" onclick="openPublicTransparency()">🌐 דף שקיפות ציבורי</button>
+          <button class="btn btn-primary" onclick="saveWorkplan()" id="wpSaveBtn">💾 שמור</button>
+        </div>
+      </div>
+
+      <!-- 6 Area cards -->
+      <div id="wpAreasGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-bottom:20px"></div>
+
+      <!-- Quarterly timeline -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">📅 ציר רבעוני — אבני דרך</h3>
+          <button class="btn btn-secondary btn-sm" onclick="addQuarterMilestone()">+ הוסף אבן דרך</button>
+        </div>
+        <p style="color:#64748b;font-size:0.85rem;margin:0 0 12px">אבני דרך מקושרות לתחום ולרבעון. פרויקטים פתוחים בכל תחום מוצגים בצד.</p>
+        <div id="wpQuartersGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+      </div>
+
+      <!-- Linked projects + tasks per area -->
+      <div class="card">
+        <h3 style="margin:0 0 8px">🔗 פרויקטים ומשימות פעילים — חיבור אוטומטי</h3>
+        <p style="color:#64748b;font-size:0.85rem;margin:0 0 12px">מציג את כל הפרויקטים והמשימות הפתוחים, מסווגים אוטומטית לפי שדה "תחום".</p>
+        <div id="wpLinkedGrid"></div>
       </div>
     </div>
 
@@ -1281,6 +1364,10 @@ function signOutUser() {
 }
 
 auth.onAuthStateChanged(async user => {
+  // Public routes (transparency / presentation) — render without login
+  try {
+    if (typeof checkPublicRoute === 'function' && checkPublicRoute()) return;
+  } catch(e) { console.warn('[publicRoute]', e); }
   if (!user) {
     document.getElementById('loginScreen').style.display = '';
     document.getElementById('app').style.display = 'none';
@@ -1402,7 +1489,8 @@ const SECTION_TITLES = {
   donors: 'ניהול תורמים',
   tasks: 'יומן ומשימות',
   vehicles: 'ניהול רכבים',
-  team: 'ניהול צוות'
+  team: 'ניהול צוות',
+  workplan: 'תוכנית עבודה שנתית'
 };
 let _navHistory = ['dashboard'];
 let _suppressHistoryPush = false;
@@ -1445,6 +1533,13 @@ function switchSection(id, el, opts) {
   if (id === 'tasks' && typeof CONTRACT_ROLES !== 'undefined' && CONTRACT_ROLES.includes(userRole)) {
     const f = document.getElementById('tkFilterAssignee');
     if (f && !f.value) { f.value = 'me'; if (typeof renderTasks === 'function') renderTasks(); }
+  }
+  // Workplan: load year data + render
+  if (id === 'workplan') {
+    (async () => {
+      try { if (typeof loadWorkplan === 'function') await loadWorkplan(); }
+      catch(e) { console.warn('workplan load:', e); }
+    })();
   }
   // Projects: make sure leader dropdown is populated with current team (handles race condition at first load)
   if (id === 'projects') {
@@ -1537,6 +1632,84 @@ function toggleFinType() {
   const purDate = document.getElementById('finPurchaseDate');
   if (incDate && !incDate.value) incDate.value = today;
   if (purDate && !purDate.value) purDate.value = today;
+  // Populate salary employee dropdown when switching to expense
+  if (type === 'expense') populateSalaryEmployees();
+}
+
+// ===== SALARY FIELDS TOGGLE =====
+function toggleSalaryFields() {
+  const isSal = document.getElementById('finIsSalary').checked;
+  document.getElementById('finSalaryEmployeeWrap').style.display = isSal ? 'block' : 'none';
+  document.getElementById('finSalaryMonthWrap').style.display = isSal ? 'block' : 'none';
+  if (isSal) {
+    populateSalaryEmployees();
+    // Default month to current
+    const m = document.getElementById('finSalaryMonth');
+    if (m && !m.value) m.value = new Date().toISOString().slice(0,7);
+    // Auto-set source label
+    const srcInput = document.getElementById('finSource');
+    if (!srcInput.value) srcInput.placeholder = 'שם העובד / יישלף אוטומטית';
+  }
+}
+
+function populateSalaryEmployees() {
+  const sel = document.getElementById('finSalaryEmployee');
+  if (!sel) return;
+  const team = teamCache || [];
+  if (!team.length) return; // try again later
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— בחר עובד —</option>' +
+    team.map(t => `<option value="${t.email}">${t.name || t.email}${t.role ? ' · ' + t.role : ''}</option>`).join('');
+  if (current) sel.value = current;
+}
+
+function toggleSalaryTable() {
+  const wrap = document.getElementById('salaryTableWrap');
+  const btn = document.getElementById('salaryToggleBtn');
+  if (!wrap || !btn) return;
+  if (wrap.style.display === 'none') {
+    wrap.style.display = ''; btn.textContent = '▼ הסתר';
+  } else {
+    wrap.style.display = 'none'; btn.textContent = '◀ הצג';
+  }
+}
+
+function renderSalaryBreakdown(rows) {
+  const tbody = document.getElementById('salaryTableBody');
+  const foot = document.getElementById('salaryTableFoot');
+  if (!tbody) return;
+  const salaryRows = (rows || []).filter(r => r.type === 'expense' && r.isSalary);
+  if (!salaryRows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">אין רשומות שכר עדיין. ניתן לסמן רשומה קיימת כ"תשלום שכר" בעריכה, או להוסיף חדשה.</td></tr>';
+    if (foot) foot.innerHTML = '';
+    return;
+  }
+  // Group by employee email
+  const byEmployee = {};
+  salaryRows.forEach(r => {
+    const k = r.employeeEmail || r.source || '—';
+    if (!byEmployee[k]) byEmployee[k] = { count:0, total:0, months:new Set() };
+    byEmployee[k].count++;
+    byEmployee[k].total += (r.amount || 0);
+    if (r.salaryMonth) byEmployee[k].months.add(r.salaryMonth);
+  });
+  const sorted = Object.entries(byEmployee).sort((a,b) => b[1].total - a[1].total);
+  let total = 0;
+  tbody.innerHTML = sorted.map(([email, data]) => {
+    const member = (teamCache || []).find(t => t.email === email);
+    const name = member?.name || email;
+    const role = member?.role || '—';
+    const monthsList = Array.from(data.months).sort().join(', ') || '—';
+    total += data.total;
+    return `<tr>
+      <td>${name}</td>
+      <td>${role}</td>
+      <td>${data.count}</td>
+      <td style="font-size:0.85rem">${monthsList}</td>
+      <td style="font-weight:600">₪${data.total.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+  if (foot) foot.innerHTML = `<td colspan="4">סה"כ ${sorted.length} עובדים, ${salaryRows.length} תשלומים</td><td>₪${total.toLocaleString()}</td>`;
 }
 
 async function uploadFilesTo(files, folder) {
@@ -1605,10 +1778,11 @@ function creatorUpdaterCell(r, opts) {
 
 async function loadFinance() {
   const snap = await db.collection('finance').orderBy('createdAt','desc').get();
-  let totalInc = 0, totalExp = 0;
+  let totalInc = 0, totalExp = 0, totalSalary = 0;
   const rows = [];
   snap.forEach(doc => {
     const d = doc.data();
+    if (d.type === 'expense' && d.isSalary) totalSalary += d.amount || 0;
     if (d.type === 'income') totalInc += d.amount || 0;
     else totalExp += d.amount || 0;
     rows.push({id: doc.id, ...d});
@@ -1616,11 +1790,15 @@ async function loadFinance() {
   document.getElementById('fin-income').textContent = '₪' + totalInc.toLocaleString();
   document.getElementById('fin-expense').textContent = '₪' + totalExp.toLocaleString();
   document.getElementById('fin-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
+  const salKpi = document.getElementById('fin-salary');
+  if (salKpi) salKpi.textContent = '₪' + totalSalary.toLocaleString();
   document.getElementById('dash-income').textContent = '₪' + totalInc.toLocaleString();
   document.getElementById('dash-expense').textContent = '₪' + totalExp.toLocaleString();
   document.getElementById('dash-balance').textContent = '₪' + (totalInc - totalExp).toLocaleString();
   // Forward-looking budget (depends on projects — renders whatever's already in cache; will re-render on project load)
   try { renderForwardBudget(); } catch(e) { console.warn('[fwd budget]', e); }
+  // Render salary breakdown
+  try { renderSalaryBreakdown(rows); } catch(e) { console.warn('[salary breakdown]', e); }
 
   const tbody = document.getElementById('finTableBody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות</td></tr>'; return; }
@@ -1785,6 +1963,22 @@ async function addFinRecord() {
       if (paymentDate) record.paymentDate = paymentDate;
       record.description = document.getElementById('finDescription').value.trim();
 
+      // Salary tracking
+      const isSal = document.getElementById('finIsSalary')?.checked;
+      if (isSal) {
+        const empEmail = document.getElementById('finSalaryEmployee').value;
+        const salMonth = document.getElementById('finSalaryMonth').value;
+        if (!empEmail) { toast('יש לבחור עובד','error'); btn.disabled=false; btn.textContent='+ הוסף'; return; }
+        record.isSalary = true;
+        record.employeeEmail = empEmail;
+        if (salMonth) record.salaryMonth = salMonth;
+        // Auto-fill source if empty
+        if (!record.source) {
+          const member = (teamCache||[]).find(t => t.email === empEmail);
+          record.source = member?.name || empEmail;
+        }
+      }
+
       const quoteInput = document.getElementById('finQuoteFiles');
       const receiptInput = document.getElementById('finReceiptFiles');
       if ((quoteInput.files && quoteInput.files.length) || (receiptInput.files && receiptInput.files.length)) {
@@ -1807,6 +2001,8 @@ async function addFinRecord() {
       document.getElementById('finPaymentDate').value = '';
       document.getElementById('finQuoteFiles').value = '';
       document.getElementById('finReceiptFiles').value = '';
+      const sal = document.getElementById('finIsSalary');
+      if (sal) { sal.checked = false; toggleSalaryFields(); }
     }
     toast('נשמר!');
     loadFinance();
@@ -1816,6 +2012,382 @@ async function addFinRecord() {
   } finally {
     btn.disabled = false; btn.textContent = '+ הוסף';
   }
+}
+
+// ============================================================
+// ===== ANNUAL WORK PLAN ====================================
+// ============================================================
+
+let workplanCache = null;
+let workplanYear = new Date().getFullYear();
+
+const DEFAULT_AREA_GOALS = {
+  'ruach-hashmonait': 'ליווי תורני-חינוכי לחיילי החטיבה — שמירה על זהות, ערכים ואורח חיים',
+  'lev-david':         'הכנה איכותית ומשמעותית לשירות צבאי — הכנה מנטלית, פיזית ורוחנית',
+  'beit-neeman':       'ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה',
+  'welfare-fund':      'סיוע מקיף לחיילים בודדים, חבילות חג, ציוד וליווי רגשי',
+  'torah-empowerment': 'הרחבת לימוד התורה בחטיבה — שיעורים, גישה טכנולוגית, ספרי קודש',
+  'shaar-yetzia':      'הכנה לקריירה אזרחית, הכשרות מקצועיות וקהילת בוגרים'
+};
+
+const QUARTER_LABELS = { Q1:'רבעון 1 — ינו׳-מר׳', Q2:'רבעון 2 — אפר׳-יונ׳', Q3:'רבעון 3 — יול׳-ספט׳', Q4:'רבעון 4 — אוק׳-דצמ׳' };
+
+function buildEmptyWorkplan(year) {
+  const areas = {};
+  AREA_KEYS.forEach(k => {
+    areas[k] = {
+      goals: DEFAULT_AREA_GOALS[k] || '',
+      kpis: [],
+      narrativeForDonors: ''
+    };
+  });
+  return { year, areas, quarters: { Q1:[], Q2:[], Q3:[], Q4:[] } };
+}
+
+function ensureWorkplanYearSelect() {
+  const sel = document.getElementById('wpYearSelect');
+  if (!sel) return;
+  if (sel.options.length) return;
+  const currentY = new Date().getFullYear();
+  const years = [];
+  for (let y = currentY - 1; y <= currentY + 2; y++) years.push(y);
+  sel.innerHTML = years.map(y => `<option value="${y}"${y===workplanYear?' selected':''}>${y}</option>`).join('');
+}
+
+async function loadWorkplan() {
+  ensureWorkplanYearSelect();
+  const sel = document.getElementById('wpYearSelect');
+  if (sel) workplanYear = parseInt(sel.value) || new Date().getFullYear();
+  const lbl = document.getElementById('wpYearLabel');
+  if (lbl) lbl.textContent = workplanYear;
+
+  let doc;
+  try { doc = await db.collection('workplan').doc(String(workplanYear)).get(); } catch(e) { console.warn('[workplan]', e); }
+  if (doc && doc.exists) {
+    workplanCache = { id: doc.id, ...doc.data() };
+    if (!workplanCache.areas) workplanCache.areas = {};
+    AREA_KEYS.forEach(k => {
+      if (!workplanCache.areas[k]) workplanCache.areas[k] = { goals: DEFAULT_AREA_GOALS[k] || '', kpis: [], narrativeForDonors: '' };
+      if (!Array.isArray(workplanCache.areas[k].kpis)) workplanCache.areas[k].kpis = [];
+    });
+    if (!workplanCache.quarters) workplanCache.quarters = { Q1:[], Q2:[], Q3:[], Q4:[] };
+    ['Q1','Q2','Q3','Q4'].forEach(q => { if (!Array.isArray(workplanCache.quarters[q])) workplanCache.quarters[q] = []; });
+  } else {
+    workplanCache = buildEmptyWorkplan(workplanYear);
+  }
+  renderWorkplan();
+}
+
+function renderWorkplan() {
+  const grid = document.getElementById('wpAreasGrid');
+  if (!grid) return;
+  const isAdmin = (userRole === 'admin');
+  grid.innerHTML = AREA_KEYS.map(k => {
+    const a = workplanCache.areas[k] || { goals: '', kpis: [], narrativeForDonors: '' };
+    const projCount = (projectsCache||[]).filter(p => p.area === k && p.status !== 'done').length;
+    const taskCount = (tasksCache||[]).filter(t => t.area === k && t.status !== 'done' && t.status !== 'cancelled').length;
+    const kpisHtml = (a.kpis||[]).map((kp, i) => {
+      const pct = kp.target ? Math.min(100, Math.round((kp.current||0) / kp.target * 100)) : 0;
+      return `<div style="margin-bottom:6px;background:#f8fafc;padding:8px;border-radius:6px">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;align-items:center;gap:6px">
+          <strong style="flex:1">${kp.metric || 'מדד'}</strong>
+          <span style="color:#64748b">${(kp.current||0).toLocaleString()} / ${(kp.target||0).toLocaleString()} ${kp.unit||''}</span>
+          ${isAdmin?`<button class="btn btn-danger btn-sm" onclick="removeKpi('${k}',${i})" title="מחק">✕</button>`:''}
+        </div>
+        <div style="background:#e2e8f0;height:6px;border-radius:3px;margin-top:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent))"></div></div>
+      </div>`;
+    }).join('') || '<div style="color:#94a3b8;font-size:0.85rem">אין מדדים מוגדרים</div>';
+
+    const adminControls = isAdmin ? `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e5e7eb">
+        <textarea id="wp_goals_${k}" rows="3" placeholder="יעדי השנה..." style="width:100%;font-size:0.88rem;margin-bottom:6px">${a.goals||''}</textarea>
+        <textarea id="wp_narr_${k}" rows="2" placeholder="טקסט לציבור / לתורמים..." style="width:100%;font-size:0.85rem;margin-bottom:8px">${a.narrativeForDonors||''}</textarea>
+        <button class="btn btn-secondary btn-sm" onclick="addKpi('${k}')">+ הוסף KPI</button>
+      </div>` : `
+      ${a.goals ? `<div style="margin-top:10px;font-size:0.88rem;color:#374151">${a.goals.replace(/\n/g,'<br>')}</div>` : ''}`;
+
+    return `<div class="card" style="margin-bottom:0;border-right:4px solid var(--primary);background:#fff">
+      <h4 style="margin:0 0 6px;font-size:1.05rem">${PURPOSES[k]||k}</h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:0.78rem;color:#64748b;margin-bottom:8px">
+        <span style="background:#eff6ff;padding:2px 8px;border-radius:10px">🎯 ${projCount} פרויקטים</span>
+        <span style="background:#fef3c7;padding:2px 8px;border-radius:10px">📋 ${taskCount} משימות פתוחות</span>
+      </div>
+      <div style="font-size:0.8rem;color:#475569;font-weight:600;margin-bottom:4px">📊 מדדי תוצאה (KPIs)</div>
+      ${kpisHtml}
+      ${adminControls}
+    </div>`;
+  }).join('');
+
+  renderQuarters();
+  renderLinkedItems();
+}
+
+function renderQuarters() {
+  const wrap = document.getElementById('wpQuartersGrid');
+  if (!wrap) return;
+  const isAdmin = (userRole === 'admin');
+  wrap.innerHTML = ['Q1','Q2','Q3','Q4'].map(q => {
+    const milestones = workplanCache.quarters[q] || [];
+    return `<div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
+      <h4 style="margin:0 0 8px;font-size:0.95rem;color:var(--primary)">${QUARTER_LABELS[q]}</h4>
+      ${milestones.length ? milestones.map((m,i) => `
+        <div style="background:#fff;padding:8px;border-radius:6px;margin-bottom:6px;font-size:0.85rem;border-right:3px solid #93c5fd">
+          <div style="font-weight:600">${m.title||'אבן דרך'}</div>
+          <div style="color:#64748b;font-size:0.78rem;margin-top:2px">${PURPOSES[m.area]||m.area||'—'}</div>
+          ${isAdmin?`<button class="btn btn-danger btn-sm" style="margin-top:4px" onclick="removeMilestone('${q}',${i})">מחק</button>`:''}
+        </div>`).join('') : '<div style="color:#94a3b8;font-size:0.85rem">אין אבני דרך</div>'}
+      ${isAdmin?`<button class="btn btn-secondary btn-sm" style="width:100%;margin-top:6px" onclick="addQuarterMilestone('${q}')">+ הוסף</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderLinkedItems() {
+  const wrap = document.getElementById('wpLinkedGrid');
+  if (!wrap) return;
+  wrap.innerHTML = AREA_KEYS.map(k => {
+    const projs = (projectsCache||[]).filter(p => p.area === k && p.status !== 'done');
+    const tasks = (tasksCache||[]).filter(t => t.area === k && t.status !== 'done' && t.status !== 'cancelled');
+    if (!projs.length && !tasks.length) return '';
+    return `<div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px">
+      <h4 style="margin:0 0 6px;color:var(--primary)">${PURPOSES[k]||k}</h4>
+      ${projs.length?`<div style="font-size:0.85rem;margin-bottom:4px"><strong>🎯 פרויקטים פעילים:</strong> ${projs.map(p=>p.name).join(' · ')}</div>`:''}
+      ${tasks.length?`<div style="font-size:0.85rem"><strong>📋 משימות פתוחות (${tasks.length}):</strong> ${tasks.slice(0,5).map(t=>t.title).join(' · ')}${tasks.length>5?'...':''}</div>`:''}
+    </div>`;
+  }).filter(Boolean).join('') || '<div class="empty-state">אין פרויקטים או משימות עם תחום מוגדר</div>';
+}
+
+function addKpi(areaKey) {
+  const metric = prompt('שם המדד (למשל: חיילים מלווים):'); if (!metric) return;
+  const target = parseInt(prompt('יעד שנתי:') || '0');
+  const unit = prompt('יחידה (אופציונלי, למשל: חיילים, ש״ח, שיעורים):') || '';
+  const current = parseInt(prompt('ביצוע נוכחי (0 אם עוד לא התחלתם):') || '0');
+  if (!workplanCache.areas[areaKey]) workplanCache.areas[areaKey] = { goals:'', kpis:[], narrativeForDonors:'' };
+  workplanCache.areas[areaKey].kpis.push({ metric, target, current, unit });
+  renderWorkplan();
+}
+
+function removeKpi(areaKey, idx) {
+  if (!confirm('למחוק את המדד?')) return;
+  workplanCache.areas[areaKey].kpis.splice(idx, 1);
+  renderWorkplan();
+}
+
+function addQuarterMilestone(qPreset) {
+  const q = qPreset || prompt('רבעון (Q1/Q2/Q3/Q4):', 'Q1');
+  if (!['Q1','Q2','Q3','Q4'].includes(q)) return;
+  const title = prompt('כותרת אבן הדרך:'); if (!title) return;
+  const areas = AREA_KEYS.map((k,i)=>`${i+1}. ${PURPOSES[k]}`).join('\n');
+  const idx = parseInt(prompt(`לאיזה תחום? בחר מספר:\n${areas}`)) - 1;
+  const area = AREA_KEYS[idx] || 'general';
+  if (!workplanCache.quarters[q]) workplanCache.quarters[q] = [];
+  workplanCache.quarters[q].push({ title, area });
+  renderWorkplan();
+}
+
+function removeMilestone(q, idx) {
+  if (!confirm('למחוק את אבן הדרך?')) return;
+  workplanCache.quarters[q].splice(idx, 1);
+  renderWorkplan();
+}
+
+async function saveWorkplan() {
+  if (userRole !== 'admin') { toast('רק מנהל יכול לשמור','error'); return; }
+  const btn = document.getElementById('wpSaveBtn');
+  btn.disabled = true; btn.textContent = 'שומר...';
+  // Pull goals + narrative from textareas
+  AREA_KEYS.forEach(k => {
+    const g = document.getElementById('wp_goals_'+k);
+    const n = document.getElementById('wp_narr_'+k);
+    if (g) workplanCache.areas[k].goals = g.value;
+    if (n) workplanCache.areas[k].narrativeForDonors = n.value;
+  });
+  workplanCache.year = workplanYear;
+  workplanCache.updatedBy = currentUser?.email;
+  workplanCache.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    await db.collection('workplan').doc(String(workplanYear)).set(workplanCache, { merge: true });
+    toast('נשמר!');
+  } catch(e) {
+    console.error(e); toast('שגיאה: ' + (e.message||e), 'error');
+  }
+  btn.disabled = false; btn.textContent = '💾 שמור';
+}
+
+// ============================================================
+// ===== PUBLIC TRANSPARENCY VIEW ============================
+// ============================================================
+function openPublicTransparency() {
+  // Open the same page with hash; the route handler will switch to public mode
+  const url = new URL(window.location.href);
+  url.hash = 'public/transparency/' + workplanYear;
+  window.open(url.toString(), '_blank');
+}
+
+function openPresentationMode() {
+  const url = new URL(window.location.href);
+  url.hash = 'present/plan/' + workplanYear;
+  window.open(url.toString(), '_blank');
+}
+
+async function renderPublicTransparency(year) {
+  document.body.innerHTML = `<div id="publicRoot" style="font-family:Heebo,system-ui,sans-serif;direction:rtl;background:#f8fafc;min-height:100vh">
+    <div style="background:linear-gradient(135deg,#1e3a8a 0%,#3730a3 100%);color:#fff;padding:32px 24px;text-align:center">
+      <h1 style="margin:0 0 8px;font-size:2rem">🏛️ עמותת החשמונאים — שקיפות ציבורית</h1>
+      <div style="opacity:0.85">תוכנית עבודה ופעילות לשנת ${year} · ${ORG_INFO?.name || ''}${ORG_INFO?.registrationNumber?` · ע.ר. ${ORG_INFO.registrationNumber}`:''}</div>
+    </div>
+    <div style="max-width:1100px;margin:0 auto;padding:24px">
+      <div id="pubKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px"></div>
+      <div id="pubAreas"></div>
+      <div style="text-align:center;color:#64748b;font-size:0.85rem;margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0">
+        תוכנית העבודה והנתונים מוצגים בשקיפות מלאה. <a href="https://ruach-hashmonaim.org/" target="_blank" style="color:var(--primary,#3730a3)">אתר העמותה</a>
+      </div>
+    </div>
+  </div>`;
+
+  // Aggregate financial summary (no PII, no per-employee detail)
+  let totalInc = 0, totalExp = 0, donorCount = 0, projCount = 0;
+  try {
+    const finSnap = await db.collection('finance').get();
+    finSnap.forEach(d => { const r = d.data(); if (r.type==='income') totalInc += r.amount||0; else totalExp += r.amount||0; });
+  } catch(e) {}
+  try { donorCount = (await db.collection('donors').get()).size; } catch(e) {}
+  try {
+    const ps = await db.collection('projects').get();
+    ps.forEach(d => { if ((d.data().status||'active') !== 'done') projCount++; });
+  } catch(e) {}
+
+  let plan = null;
+  try {
+    const wp = await db.collection('workplan').doc(String(year)).get();
+    if (wp.exists) plan = wp.data();
+  } catch(e) {}
+
+  document.getElementById('pubKpis').innerHTML = `
+    <div style="background:#fff;padding:16px;border-radius:10px;border-right:4px solid #10b981;text-align:center"><div style="font-size:0.85rem;color:#64748b">הכנסות בשנה</div><div style="font-size:1.6rem;font-weight:700;color:#059669">₪${totalInc.toLocaleString()}</div></div>
+    <div style="background:#fff;padding:16px;border-radius:10px;border-right:4px solid #f59e0b;text-align:center"><div style="font-size:0.85rem;color:#64748b">הוצאות בשנה</div><div style="font-size:1.6rem;font-weight:700;color:#d97706">₪${totalExp.toLocaleString()}</div></div>
+    <div style="background:#fff;padding:16px;border-radius:10px;border-right:4px solid #6366f1;text-align:center"><div style="font-size:0.85rem;color:#64748b">פרויקטים פעילים</div><div style="font-size:1.6rem;font-weight:700">${projCount}</div></div>
+    <div style="background:#fff;padding:16px;border-radius:10px;border-right:4px solid #ec4899;text-align:center"><div style="font-size:0.85rem;color:#64748b">תורמים</div><div style="font-size:1.6rem;font-weight:700">${donorCount}</div></div>
+  `;
+
+  // Areas
+  document.getElementById('pubAreas').innerHTML = AREA_KEYS.map(k => {
+    const a = plan?.areas?.[k] || {};
+    const goalsText = a.narrativeForDonors || a.goals || DEFAULT_AREA_GOALS[k] || '';
+    const kpis = (a.kpis||[]).map(kp => {
+      const pct = kp.target ? Math.min(100, Math.round((kp.current||0)/kp.target*100)) : 0;
+      return `<div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;font-size:0.88rem"><strong>${kp.metric||''}</strong><span>${(kp.current||0).toLocaleString()} / ${(kp.target||0).toLocaleString()} ${kp.unit||''}</span></div>
+        <div style="background:#e2e8f0;height:8px;border-radius:4px;margin-top:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6)"></div></div>
+      </div>`;
+    }).join('') || '<div style="color:#94a3b8;font-size:0.85rem">—</div>';
+    return `<div style="background:#fff;padding:20px;border-radius:12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-right:5px solid var(--primary,#3730a3)">
+      <h2 style="margin:0 0 8px;color:#1e3a8a">${PURPOSES[k]||k}</h2>
+      <p style="color:#374151;line-height:1.6;margin:0 0 12px;white-space:pre-wrap">${goalsText}</p>
+      <div style="margin-top:10px"><strong style="color:#64748b;font-size:0.88rem">📊 מדדי תוצאה</strong>${kpis}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ===== PRESENTATION MODE ===================================
+// ============================================================
+let _presentSlide = 0;
+let _presentSlides = [];
+let _presentYear = new Date().getFullYear();
+
+async function renderPresentationMode(year) {
+  _presentYear = year;
+  document.body.innerHTML = `<div id="presentRoot" style="font-family:Heebo,system-ui,sans-serif;direction:rtl;background:#0f172a;color:#fff;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;position:relative">
+    <button id="presClose" onclick="window.close()" style="position:absolute;top:20px;left:20px;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">✕ סגור</button>
+    <div id="presNav" style="position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#64748b;font-size:0.9rem"></div>
+    <button id="presPrev" onclick="presentPrev()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);color:#fff;border:none;font-size:2rem;padding:12px 18px;border-radius:50%;cursor:pointer">‹</button>
+    <button id="presNext" onclick="presentNext()" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);color:#fff;border:none;font-size:2rem;padding:12px 18px;border-radius:50%;cursor:pointer">›</button>
+    <div id="presSlide" style="max-width:1100px;width:100%;text-align:center"></div>
+  </div>`;
+
+  let plan = null;
+  try {
+    const wp = await db.collection('workplan').doc(String(year)).get();
+    if (wp.exists) plan = wp.data();
+  } catch(e) {}
+
+  // Get aggregate fin data
+  let totalInc = 0, totalExp = 0;
+  try {
+    const finSnap = await db.collection('finance').get();
+    finSnap.forEach(d => { const r = d.data(); if (r.type==='income') totalInc += r.amount||0; else totalExp += r.amount||0; });
+  } catch(e) {}
+
+  const orgName = ORG_INFO?.name || 'עמותת החשמונאים';
+  _presentSlides = [
+    // Slide 0: Title
+    `<h1 style="font-size:4rem;margin:0 0 20px">🏛️ ${orgName}</h1>
+     <h2 style="font-size:2rem;font-weight:300;color:#a3b5d4;margin:0">תוכנית עבודה לשנת ${year}</h2>
+     <div style="margin-top:40px;font-size:1.2rem;color:#64748b">לחץ ◄ ► לניווט · ESC לסגירה</div>`,
+    // Slide 1: Numbers
+    `<h1 style="font-size:3rem;margin:0 0 30px">המספרים שלנו השנה</h1>
+     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px">
+       <div style="background:rgba(16,185,129,0.15);padding:32px;border-radius:16px;border:1px solid rgba(16,185,129,0.3)"><div style="font-size:1.1rem;color:#86efac">הכנסות</div><div style="font-size:3.5rem;font-weight:700;color:#10b981">₪${totalInc.toLocaleString()}</div></div>
+       <div style="background:rgba(245,158,11,0.15);padding:32px;border-radius:16px;border:1px solid rgba(245,158,11,0.3)"><div style="font-size:1.1rem;color:#fde68a">הוצאות (פעילות)</div><div style="font-size:3.5rem;font-weight:700;color:#f59e0b">₪${totalExp.toLocaleString()}</div></div>
+     </div>`,
+    // Slides 2-7: One per area
+    ...AREA_KEYS.map(k => {
+      const a = plan?.areas?.[k] || {};
+      const text = a.narrativeForDonors || a.goals || DEFAULT_AREA_GOALS[k] || '';
+      const kpis = (a.kpis||[]).slice(0,3).map(kp => `
+        <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px">
+          <div style="font-size:0.95rem;color:#a3b5d4">${kp.metric||''}</div>
+          <div style="font-size:2rem;font-weight:700;color:#fff">${(kp.current||0).toLocaleString()} / ${(kp.target||0).toLocaleString()}</div>
+          <div style="font-size:0.85rem;color:#64748b">${kp.unit||''}</div>
+        </div>`).join('');
+      return `<h1 style="font-size:2.6rem;margin:0 0 20px;line-height:1.2">${PURPOSES[k]||k}</h1>
+        <p style="font-size:1.3rem;color:#cbd5e1;line-height:1.6;max-width:900px;margin:0 auto 30px;white-space:pre-wrap">${text}</p>
+        ${kpis ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:30px">${kpis}</div>`:''}`;
+    }),
+    // Final slide
+    `<h1 style="font-size:3rem;margin:0 0 20px">הצטרפו אלינו</h1>
+     <p style="font-size:1.4rem;color:#a3b5d4;line-height:1.6;max-width:800px;margin:0 auto">תרומה לחזון. שותפות בליווי לוחמי ומפקדי החטיבה — בשירות, אחרי, ובכל שלבי החיים.</p>
+     <div style="margin-top:40px;font-size:1.1rem;color:#64748b">ruach-hashmonaim.org</div>`
+  ];
+
+  _presentSlide = 0;
+  presentRender();
+  document.addEventListener('keydown', presentKeyHandler);
+}
+
+function presentRender() {
+  const slide = document.getElementById('presSlide');
+  if (!slide) return;
+  slide.innerHTML = _presentSlides[_presentSlide] || '';
+  const nav = document.getElementById('presNav');
+  if (nav) nav.textContent = `שקופית ${_presentSlide+1} / ${_presentSlides.length}`;
+}
+
+function presentNext() { if (_presentSlide < _presentSlides.length - 1) { _presentSlide++; presentRender(); } }
+function presentPrev() { if (_presentSlide > 0) { _presentSlide--; presentRender(); } }
+function presentKeyHandler(e) {
+  if (e.key === 'ArrowLeft') presentNext();
+  else if (e.key === 'ArrowRight') presentPrev();
+  else if (e.key === 'Escape') window.close();
+}
+
+// Hook into hash routing — runs at load
+function checkPublicRoute() {
+  const h = window.location.hash || '';
+  const m = h.match(/^#public\/transparency(?:\/(\d+))?$/);
+  if (m) {
+    const y = parseInt(m[1]) || new Date().getFullYear();
+    // Wait for ORG_INFO + auth (anonymous fallback)
+    setTimeout(() => renderPublicTransparency(y), 800);
+    return true;
+  }
+  const m2 = h.match(/^#present\/plan(?:\/(\d+))?$/);
+  if (m2) {
+    const y = parseInt(m2[1]) || new Date().getFullYear();
+    setTimeout(() => renderPresentationMode(y), 800);
+    return true;
+  }
+  return false;
 }
 
 // ===== FINANCE EDIT =====
