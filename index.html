@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.29-r11</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.29-r12</div>
   </aside>
 
   <!-- Main Content -->
@@ -650,9 +650,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
 
       <div class="card" style="background:linear-gradient(135deg,#eef2ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
-        <h3>📊 דוח פעילות מסכם</h3>
-        <p style="margin:8px 0 12px;color:#475569">הפק דוח מקיף המאחד את כל ההכנסות, ההוצאות, התפוקות ודיווחי העובדים — לפי חודש או שנה. כולל תצוגת הדפסה, הורדה ושליחה.</p>
-        <button class="btn btn-primary" onclick="openActivityReport()">📊 הפק דוח חודשי / שנתי</button>
+        <h3>📊 דוחות סיכום</h3>
+        <p style="margin:8px 0 12px;color:#475569">דוח פעילות מקיף או סיכום מנהלים לעבודת העובדים בתקופה.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="openActivityReport()">📊 דוח פעילות חודשי / שנתי</button>
+          <button class="btn btn-primary" onclick="openManagerSummary()" style="background:#7c3aed">👥 דוח סיכום מנהלים — עובדים</button>
+        </div>
+      </div>
+
+      <!-- MANAGER SUMMARY MODAL -->
+      <div id="mgrSumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+        <div style="background:#fff;border-radius:12px;max-width:1000px;width:100%;margin-top:20px;padding:20px">
+          <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+            <h3 style="margin:0">👥 סיכום מנהלים — דיווחי עובדים</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <select id="mgrSumPeriod" onchange="renderManagerSummary()" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1">
+                <option value="week">שבועי</option>
+                <option value="month">חודשי</option>
+                <option value="custom">טווח מותאם</option>
+              </select>
+              <input type="date" id="mgrSumStart" onchange="renderManagerSummary()" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              <input type="date" id="mgrSumEnd" onchange="renderManagerSummary()" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ הדפסה / PDF</button>
+              <button class="btn btn-secondary btn-sm" onclick="closeManagerSummary()">✕ סגור</button>
+            </div>
+          </div>
+          <div id="mgrSumBody"><div class="empty-state">בחרי תקופה וטענו את הדוח...</div></div>
+        </div>
       </div>
 
       <!-- WEEKLY CONTRACT REPORT (dynamic per-role) -->
@@ -3387,6 +3411,22 @@ function buildWeeklyFormHTML(roleKey) {
       <div style="font-size:0.95rem;line-height:1.7"><strong style="background:#fff;padding:2px 8px;border-radius:4px">היעד החוזי:</strong> ${cfg.goalSummary}.</div>
     </div>
 
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:10px 14px;border-radius:8px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:6px">
+        <input type="checkbox" id="wk_onBehalf" onchange="toggleOnBehalf()" style="width:auto;margin:0">
+        👥 אני ממלא דיווח עבור עובד אחר
+      </label>
+      <small style="color:#475569">סמנו אם אתם ממלאים את הדיווח עבור עובד שלא מסוגל למלא בעצמו (חופשה, מילואים, וכו'). הדיווח יישמר עבור העובד שיירשם להלן.</small>
+      <div id="wk_onBehalfBox" style="display:none;margin-top:10px">
+        <div class="form-row">
+          <div class="form-field"><label>שם העובד שעבורו הדיווח</label><input type="text" id="wk_employeeName" placeholder="שם העובד..."></div>
+          <div class="form-field"><label>בחירה מהצוות (אופציונלי — ימלא שם אוטומטית)</label>
+            <select id="wk_employeeEmail" onchange="onWkEmployeePick()"><option value="">— בחר עובד מהרשימה —</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="form-field"><label>שבוע (יום ראשון)</label><input type="date" id="wk_weekStart" value="${w.start}"></div>
       <div class="form-field"><label>עד (יום שבת)</label><input type="date" id="wk_weekEnd" value="${w.end}"></div>
@@ -3510,6 +3550,35 @@ function onAdminRolePick() {
   wireWeeklyDaysRow();
 }
 
+// "Fill on behalf" — show employee name fields and populate team dropdown
+function toggleOnBehalf() {
+  const cb = document.getElementById('wk_onBehalf');
+  const box = document.getElementById('wk_onBehalfBox');
+  if (!cb || !box) return;
+  box.style.display = cb.checked ? '' : 'none';
+  if (cb.checked) populateWkEmployeeSelect();
+}
+
+function populateWkEmployeeSelect() {
+  const sel = document.getElementById('wk_employeeEmail');
+  if (!sel) return;
+  const team = teamCache || [];
+  if (!team.length) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— בחר עובד מהרשימה —</option>' +
+    team.map(t => `<option value="${t.email}">${t.name || t.email}${t.role ? ' · ' + (ROLES[t.role]||t.role) : ''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function onWkEmployeePick() {
+  const sel = document.getElementById('wk_employeeEmail');
+  const nameField = document.getElementById('wk_employeeName');
+  if (!sel || !nameField) return;
+  if (!sel.value) return;
+  const member = (teamCache||[]).find(t => t.email === sel.value);
+  if (member && member.name) nameField.value = member.name;
+}
+
 // Switch between "simple ack" (checkbox) and "detailed breakdown" (free-text)
 function toggleAckMode() {
   const mode = document.querySelector('input[name="wk_ackMode"]:checked')?.value || 'simple';
@@ -3576,6 +3645,14 @@ async function addPlugaReport() {
   const workedDays = collectWorkedDays();
   if (workedDays.length === 0) { toast('יש לסמן לפחות יום עבודה אחד השבוע','error'); return; }
 
+  // "Fill on behalf" capture
+  const onBehalf = document.getElementById('wk_onBehalf')?.checked || false;
+  const employeeName = (document.getElementById('wk_employeeName')?.value || '').trim();
+  const employeeEmail = document.getElementById('wk_employeeEmail')?.value || '';
+  if (onBehalf && !employeeName) {
+    toast('יש למלא את שם העובד שעבורו הדיווח','error'); return;
+  }
+
   const data = {
     contractRole: role,
     roleLabel: cfg.roleLabel,
@@ -3591,11 +3668,17 @@ async function addPlugaReport() {
     ackAt: firebase.firestore.FieldValue.serverTimestamp(),
     answers,
     extras,
-    createdBy: currentUser.email,
-    userName: currentUser.displayName || currentUser.email,
+    createdBy: currentUser.email, // actual filler (audit trail)
+    userName: onBehalf ? employeeName : (currentUser.displayName || currentUser.email),
     userRole,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    schema: 'weekly-v2'
+    schema: 'weekly-v2',
+    // Fill-on-behalf metadata
+    filledOnBehalf: onBehalf,
+    employeeName: onBehalf ? employeeName : (currentUser.displayName || currentUser.email),
+    employeeEmail: onBehalf ? employeeEmail : currentUser.email,
+    filledByEmail: currentUser.email,
+    filledByName: currentUser.displayName || currentUser.email
   };
 
   try {
@@ -6876,6 +6959,217 @@ function renderActivityReport(data) {
       <div class="rpt-sig">_________________<br><small>מנהל תפעולי</small></div>
     </div>
   `;
+}
+
+// ============================================================
+// ===== MANAGER SUMMARY REPORT ==============================
+// Aggregates all weekly reports for a period and surfaces:
+// highlights, challenges, programs needing attention, per-employee summary.
+// ============================================================
+function openManagerSummary() {
+  const modal = document.getElementById('mgrSumModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  // Default: current week
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const sunday = new Date(today); sunday.setDate(today.getDate() - dow);
+  const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
+  document.getElementById('mgrSumStart').value = sunday.toISOString().slice(0,10);
+  document.getElementById('mgrSumEnd').value = saturday.toISOString().slice(0,10);
+  document.getElementById('mgrSumPeriod').value = 'week';
+  renderManagerSummary();
+}
+
+function closeManagerSummary() {
+  const modal = document.getElementById('mgrSumModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function _mgrSumApplyPeriod() {
+  const periodSel = document.getElementById('mgrSumPeriod');
+  if (!periodSel) return;
+  const startEl = document.getElementById('mgrSumStart');
+  const endEl = document.getElementById('mgrSumEnd');
+  if (!startEl || !endEl) return;
+  if (periodSel.value === 'week') {
+    const today = new Date();
+    const dow = today.getDay();
+    const sun = new Date(today); sun.setDate(today.getDate() - dow);
+    const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+    startEl.value = sun.toISOString().slice(0,10);
+    endEl.value = sat.toISOString().slice(0,10);
+  } else if (periodSel.value === 'month') {
+    const today = new Date();
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    startEl.value = first.toISOString().slice(0,10);
+    endEl.value = last.toISOString().slice(0,10);
+  }
+}
+
+// Heuristic: detect sentences that signal "needs attention"
+function _flagAttention(text) {
+  if (!text) return false;
+  const flags = ['פער','חוסר','דחוף','קושי','בעיה','חסם','עיכוב','מצוקה','מחסור','חשוב לטפל','דרוש','נדרש','להציף'];
+  return flags.some(f => text.includes(f));
+}
+
+async function renderManagerSummary() {
+  const body = document.getElementById('mgrSumBody');
+  if (!body) return;
+  // Auto-fill period dates if a preset was picked
+  const periodVal = document.getElementById('mgrSumPeriod')?.value;
+  if (periodVal === 'week' || periodVal === 'month') _mgrSumApplyPeriod();
+
+  const start = document.getElementById('mgrSumStart')?.value;
+  const end   = document.getElementById('mgrSumEnd')?.value;
+  if (!start || !end) { body.innerHTML = '<div class="empty-state">יש לבחור תאריכים</div>'; return; }
+  body.innerHTML = '<div class="empty-state">טוען דיווחים...</div>';
+
+  let snap;
+  try {
+    snap = await db.collection('pluga_weekly_reports')
+      .where('weekStart','>=', start)
+      .where('weekStart','<=', end)
+      .get();
+  } catch(e) {
+    console.error('[mgrSum]', e);
+    body.innerHTML = '<div class="empty-state">שגיאה בטעינה: ' + (e.message||e) + '</div>';
+    return;
+  }
+
+  const reports = [];
+  snap.forEach(d => reports.push({ id: d.id, ...d.data() }));
+  reports.sort((a,b) => (a.weekStart||'').localeCompare(b.weekStart||''));
+
+  if (!reports.length) {
+    body.innerHTML = `<div class="empty-state" style="padding:30px"><div class="icon">📭</div><p>אין דיווחים בטווח ${fmtDate(start)} – ${fmtDate(end)}</p></div>`;
+    return;
+  }
+
+  // Aggregate
+  const byEmployee = {};
+  let totalDays = 0;
+  const allHighlights = [];
+  const allChallenges = [];
+  const allNextWeek = [];
+  const attentionItems = [];
+  const programReports = {}; // by contractRole
+  reports.forEach(r => {
+    const empKey = r.employeeName || r.userName || r.createdBy || '—';
+    if (!byEmployee[empKey]) byEmployee[empKey] = { count:0, days:0, role: r.roleLabel || r.contractRole || '—', items:[] };
+    byEmployee[empKey].count++;
+    byEmployee[empKey].days += (r.workedDaysCount || 0);
+    byEmployee[empKey].items.push(r);
+    totalDays += (r.workedDaysCount || 0);
+
+    if (r.contractRole) {
+      if (!programReports[r.contractRole]) programReports[r.contractRole] = { count:0, label: r.roleLabel || r.contractRole, days:0 };
+      programReports[r.contractRole].count++;
+      programReports[r.contractRole].days += (r.workedDaysCount || 0);
+    }
+
+    const a = r.answers || {};
+    if (a.highlights) allHighlights.push({ emp: empKey, txt: a.highlights, week: r.weekStart });
+    if (a.challenges) {
+      allChallenges.push({ emp: empKey, txt: a.challenges, week: r.weekStart });
+      if (_flagAttention(a.challenges)) attentionItems.push({ emp: empKey, txt: a.challenges, week: r.weekStart, src: 'אתגרים' });
+    }
+    if (a.nextWeek) {
+      allNextWeek.push({ emp: empKey, txt: a.nextWeek, week: r.weekStart });
+      if (_flagAttention(a.nextWeek)) attentionItems.push({ emp: empKey, txt: a.nextWeek, week: r.weekStart, src: 'מבט קדימה' });
+    }
+  });
+
+  const employeeCount = Object.keys(byEmployee).length;
+  const avgDays = employeeCount ? (totalDays / employeeCount).toFixed(1) : '0';
+
+  // Render
+  const periodTitle = periodVal === 'week' ? 'דוח שבועי' : (periodVal === 'month' ? 'דוח חודשי' : 'דוח תקופתי');
+
+  let html = `
+    <div style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;padding:20px;border-radius:10px;margin-bottom:16px">
+      <h2 style="margin:0 0 4px;font-size:1.5rem">סיכום מנהלים — ${periodTitle}</h2>
+      <div style="opacity:0.9">${fmtDate(start)} – ${fmtDate(end)}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+      <div class="kpi" style="background:#f0fdf4;border-right:3px solid #16a34a"><div class="label">דיווחים</div><div class="value">${reports.length}</div></div>
+      <div class="kpi" style="background:#eff6ff;border-right:3px solid #2563eb"><div class="label">עובדים שדיווחו</div><div class="value">${employeeCount}</div></div>
+      <div class="kpi" style="background:#fef3c7;border-right:3px solid #d97706"><div class="label">סה"כ ימי עבודה</div><div class="value">${totalDays}</div></div>
+      <div class="kpi" style="background:#fae8ff;border-right:3px solid #a21caf"><div class="label">ממוצע ימים/עובד</div><div class="value">${avgDays}</div></div>
+      <div class="kpi" style="background:#fee2e2;border-right:3px solid #dc2626"><div class="label">פריטים לתשומת לב</div><div class="value">${attentionItems.length}</div></div>
+    </div>`;
+
+  // Programs breakdown
+  if (Object.keys(programReports).length) {
+    html += `<div class="card"><h3>📋 פעילות לפי תוכנית / תפקיד</h3>
+      <table class="data-table">
+        <thead><tr><th>תפקיד</th><th>מספר דיווחים</th><th>סה"כ ימי עבודה</th></tr></thead>
+        <tbody>${Object.values(programReports).sort((a,b)=>b.count-a.count).map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${p.days}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+
+  // Attention items — most important section
+  html += `<div class="card" style="border-right:4px solid #dc2626;background:#fef2f2">
+    <h3 style="color:#991b1b;margin:0 0 8px">⚠️ נקודות לתשומת לב מיוחדת</h3>
+    <p style="color:#64748b;font-size:0.9rem;margin:0 0 12px">פריטים שזוהו אוטומטית מתוך הדיווחים — מכילים מילות מפתח כגון "פער", "דחוף", "מצוקה", "להציף".</p>
+    ${attentionItems.length ? attentionItems.map(it => `
+      <div style="background:#fff;padding:10px 12px;border-radius:6px;margin-bottom:8px;border-right:3px solid #dc2626">
+        <div style="font-size:0.78rem;color:#64748b">${it.emp} · ${fmtDate(it.week)} · <em>${it.src}</em></div>
+        <div style="margin-top:4px;white-space:pre-wrap">${it.txt}</div>
+      </div>`).join('') : '<div style="color:#64748b;font-style:italic">לא זוהו פריטים שדורשים תשומת לב מיוחדת בתקופה זו.</div>'}
+  </div>`;
+
+  // Highlights
+  html += `<div class="card" style="border-right:4px solid #16a34a;background:#f0fdf4">
+    <h3 style="color:#166534;margin:0 0 8px">🌟 רגעי שיא והישגים</h3>
+    ${allHighlights.length ? allHighlights.map(it => `
+      <div style="background:#fff;padding:10px 12px;border-radius:6px;margin-bottom:8px">
+        <div style="font-size:0.78rem;color:#64748b">${it.emp} · ${fmtDate(it.week)}</div>
+        <div style="margin-top:4px;white-space:pre-wrap">${it.txt}</div>
+      </div>`).join('') : '<div style="color:#64748b;font-style:italic">—</div>'}
+  </div>`;
+
+  // Challenges (full list, even non-attention)
+  html += `<div class="card" style="border-right:4px solid #d97706;background:#fffbeb">
+    <h3 style="color:#92400e;margin:0 0 8px">🔥 אתגרים ופערים שדווחו</h3>
+    ${allChallenges.length ? allChallenges.map(it => `
+      <div style="background:#fff;padding:10px 12px;border-radius:6px;margin-bottom:8px">
+        <div style="font-size:0.78rem;color:#64748b">${it.emp} · ${fmtDate(it.week)}</div>
+        <div style="margin-top:4px;white-space:pre-wrap">${it.txt}</div>
+      </div>`).join('') : '<div style="color:#64748b;font-style:italic">—</div>'}
+  </div>`;
+
+  // Forward-looking
+  html += `<div class="card" style="border-right:4px solid #2563eb;background:#eff6ff">
+    <h3 style="color:#1e40af;margin:0 0 8px">🔮 מבט קדימה וסיוע נדרש</h3>
+    ${allNextWeek.length ? allNextWeek.map(it => `
+      <div style="background:#fff;padding:10px 12px;border-radius:6px;margin-bottom:8px">
+        <div style="font-size:0.78rem;color:#64748b">${it.emp} · ${fmtDate(it.week)}</div>
+        <div style="margin-top:4px;white-space:pre-wrap">${it.txt}</div>
+      </div>`).join('') : '<div style="color:#64748b;font-style:italic">—</div>'}
+  </div>`;
+
+  // Per-employee
+  html += `<div class="card"><h3>👤 פירוט לפי עובד</h3>`;
+  Object.entries(byEmployee).sort((a,b)=>b[1].count-a[1].count).forEach(([emp, info]) => {
+    html += `<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px">
+      <h4 style="margin:0 0 4px">${emp} · <span style="color:#64748b;font-weight:400;font-size:0.88rem">${info.role}</span></h4>
+      <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">${info.count} דיווחים · ${info.days} ימי עבודה</div>
+      ${info.items.map(r => {
+        const filledMark = r.filledOnBehalf ? `<span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-size:0.72rem;margin-right:6px">מולא ע״י ${r.filledByName||'—'}</span>` : '';
+        return `<div style="background:#f9fafb;padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:0.88rem">
+          <strong>${fmtDate(r.weekStart)} – ${fmtDate(r.weekEnd)}</strong>${filledMark}
+          ${r.answers?.overview ? `<div style="margin-top:4px;color:#374151;white-space:pre-wrap">${r.answers.overview.slice(0,300)}${r.answers.overview.length>300?'...':''}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+  html += '</div>';
+
+  body.innerHTML = html;
 }
 
 // Open activity report generator modal (period picker + auto-load)
