@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.29-r13</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r14</div>
   </aside>
 
   <!-- Main Content -->
@@ -1308,6 +1308,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <tbody id="teamTableBody"><tr><td colspan="4" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
+
+      <!-- SUPER ADMIN PANEL — only visible for super-admins -->
+      <div class="card" id="superAdminCard" style="display:none;background:linear-gradient(135deg,#fef3c7 0%,#fee2e2 100%);border-right:4px solid #d97706">
+        <h3>🔧 סופר-אדמין — ניהול multi-tenant</h3>
+        <p style="color:#92400e;font-size:0.9rem;margin:4px 0 12px">פעולות לתחזוקת תשתית ה-multi-tenant. <strong>זמין רק עבורך.</strong></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="runOrgMigration()" style="background:#d97706">🔄 הריץ הגירה (תייג רשומות ישנות ב-orgId)</button>
+          <button class="btn btn-secondary" onclick="showOrgsList()">📋 רשימת ארגונים</button>
+          <button class="btn btn-secondary" onclick="createNewOrg()">➕ צור ארגון חדש</button>
+        </div>
+        <div id="superAdminOutput" style="margin-top:12px"></div>
+      </div>
     </div>
 
   </main>
@@ -1402,6 +1414,144 @@ const MONTHS = {1:'ינואר',2:'פברואר',3:'מרץ',4:'אפריל',5:'מ�
 const STATUSES = {active:'פעיל',planning:'בתכנון',done:'הושלם'};
 const ROLES = {admin:'מנהל',team:'צוות','ram-plugati':'ר"מ פלוגתי','resilience-lead':'מוביל תוכנית חוסן ואמונה','educational-director':'מנהל חינוכי','grooms-rams-mentor':'מוביל תחום חתנים ומדריך ר"מים',viewer:'צופה'};
 const CONTRACT_ROLES = ['ram-plugati','resilience-lead','educational-director','grooms-rams-mentor'];
+
+// ============================================================
+// ===== MULTI-TENANT FOUNDATION =============================
+// orgId-based isolation. Each user is associated with exactly one org.
+// All writes auto-tag with currentOrgId; all reads filter by it.
+// ============================================================
+const DEFAULT_ORG_ID = 'org-hashmonaim'; // legacy / migration default
+const SUPER_ADMINS = ['i.barkai7@gmail.com']; // can see/manage all orgs
+let currentOrgId = DEFAULT_ORG_ID; // set on auth
+let currentOrgInfo = null; // org doc data, loaded after auth
+
+// Tag a write payload with orgId (idempotent).
+function _orgify(data) {
+  if (!data) return data;
+  if (!data.orgId) data.orgId = currentOrgId;
+  return data;
+}
+
+// Wrap a Firestore collection ref with org filter for reads.
+// Usage: _orgQuery('finance').orderBy('createdAt','desc').get()
+function _orgQuery(collectionName) {
+  return db.collection(collectionName).where('orgId','==', currentOrgId);
+}
+
+function isSuperAdmin() {
+  return currentUser && SUPER_ADMINS.includes(currentUser.email);
+}
+
+// One-time migration: backfill orgId on all records that lack it.
+// Only runs for super-admin and only when explicitly invoked.
+async function runOrgMigration() {
+  if (!isSuperAdmin()) { toast('רק סופר-אדמין יכול להריץ הגירה','error'); return; }
+  if (!confirm('האם להריץ הגירה? כל רשומה ללא orgId תתויג כ-' + DEFAULT_ORG_ID)) return;
+  const collections = ['finance','projects','tasks','donors','expenses','vehicles','vehicleEvents',
+    'vehicleFaults','vehicleRoutines','reports','pluga_weekly_reports','workplan','team','trips','meals','generated_reports'];
+  let totalFixed = 0;
+  for (const coll of collections) {
+    try {
+      const snap = await db.collection(coll).get();
+      const batch = db.batch();
+      let count = 0;
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (!d.orgId) {
+          batch.update(doc.ref, { orgId: DEFAULT_ORG_ID });
+          count++;
+        }
+      });
+      if (count) {
+        await batch.commit();
+        totalFixed += count;
+        console.log(`[migration] ${coll}: tagged ${count} records`);
+      }
+    } catch(e) {
+      console.warn(`[migration] ${coll} failed:`, e.message);
+    }
+  }
+  toast(`הגירה הושלמה — ${totalFixed} רשומות תוייגו`);
+  alert(`הגירת multi-tenant הושלמה.\nסה"כ ${totalFixed} רשומות תוייגו תחת orgId='${DEFAULT_ORG_ID}'.`);
+}
+
+// Show the list of all organizations (super-admin only)
+async function showOrgsList() {
+  if (!isSuperAdmin()) return;
+  const out = document.getElementById('superAdminOutput');
+  out.innerHTML = '<div class="empty-state">טוען...</div>';
+  try {
+    const snap = await db.collection('orgs').get();
+    const teamSnap = await db.collection('team').get();
+    const teamByOrg = {};
+    teamSnap.forEach(d => {
+      const t = d.data();
+      const k = t.orgId || DEFAULT_ORG_ID;
+      teamByOrg[k] = (teamByOrg[k]||0) + 1;
+    });
+    if (snap.empty) {
+      out.innerHTML = '<div class="empty-state">אין ארגונים רשומים. השתמשו ב"צור ארגון חדש".</div>';
+      return;
+    }
+    out.innerHTML = '<table class="data-table"><thead><tr><th>מזהה</th><th>שם</th><th>ע.ר.</th><th>חברי צוות</th><th>נוצר</th></tr></thead><tbody>' +
+      snap.docs.map(d => {
+        const o = d.data();
+        const t = teamByOrg[d.id] || 0;
+        return `<tr><td><code style="font-size:0.85rem">${d.id}</code></td><td>${o.name||'—'}</td><td>${o.registrationNumber||'—'}</td><td>${t}</td><td>${o.createdAt?.toDate?.().toLocaleDateString('he-IL')||'—'}</td></tr>`;
+      }).join('') +
+      '</tbody></table>';
+  } catch(e) {
+    console.error('[showOrgsList]', e);
+    out.innerHTML = `<div style="color:#dc2626">שגיאה: ${e.message}</div>`;
+  }
+}
+
+// Create a new organization + invite admin (super-admin only)
+async function createNewOrg() {
+  if (!isSuperAdmin()) return;
+  const name = prompt('שם הארגון החדש:'); if (!name) return;
+  const orgId = prompt('מזהה ייחודי (למשל org-myamuta — באנגלית):', 'org-' + Date.now()); if (!orgId) return;
+  const adminEmail = prompt('אימייל המנהל הראשון (Gmail):'); if (!adminEmail) return;
+  const regNum = prompt('מספר עמותה / ע.ר. (אופציונלי):') || '';
+  try {
+    // Create org doc
+    await db.collection('orgs').doc(orgId).set({
+      name, registrationNumber: regNum,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser.email
+    });
+    // Add admin to team with orgId
+    await db.collection('team').doc(adminEmail.trim().toLowerCase()).set({
+      email: adminEmail.trim().toLowerCase(),
+      name: name + ' — מנהל',
+      role: 'admin',
+      orgId,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('ארגון נוצר ✓');
+    alert(`ארגון "${name}" נוצר בהצלחה.\n\nמזהה: ${orgId}\nמנהל: ${adminEmail}\n\nכעת ${adminEmail} יכול להיכנס למערכת ויראה רק את הנתונים של "${name}".`);
+    showOrgsList();
+  } catch(e) {
+    alert('שגיאה: ' + e.message);
+  }
+}
+
+// Load org info doc (org name, registration, areas, branding...)
+async function loadOrgInfo() {
+  if (!currentOrgId) return;
+  try {
+    const doc = await db.collection('orgs').doc(currentOrgId).get();
+    if (doc.exists) {
+      currentOrgInfo = doc.data();
+    } else if (currentOrgId === DEFAULT_ORG_ID) {
+      // Bootstrap default org doc if missing (legacy compat)
+      currentOrgInfo = { name: 'עמותת החשמונאים', registrationNumber: '', isDefault: true };
+      try { await db.collection('orgs').doc(currentOrgId).set(currentOrgInfo, { merge: true }); } catch(e) {}
+    }
+  } catch(e) {
+    console.warn('[loadOrgInfo]', e);
+  }
+}
 
 // ===== AUTH =====
 let _signInInFlight = false;
@@ -1507,10 +1657,13 @@ auth.onAuthStateChanged(async user => {
       if (teamSnap.empty || teamSnap.size === 0) {
         try {
           await db.collection('team').doc(user.email).set({
-            name: user.displayName, email: user.email, role: 'admin', photo: user.photoURL, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            name: user.displayName, email: user.email, role: 'admin',
+            photo: user.photoURL, orgId: DEFAULT_ORG_ID,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         } catch(e) { console.warn('Could not write team doc:', e); }
         userRole = 'admin';
+        currentOrgId = DEFAULT_ORG_ID;
       } else {
         document.getElementById('loginScreen').style.display = '';
         document.getElementById('accessDenied').style.display = 'block';
@@ -1518,10 +1671,20 @@ auth.onAuthStateChanged(async user => {
         return;
       }
     } else {
-      userRole = teamDoc.data().role;
-      // Update photo/name silently
-      try { db.collection('team').doc(user.email).update({ name: user.displayName, photo: user.photoURL }); } catch(e) {}
+      const td = teamDoc.data();
+      userRole = td.role;
+      // Set the user's org. Legacy users without orgId default to DEFAULT_ORG_ID and get backfilled.
+      currentOrgId = td.orgId || DEFAULT_ORG_ID;
+      // Update photo/name silently + backfill orgId if missing
+      try {
+        const upd = { name: user.displayName, photo: user.photoURL };
+        if (!td.orgId) upd.orgId = DEFAULT_ORG_ID;
+        await db.collection('team').doc(user.email).update(upd);
+      } catch(e) {}
     }
+
+    // Load the org info doc (name, registration, custom areas, branding...)
+    await loadOrgInfo();
 
     showApp(user);
   } catch(e) {
@@ -1547,6 +1710,16 @@ function showApp(user) {
     document.getElementById('tkTemplatesCard').style.display = '';
     document.getElementById('dash-diagnostics-card').style.display = '';
     runDiagnostics();
+  }
+  // Super-admin panel
+  if (isSuperAdmin()) {
+    const sa = document.getElementById('superAdminCard');
+    if (sa) sa.style.display = '';
+  }
+  // Update sidebar org name from currentOrgInfo
+  if (currentOrgInfo && currentOrgInfo.name) {
+    const orgNameEls = document.querySelectorAll('[data-i18n="app.name"]');
+    orgNameEls.forEach(el => { if (el) el.textContent = currentOrgInfo.name; });
   }
   if (userRole === 'viewer') {
     document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
@@ -2099,7 +2272,7 @@ async function addFinRecord() {
       }
     }
 
-    await db.collection('finance').add(record);
+    await db.collection('finance').add(_orgify(record));
 
     // Reset form
     document.getElementById('finAmount').value = '';
@@ -2173,7 +2346,13 @@ async function loadWorkplan() {
   if (lbl) lbl.textContent = workplanYear;
 
   let doc;
-  try { doc = await db.collection('workplan').doc(String(workplanYear)).get(); } catch(e) { console.warn('[workplan]', e); }
+  // Doc ID is org-scoped: {orgId}-{year}. Falls back to legacy {year} for migration compatibility.
+  const wpDocId = `${currentOrgId}-${workplanYear}`;
+  try { doc = await db.collection('workplan').doc(wpDocId).get(); } catch(e) { console.warn('[workplan]', e); }
+  // Legacy fallback: if not found and we're the default org, try the old {year} key
+  if ((!doc || !doc.exists) && currentOrgId === DEFAULT_ORG_ID) {
+    try { doc = await db.collection('workplan').doc(String(workplanYear)).get(); } catch(e) {}
+  }
   if (doc && doc.exists) {
     workplanCache = { id: doc.id, ...doc.data() };
     if (!workplanCache.areas) workplanCache.areas = {};
@@ -2316,7 +2495,8 @@ async function saveWorkplan() {
   workplanCache.updatedBy = currentUser?.email;
   workplanCache.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
   try {
-    await db.collection('workplan').doc(String(workplanYear)).set(workplanCache, { merge: true });
+    workplanCache.orgId = currentOrgId;
+    await db.collection('workplan').doc(`${currentOrgId}-${workplanYear}`).set(workplanCache, { merge: true });
     toast('נשמר!');
   } catch(e) {
     console.error(e); toast('שגיאה: ' + (e.message||e), 'error');
@@ -2817,13 +2997,14 @@ async function addExpenseRequest() {
     };
 
     console.log('[EXP] submitting request:', {...record, receiptFiles: receiptFiles.length+' files'});
-    const ref = await db.collection('expenseRequests').add(record);
+    const ref = await db.collection('expenseRequests').add(_orgify(record));
     console.log('[EXP] saved with id:', ref.id);
 
     // Auto-create task for approver (non-blocking — log failure but don't roll back)
     try {
       const submitterName = ((teamCache||[]).find(t=>t.email===currentUser.email)?.name) || currentUser.email;
       await db.collection('tasks').add({
+        orgId: currentOrgId,
         title: `אישור החזר הוצאות — ${submitterName} · ₪${amount.toLocaleString('he-IL')}`,
         description: `בקשת החזר הוצאות מאת ${submitterName}\nתאריך: ${expenseDate}\nסכום: ₪${amount}\nתיאור: ${description}`,
         assignees: [approverEmail],
@@ -2891,6 +3072,7 @@ async function approveExpenseRequest(id) {
     if (admins.length) {
       const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
       await db.collection('tasks').add({
+        orgId: currentOrgId,
         title: `ביצוע תשלום החזר — ${submitterName} · ₪${Number(r.amount).toLocaleString('he-IL')}`,
         description: `בקשה אושרה ע״י ${currentUser.email}\nיש להעביר את ההחזר לעובד.\nתיאור: ${r.description||''}`,
         assignees: admins,
@@ -2959,6 +3141,7 @@ async function markExpensePaid(id) {
     const submitterName = ((teamCache||[]).find(t=>t.email===r.createdBy)?.name) || r.createdBy;
     if (!financeRefId) {
       const docRef = await db.collection('finance').add({
+        orgId: currentOrgId,
         type: 'expense',
         amount: Number(r.amount)||0,
         source: submitterName,
@@ -3061,7 +3244,7 @@ async function addReport() {
   const notes = document.getElementById('repNotes').value.trim();
   if (!date || !hours) { toast('מלא תאריך ושעות','error'); return; }
   try {
-    const docRef = await db.collection('reports').add({ date, hours, area, notes, createdBy: currentUser.email, userName: currentUser.displayName, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const docRef = await db.collection('reports').add({ orgId: currentOrgId, date, hours, area, notes, createdBy: currentUser.email, userName: currentUser.displayName, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     console.log('[SAVE OK] reports doc id:', docRef.id);
     document.getElementById('repHours').value = '';
     document.getElementById('repNotes').value = '';
@@ -3711,7 +3894,7 @@ async function addPlugaReport() {
   };
 
   try {
-    const ref = await db.collection('pluga_weekly_reports').add(data);
+    const ref = await db.collection('pluga_weekly_reports').add(_orgify(data));
     console.log('[SAVE OK] weekly doc id:', ref.id);
     toast('דיווח שבועי נשמר (ID: ' + ref.id.substring(0,8) + ')');
     renderWeeklyReportUI();
@@ -3923,7 +4106,7 @@ async function addDonor() {
   const notes = document.getElementById('donNotes').value.trim();
   if (!name) { toast('יש להזין שם','error'); return; }
   try {
-    const docRef = await db.collection('donors').add({ name, phone, email, amount, purpose, notes, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const docRef = await db.collection('donors').add({ orgId: currentOrgId, name, phone, email, amount, purpose, notes, createdBy: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     console.log('[SAVE OK] donors doc id:', docRef.id);
     ['donName','donPhone','donEmail','donAmount','donNotes'].forEach(id => document.getElementById(id).value = '');
     toast('תורם נוסף (ID: ' + docRef.id.substring(0,8) + ')');
@@ -4033,6 +4216,7 @@ async function addProject() {
   if (!name) { toast('יש להזין שם','error'); return; }
   try {
     const docRef = await db.collection('projects').add({
+      orgId: currentOrgId,
       name, area, status, budget, desc, leaderEmail,
       fundingSources: [], expenses: [],
       createdBy: currentUser.email,
@@ -4361,6 +4545,7 @@ async function addProjectTask() {
   if (!assignees.length) { toast('יש לבחור לפחות עובד אחד','error'); return; }
   try {
     const doc = await db.collection('tasks').add({
+      orgId: currentOrgId,
       title, description: desc,
       dueDate: due,
       priority,
@@ -4522,7 +4707,7 @@ async function addVehicle() {
     createdBy: currentUser.email,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection('vehicles').add(record);
+  await db.collection('vehicles').add(_orgify(record));
   ['vehMake','vehModel','vehYear','vehColor','vehPlate','vehOdometer','vehLicenseExp','vehInsuranceCompExp','vehInsuranceFullExp','vehTestExp','vehNotes'].forEach(id => document.getElementById(id).value = '');
   toast('רכב נוסף!');
   loadVehicles();
@@ -4607,7 +4792,7 @@ async function addTrip() {
       btn.textContent = 'מעלה קבצים...';
       record.receiptFiles = await uploadFilesTo(fileInput.files, 'vehicle-trips');
     }
-    await db.collection('trips').add(record);
+    await db.collection('trips').add(_orgify(record));
 
     // Update vehicle odometer if kmEnd provided
     if (record.kmEnd) {
@@ -4696,7 +4881,7 @@ async function addVehicleEvent() {
       btn.textContent = 'מעלה קבצים...';
       record.files = await uploadFilesTo(fileInput.files, 'vehicle-events');
     }
-    await db.collection('vehicleEvents').add(record);
+    await db.collection('vehicleEvents').add(_orgify(record));
 
     // If renewal type - update vehicle expiration date
     if (validUntil) {
@@ -4838,6 +5023,7 @@ async function createVehicleTasksFromAlerts() {
       if (existing) continue;
       const dueDate = v[field];
       await db.collection('tasks').add({
+        orgId: currentOrgId,
         title: `חידוש ${label} — ${title}`,
         description: `חידוש ${label} פג בתאריך ${dueDate} (בעוד ${days} ימים).\nרכב: ${title}`,
         assignees: admins,
@@ -4966,7 +5152,7 @@ async function addVehicleFault() {
       createdBy: currentUser.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    const ref = await db.collection('vehicleFaults').add(record);
+    const ref = await db.collection('vehicleFaults').add(_orgify(record));
 
     // Auto-create task for admins
     const v = vehiclesCache.find(x => x.id === vehicleId);
@@ -4976,6 +5162,7 @@ async function addVehicleFault() {
       const sevEmoji = {low:'🟢', medium:'🟡', high:'🟠', critical:'🔴'}[severity]||'🟡';
       const pr = {low:'low', medium:'medium', high:'high', critical:'urgent'}[severity]||'medium';
       await db.collection('tasks').add({
+        orgId: currentOrgId,
         title: `${sevEmoji} תקלת רכב — ${vehName}`,
         description: `דיווח תקלה מאת ${currentUser.email}\nרכב: ${vehName}\nסוג: ${FAULT_TYPES[faultType]}\nחומרה: ${severity}\nמיקום: ${location||'—'}\n\n${description}`,
         assignees: admins,
@@ -5089,7 +5276,7 @@ async function addTeamMember() {
   const role = document.getElementById('teamRole').value;
   if (!email) { toast('יש להזין אימייל','error'); return; }
   try {
-    await db.collection('team').doc(email).set({ name, email, role, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await db.collection('team').doc(email).set({ name, email, role, orgId: currentOrgId, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     console.log('[SAVE OK] team doc:', email);
     document.getElementById('teamEmail').value = '';
     document.getElementById('teamName').value = '';
@@ -5447,7 +5634,7 @@ async function addTask() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   try {
-    await db.collection('tasks').add(data);
+    await db.collection('tasks').add(_orgify(data));
     toast('משימה נוספה');
     // Reset form
     document.getElementById('tkTitle').value = '';
@@ -5591,6 +5778,7 @@ async function setTaskStatus(id, status) {
       const {id:_, createdAt, updatedAt, completedAt, completedBy, ...rest} = t;
       await db.collection('tasks').add({
         ...rest,
+        orgId: currentOrgId,
         status: 'todo',
         dueDate: nextDate,
         reminderDate: addDays(nextDate, -14),
@@ -7639,6 +7827,7 @@ async function createNotification({userEmail, title, body, link, channels, level
   if (!userEmail || !title) return;
   try {
     await db.collection('notifications').add({
+      orgId: currentOrgId,
       userEmail, title, body: body||'',
       link: link||'',
       channels: channels || ['in-app'],
