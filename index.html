@@ -318,12 +318,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
     <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> <span data-i18n="nav.team">ניהול צוות</span></div>
+    <div class="nav-item" onclick="switchSection('settings',this)" id="navSettings" style="display:none"><span class="icon">⚙️</span> <span data-i18n="nav.settings">הגדרות ארגון</span></div>
     <div style="border-top:1px solid rgba(255,255,255,0.15);margin:10px 0;padding:10px 0;display:flex;gap:4px;justify-content:center">
       <button type="button" id="i18n-he-btn" onclick="setAppLang('he')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-size:0.82rem">🇮🇱 עברית</button>
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r16</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r17</div>
   </aside>
 
   <!-- Main Content -->
@@ -1309,6 +1310,62 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         </table>
       </div>
 
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ORG SETTINGS                                                  -->
+    <!-- ============================================================ -->
+    <div class="section" id="sec-settings">
+      <div class="page-header">
+        <h1>⚙️ הגדרות ארגון</h1>
+        <p>פרטי הארגון, תחומי הפעילות שלו ומיתוג. שינויים כאן משפיעים על תפריטי הבחירה בכל המערכת.</p>
+      </div>
+
+      <!-- General info card -->
+      <div class="card">
+        <h3>פרטי ארגון</h3>
+        <div class="form-row">
+          <div class="form-field"><label>שם הארגון</label><input type="text" id="setOrgName" placeholder="עמותת..."></div>
+          <div class="form-field"><label>מספר עמותה (ע.ר.)</label><input type="text" id="setOrgRegNum" placeholder="58-XXXXXXX"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>כתובת רשומה</label><input type="text" id="setOrgAddress" placeholder="רחוב, עיר"></div>
+          <div class="form-field"><label>טלפון</label><input type="tel" id="setOrgPhone" placeholder="03-XXXXXXX"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>אימייל יצירת קשר</label><input type="email" id="setOrgEmail" placeholder="info@" dir="ltr"></div>
+          <div class="form-field"><label>אתר אינטרנט</label><input type="url" id="setOrgWebsite" placeholder="https://" dir="ltr"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field" style="grid-column:1/-1"><label>תיאור / מטרות העמותה (לתורמים, לדוחות)</label><textarea id="setOrgPurpose" rows="3" placeholder="העמותה פועלת ל..."></textarea></div>
+        </div>
+      </div>
+
+      <!-- Areas card -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">🎯 תחומי פעילות (1-6)</h3>
+          <button class="btn btn-secondary btn-sm" onclick="addAreaRow()">+ הוסף תחום</button>
+        </div>
+        <p style="color:#64748b;font-size:0.88rem;margin:0 0 12px">תחומי הפעילות מופיעים בכל מקום: פרויקטים, רשומות פיננסיות, דיווחים, תכנית עבודה. הגדירו את התחומים שמתאימים לארגון שלכם — עד 6 תחומים מומלצים.</p>
+        <div id="setAreasContainer"></div>
+      </div>
+
+      <!-- Branding -->
+      <div class="card">
+        <h3>🎨 מיתוג</h3>
+        <div class="form-row">
+          <div class="form-field"><label>צבע מותג ראשי (hex)</label><input type="color" id="setOrgColor" value="#1e3a8a" style="width:80px;height:40px;padding:2px"></div>
+          <div class="form-field" style="flex:2"><label>קישור ללוגו (URL)</label><input type="url" id="setOrgLogoUrl" placeholder="https://..." dir="ltr"></div>
+        </div>
+      </div>
+
+      <!-- Save -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn btn-primary" onclick="saveOrgSettings()" id="setSaveBtn">💾 שמור הגדרות</button>
+        <button class="btn btn-secondary" onclick="loadOrgSettingsForm()">🔄 טען מחדש</button>
+      </div>
+
       <!-- SUPER ADMIN PANEL — only visible for super-admins -->
       <div class="card" id="superAdminCard" style="display:none;background:linear-gradient(135deg,#fef3c7 0%,#fee2e2 100%);border-right:4px solid #d97706">
         <h3>🔧 סופר-אדמין — ניהול multi-tenant</h3>
@@ -1787,6 +1844,8 @@ function showApp(user) {
   // Admin-only features
   if (userRole === 'admin') {
     document.getElementById('navTeam').style.display = '';
+    const navSet = document.getElementById('navSettings');
+    if (navSet) navSet.style.display = '';
     document.getElementById('tkTemplatesCard').style.display = '';
     document.getElementById('dash-diagnostics-card').style.display = '';
     runDiagnostics();
@@ -1801,6 +1860,8 @@ function showApp(user) {
     const orgNameEls = document.querySelectorAll('[data-i18n="app.name"]');
     orgNameEls.forEach(el => { if (el) el.textContent = currentOrgInfo.name; });
   }
+  // Repopulate area dropdowns to use this org's custom areas (or defaults)
+  try { if (typeof repopulateAllAreaDropdowns === 'function') repopulateAllAreaDropdowns(); } catch(e) {}
   if (userRole === 'viewer') {
     document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
   }
@@ -1854,7 +1915,8 @@ const SECTION_TITLES = {
   tasks: 'יומן ומשימות',
   vehicles: 'ניהול רכבים',
   team: 'ניהול צוות',
-  workplan: 'תוכנית עבודה שנתית'
+  workplan: 'תוכנית עבודה שנתית',
+  settings: 'הגדרות ארגון'
 };
 let _navHistory = ['dashboard'];
 let _suppressHistoryPush = false;
@@ -1904,6 +1966,11 @@ function switchSection(id, el, opts) {
       try { if (typeof loadWorkplan === 'function') await loadWorkplan(); }
       catch(e) { console.warn('workplan load:', e); }
     })();
+  }
+  // Settings: load form values from currentOrgInfo
+  if (id === 'settings') {
+    try { if (typeof loadOrgSettingsForm === 'function') loadOrgSettingsForm(); }
+    catch(e) { console.warn('settings load:', e); }
   }
   // Projects: make sure leader dropdown is populated with current team (handles race condition at first load)
   if (id === 'projects') {
@@ -2380,6 +2447,161 @@ async function addFinRecord() {
 }
 
 // ============================================================
+// ===== ORG SETTINGS — admin-editable per-organization config
+// ============================================================
+
+// Default fallback areas (brigade defaults). Used when org hasn't customized yet.
+function _defaultAreas() {
+  return AREA_KEYS.map(k => ({ key: k, label: PURPOSES[k] || k, description: '' }));
+}
+
+// Returns the active areas for the current org (custom or default).
+function getOrgAreas() {
+  if (currentOrgInfo && Array.isArray(currentOrgInfo.areas) && currentOrgInfo.areas.length) {
+    return currentOrgInfo.areas;
+  }
+  return _defaultAreas();
+}
+
+// Returns array of {key} objects' keys
+function getOrgAreaKeys() {
+  return getOrgAreas().map(a => a.key);
+}
+
+// Returns the label for a given area key (with fallback)
+function getOrgAreaLabel(key) {
+  const a = getOrgAreas().find(x => x.key === key);
+  if (a) return a.label;
+  return PURPOSES[key] || key;
+}
+
+// Build dropdown options HTML for area selectors
+function orgAreaOptionsHTML(selected) {
+  const areas = getOrgAreas();
+  return areas.map(a =>
+    `<option value="${a.key}"${selected===a.key?' selected':''}>${a.label}</option>`
+  ).join('');
+}
+
+// Load current org settings into the form
+function loadOrgSettingsForm() {
+  if (!currentOrgInfo) currentOrgInfo = {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('setOrgName', currentOrgInfo.name);
+  set('setOrgRegNum', currentOrgInfo.registrationNumber);
+  set('setOrgAddress', currentOrgInfo.address);
+  set('setOrgPhone', currentOrgInfo.phone);
+  set('setOrgEmail', currentOrgInfo.email);
+  set('setOrgWebsite', currentOrgInfo.website);
+  set('setOrgPurpose', currentOrgInfo.purpose);
+  set('setOrgColor', currentOrgInfo.primaryColor || '#1e3a8a');
+  set('setOrgLogoUrl', currentOrgInfo.logoUrl);
+  renderAreasEditor();
+}
+
+function renderAreasEditor() {
+  const wrap = document.getElementById('setAreasContainer');
+  if (!wrap) return;
+  const areas = (currentOrgInfo && Array.isArray(currentOrgInfo.areas) && currentOrgInfo.areas.length)
+    ? currentOrgInfo.areas
+    : _defaultAreas();
+  wrap.innerHTML = areas.map((a, i) => `
+    <div style="background:#f8fafc;padding:10px;border-radius:8px;margin-bottom:8px;border:1px solid #e5e7eb">
+      <div class="form-row">
+        <div class="form-field"><label>מזהה (אנגלית, ללא רווחים)</label><input type="text" id="setArea_key_${i}" value="${a.key||''}" placeholder="area-name" dir="ltr"></div>
+        <div class="form-field" style="flex:2"><label>שם התחום</label><input type="text" id="setArea_label_${i}" value="${a.label||''}" placeholder="שם בעברית"></div>
+        <div class="form-field" style="display:flex;align-items:flex-end"><button class="btn btn-danger btn-sm" onclick="removeAreaRow(${i})">🗑 מחק</button></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field" style="grid-column:1/-1"><label>תיאור (לדף השקיפות הציבורי)</label><textarea id="setArea_desc_${i}" rows="2" placeholder="תיאור קצר של התחום למבקרים בדף השקיפות">${a.description||''}</textarea></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addAreaRow() {
+  if (!currentOrgInfo.areas) currentOrgInfo.areas = _defaultAreas();
+  if (currentOrgInfo.areas.length >= 8) { toast('ניתן להגדיר עד 8 תחומים','error'); return; }
+  // Capture current edits before re-render
+  collectAreaEdits();
+  currentOrgInfo.areas.push({ key: 'area-' + (currentOrgInfo.areas.length + 1), label: 'תחום חדש', description: '' });
+  renderAreasEditor();
+}
+
+function removeAreaRow(idx) {
+  if (!confirm('למחוק את התחום? שינוי זה ייכנס לתוקף רק אחרי שתלחצי "שמור".')) return;
+  collectAreaEdits();
+  if (currentOrgInfo.areas) currentOrgInfo.areas.splice(idx, 1);
+  renderAreasEditor();
+}
+
+function collectAreaEdits() {
+  if (!currentOrgInfo.areas) currentOrgInfo.areas = _defaultAreas();
+  currentOrgInfo.areas = currentOrgInfo.areas.map((a, i) => ({
+    key:   (document.getElementById('setArea_key_'+i)?.value   || a.key   || '').trim(),
+    label: (document.getElementById('setArea_label_'+i)?.value || a.label || '').trim(),
+    description: (document.getElementById('setArea_desc_'+i)?.value || a.description || '').trim()
+  })).filter(a => a.key && a.label);
+}
+
+async function saveOrgSettings() {
+  if (userRole !== 'admin') { toast('רק מנהל יכול לשמור','error'); return; }
+  collectAreaEdits();
+  const btn = document.getElementById('setSaveBtn');
+  btn.disabled = true; btn.textContent = '⏳ שומר...';
+
+  if (!currentOrgInfo) currentOrgInfo = {};
+  currentOrgInfo.name = document.getElementById('setOrgName').value.trim();
+  currentOrgInfo.registrationNumber = document.getElementById('setOrgRegNum').value.trim();
+  currentOrgInfo.address = document.getElementById('setOrgAddress').value.trim();
+  currentOrgInfo.phone = document.getElementById('setOrgPhone').value.trim();
+  currentOrgInfo.email = document.getElementById('setOrgEmail').value.trim();
+  currentOrgInfo.website = document.getElementById('setOrgWebsite').value.trim();
+  currentOrgInfo.purpose = document.getElementById('setOrgPurpose').value.trim();
+  currentOrgInfo.primaryColor = document.getElementById('setOrgColor').value;
+  currentOrgInfo.logoUrl = document.getElementById('setOrgLogoUrl').value.trim();
+  currentOrgInfo.updatedBy = currentUser.email;
+  currentOrgInfo.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+  try {
+    await db.collection('orgs').doc(currentOrgId).set(currentOrgInfo, { merge: true });
+    // Refresh dropdowns to reflect new areas
+    repopulateAllAreaDropdowns();
+    // Update sidebar org name
+    const orgNameEls = document.querySelectorAll('[data-i18n="app.name"]');
+    orgNameEls.forEach(el => { if (el && currentOrgInfo.name) el.textContent = currentOrgInfo.name; });
+    toast('נשמר ✓');
+  } catch(e) {
+    console.error('[saveOrgSettings]', e);
+    toast('שגיאה: ' + (e.message||e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 שמור הגדרות';
+  }
+}
+
+// Repopulate all area dropdowns in the app to use current org's areas.
+function repopulateAllAreaDropdowns() {
+  const ids = ['finPurpose','repArea','expCategory','donPurpose','projArea'];
+  ids.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const currentVal = sel.value;
+    // Build options: org areas + collection-specific extras (e.g., expense has vehicle/office/general)
+    let opts = orgAreaOptionsHTML(currentVal);
+    // Keep collection-specific fallback options (general, etc.)
+    if (id === 'expCategory') {
+      opts += '<option value="vehicle">רכב ותחבורה</option><option value="office">משרד וציוד</option><option value="general">כללי</option>';
+    } else if (id === 'repArea') {
+      opts += '<option value="admin">מנהלה</option><option value="general">כללי</option>';
+    } else {
+      opts += '<option value="general">כללי</option>';
+    }
+    sel.innerHTML = opts;
+    if (currentVal) sel.value = currentVal;
+  });
+}
+
+// ============================================================
 // ===== ANNUAL WORK PLAN ====================================
 // ============================================================
 
@@ -2399,7 +2621,7 @@ const QUARTER_LABELS = { Q1:'רבעון 1 — ינו׳-מר׳', Q2:'רבעון 2
 
 function buildEmptyWorkplan(year) {
   const areas = {};
-  AREA_KEYS.forEach(k => {
+  getOrgAreaKeys().forEach(k => {
     areas[k] = {
       goals: DEFAULT_AREA_GOALS[k] || '',
       kpis: [],
@@ -2437,7 +2659,7 @@ async function loadWorkplan() {
   if (doc && doc.exists) {
     workplanCache = { id: doc.id, ...doc.data() };
     if (!workplanCache.areas) workplanCache.areas = {};
-    AREA_KEYS.forEach(k => {
+    getOrgAreaKeys().forEach(k => {
       if (!workplanCache.areas[k]) workplanCache.areas[k] = { goals: DEFAULT_AREA_GOALS[k] || '', kpis: [], narrativeForDonors: '' };
       if (!Array.isArray(workplanCache.areas[k].kpis)) workplanCache.areas[k].kpis = [];
     });
@@ -2453,7 +2675,7 @@ function renderWorkplan() {
   const grid = document.getElementById('wpAreasGrid');
   if (!grid) return;
   const isAdmin = (userRole === 'admin');
-  grid.innerHTML = AREA_KEYS.map(k => {
+  grid.innerHTML = getOrgAreaKeys().map(k => {
     const a = workplanCache.areas[k] || { goals: '', kpis: [], narrativeForDonors: '' };
     const projCount = (projectsCache||[]).filter(p => p.area === k && p.status !== 'done').length;
     const taskCount = (tasksCache||[]).filter(t => t.area === k && t.status !== 'done' && t.status !== 'cancelled').length;
@@ -2478,7 +2700,7 @@ function renderWorkplan() {
       ${a.goals ? `<div style="margin-top:10px;font-size:0.88rem;color:#374151">${a.goals.replace(/\n/g,'<br>')}</div>` : ''}`;
 
     return `<div class="card" style="margin-bottom:0;border-right:4px solid var(--primary);background:#fff">
-      <h4 style="margin:0 0 6px;font-size:1.05rem">${PURPOSES[k]||k}</h4>
+      <h4 style="margin:0 0 6px;font-size:1.05rem">${getOrgAreaLabel(k)}</h4>
       <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:0.78rem;color:#64748b;margin-bottom:8px">
         <span style="background:#eff6ff;padding:2px 8px;border-radius:10px">🎯 ${projCount} פרויקטים</span>
         <span style="background:#fef3c7;padding:2px 8px;border-radius:10px">📋 ${taskCount} משימות פתוחות</span>
@@ -2515,12 +2737,12 @@ function renderQuarters() {
 function renderLinkedItems() {
   const wrap = document.getElementById('wpLinkedGrid');
   if (!wrap) return;
-  wrap.innerHTML = AREA_KEYS.map(k => {
+  wrap.innerHTML = getOrgAreaKeys().map(k => {
     const projs = (projectsCache||[]).filter(p => p.area === k && p.status !== 'done');
     const tasks = (tasksCache||[]).filter(t => t.area === k && t.status !== 'done' && t.status !== 'cancelled');
     if (!projs.length && !tasks.length) return '';
     return `<div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px">
-      <h4 style="margin:0 0 6px;color:var(--primary)">${PURPOSES[k]||k}</h4>
+      <h4 style="margin:0 0 6px;color:var(--primary)">${getOrgAreaLabel(k)}</h4>
       ${projs.length?`<div style="font-size:0.85rem;margin-bottom:4px"><strong>🎯 פרויקטים פעילים:</strong> ${projs.map(p=>p.name).join(' · ')}</div>`:''}
       ${tasks.length?`<div style="font-size:0.85rem"><strong>📋 משימות פתוחות (${tasks.length}):</strong> ${tasks.slice(0,5).map(t=>t.title).join(' · ')}${tasks.length>5?'...':''}</div>`:''}
     </div>`;
@@ -2547,9 +2769,10 @@ function addQuarterMilestone(qPreset) {
   const q = qPreset || prompt('רבעון (Q1/Q2/Q3/Q4):', 'Q1');
   if (!['Q1','Q2','Q3','Q4'].includes(q)) return;
   const title = prompt('כותרת אבן הדרך:'); if (!title) return;
-  const areas = AREA_KEYS.map((k,i)=>`${i+1}. ${PURPOSES[k]}`).join('\n');
+  const orgKeys = getOrgAreaKeys();
+  const areas = orgKeys.map((k,i)=>`${i+1}. ${getOrgAreaLabel(k)}`).join('\n');
   const idx = parseInt(prompt(`לאיזה תחום? בחר מספר:\n${areas}`)) - 1;
-  const area = AREA_KEYS[idx] || 'general';
+  const area = orgKeys[idx] || 'general';
   if (!workplanCache.quarters[q]) workplanCache.quarters[q] = [];
   workplanCache.quarters[q].push({ title, area });
   renderWorkplan();
@@ -2566,11 +2789,11 @@ async function saveWorkplan() {
   const btn = document.getElementById('wpSaveBtn');
   btn.disabled = true; btn.textContent = 'שומר...';
   // Pull goals + narrative from textareas
-  AREA_KEYS.forEach(k => {
+  getOrgAreaKeys().forEach(k => {
     const g = document.getElementById('wp_goals_'+k);
     const n = document.getElementById('wp_narr_'+k);
-    if (g) workplanCache.areas[k].goals = g.value;
-    if (n) workplanCache.areas[k].narrativeForDonors = n.value;
+    if (g && workplanCache.areas[k]) workplanCache.areas[k].goals = g.value;
+    if (n && workplanCache.areas[k]) workplanCache.areas[k].narrativeForDonors = n.value;
   });
   workplanCache.year = workplanYear;
   workplanCache.updatedBy = currentUser?.email;
@@ -2641,8 +2864,9 @@ async function renderPublicTransparency(year) {
     <div style="background:#fff;padding:16px;border-radius:10px;border-right:4px solid #ec4899;text-align:center"><div style="font-size:0.85rem;color:#64748b">תורמים</div><div style="font-size:1.6rem;font-weight:700">${donorCount}</div></div>
   `;
 
-  // Areas
-  document.getElementById('pubAreas').innerHTML = AREA_KEYS.map(k => {
+  // Areas — use org-specific areas if set, else fallback
+  const pubAreaKeys = (plan && Array.isArray(plan.areas) ? plan.areas.map(a=>a.key) : null) || getOrgAreaKeys();
+  document.getElementById('pubAreas').innerHTML = pubAreaKeys.map(k => {
     const a = plan?.areas?.[k] || {};
     const goalsText = a.narrativeForDonors || a.goals || DEFAULT_AREA_GOALS[k] || '';
     const kpis = (a.kpis||[]).map(kp => {
@@ -2703,7 +2927,7 @@ async function renderPresentationMode(year) {
        <div style="background:rgba(245,158,11,0.15);padding:32px;border-radius:16px;border:1px solid rgba(245,158,11,0.3)"><div style="font-size:1.1rem;color:#fde68a">הוצאות (פעילות)</div><div style="font-size:3.5rem;font-weight:700;color:#f59e0b">₪${totalExp.toLocaleString()}</div></div>
      </div>`,
     // Slides 2-7: One per area
-    ...AREA_KEYS.map(k => {
+    ...getOrgAreaKeys().map(k => {
       const a = plan?.areas?.[k] || {};
       const text = a.narrativeForDonors || a.goals || DEFAULT_AREA_GOALS[k] || '';
       const kpis = (a.kpis||[]).slice(0,3).map(kp => `
@@ -2712,7 +2936,7 @@ async function renderPresentationMode(year) {
           <div style="font-size:2rem;font-weight:700;color:#fff">${(kp.current||0).toLocaleString()} / ${(kp.target||0).toLocaleString()}</div>
           <div style="font-size:0.85rem;color:#64748b">${kp.unit||''}</div>
         </div>`).join('');
-      return `<h1 style="font-size:2.6rem;margin:0 0 20px;line-height:1.2">${PURPOSES[k]||k}</h1>
+      return `<h1 style="font-size:2.6rem;margin:0 0 20px;line-height:1.2">${getOrgAreaLabel(k)}</h1>
         <p style="font-size:1.3rem;color:#cbd5e1;line-height:1.6;max-width:900px;margin:0 auto 30px;white-space:pre-wrap">${text}</p>
         ${kpis ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:30px">${kpis}</div>`:''}`;
     }),
