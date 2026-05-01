@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r15</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r16</div>
   </aside>
 
   <!-- Main Content -->
@@ -4131,37 +4131,72 @@ function openPlugaView(id) {
 
 function closePlugaModal() { document.getElementById('plugaModal').style.display = 'none'; }
 
-// Dedicated print/PDF export — opens a new window with just the report,
-// since window.print() on the full page clips modal overlays and prints blank.
+// Dedicated print/PDF export — uses an iframe approach (more reliable than popup window).
+// Avoids browser popup-blockers and inline-script timing issues.
 function printPlugaReport(id) {
   const r = (_plugaCache||[]).find(x => x.id === id);
   if (!r) { toast('דיווח לא נמצא','error'); return; }
   const body = document.getElementById('plugaModalBody');
   if (!body) { toast('אין תוכן להדפסה','error'); return; }
-  // Clone the innerHTML, but strip out the action buttons footer
+
+  // Build the content (clone, strip buttons)
   const clone = body.cloneNode(true);
   clone.querySelectorAll('button').forEach(b => b.remove());
+  const orgName = (currentOrgInfo && currentOrgInfo.name) || 'עמותת החשמונאים';
   const title = (r.roleLabel || 'דיווח שבועי') + ' — ' + (r.userName || r.createdBy || '');
-  const w = window.open('', '_blank', 'width=900,height=1200');
-  if (!w) { toast('הדפדפן חסם את חלון ההדפסה. אפשר חלונות קופצים לאתר','error'); return; }
-  w.document.open();
-  w.document.write(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+
+  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
     <title>${title.replace(/</g,'&lt;')}</title>
     <style>
       @page { margin: 18mm 14mm; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#111; line-height:1.55; padding:10px; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#111; line-height:1.55; padding:0; margin:0; }
       h2 { color:#0d2137; margin:0 0 4px; font-size:1.3rem; }
       h4 { color:#1a8a9a; margin:14px 0 4px; font-size:1.05rem; border-bottom:1px solid #ddd; padding-bottom:2px; }
       .hdr { color:#555; font-size:0.9rem; margin-bottom:14px; border-bottom:2px solid #0d2137; padding-bottom:8px; }
       .translatable { white-space: pre-wrap; }
       div { page-break-inside: avoid; }
-      @media print { .no-print { display:none !important; } }
     </style></head><body>
-    <div class="hdr">הודפס: ${new Date().toLocaleString('he-IL')} · עמותת החשמונאים — מערכת ניהול רוח</div>
+    <div class="hdr">הודפס: ${new Date().toLocaleString('he-IL')} · ${orgName} — מערכת ניהול</div>
     ${clone.innerHTML}
-    <script>window.onload = () => { setTimeout(() => { window.print(); }, 300); };<\/script>
-  </body></html>`);
-  w.document.close();
+  </body></html>`;
+
+  // Remove any existing print iframe
+  const oldIframe = document.getElementById('_printPlugaIframe');
+  if (oldIframe) oldIframe.remove();
+
+  // Create hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.id = '_printPlugaIframe';
+  iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px;top:-9999px';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  // Wait for layout, then print from the iframe's window
+  iframe.onload = () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch(e) {
+        console.error('[print iframe]', e);
+        toast('שגיאה בהדפסה: ' + e.message, 'error');
+      }
+    }, 400);
+  };
+  // Fallback: trigger print even if onload doesn't fire (some browsers w/ document.write)
+  setTimeout(() => {
+    if (!iframe._printed) {
+      iframe._printed = true;
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch(e) { console.error('[print fallback]', e); }
+    }
+  }, 800);
 }
 
 // ===== DONORS =====
