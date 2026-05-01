@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.29-r12</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.04.29-r13</div>
   </aside>
 
   <!-- Main Content -->
@@ -659,23 +659,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
 
       <!-- MANAGER SUMMARY MODAL -->
-      <div id="mgrSumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
-        <div style="background:#fff;border-radius:12px;max-width:1000px;width:100%;margin-top:20px;padding:20px">
-          <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-            <h3 style="margin:0">👥 סיכום מנהלים — דיווחי עובדים</h3>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <select id="mgrSumPeriod" onchange="renderManagerSummary()" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1">
-                <option value="week">שבועי</option>
-                <option value="month">חודשי</option>
-                <option value="custom">טווח מותאם</option>
-              </select>
-              <input type="date" id="mgrSumStart" onchange="renderManagerSummary()" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1">
-              <input type="date" id="mgrSumEnd" onchange="renderManagerSummary()" style="padding:6px;border-radius:6px;border:1px solid #cbd5e1">
-              <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ הדפסה / PDF</button>
-              <button class="btn btn-secondary btn-sm" onclick="closeManagerSummary()">✕ סגור</button>
+      <div id="mgrSumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto" onclick="if(event.target===this)closeManagerSummary()">
+        <div style="background:#fff;border-radius:12px;max-width:1000px;width:100%;margin-top:20px;padding:0;position:relative;max-height:calc(100vh - 40px);display:flex;flex-direction:column">
+
+          <!-- Sticky header with picker + close -->
+          <div class="no-print" style="position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 20px 14px;border-radius:12px 12px 0 0;z-index:5">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
+              <h3 style="margin:0">👥 סיכום מנהלים — דיווחי עובדים</h3>
+              <button onclick="closeManagerSummary()" title="סגור"
+                style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;font-size:1.4rem;width:36px;height:36px;border-radius:50%;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px">
+              <div>
+                <label style="display:block;font-size:0.78rem;color:#64748b;margin-bottom:2px">תקופה</label>
+                <select id="mgrSumPeriod" onchange="onMgrSumPeriodChange()" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1">
+                  <option value="week">שבוע נוכחי</option>
+                  <option value="lastweek">שבוע שעבר</option>
+                  <option value="month">חודש נוכחי</option>
+                  <option value="lastmonth">חודש שעבר</option>
+                  <option value="custom">טווח מותאם</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block;font-size:0.78rem;color:#64748b;margin-bottom:2px">מתאריך</label>
+                <input type="date" id="mgrSumStart" onchange="onMgrSumDateChange()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              </div>
+              <div>
+                <label style="display:block;font-size:0.78rem;color:#64748b;margin-bottom:2px">עד תאריך</label>
+                <input type="date" id="mgrSumEnd" onchange="onMgrSumDateChange()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="renderManagerSummary()" id="mgrSumGenBtn">🔄 הפק דוח</button>
+              <button class="btn btn-secondary" onclick="window.print()">🖨️ הדפסה / PDF</button>
+              <button class="btn btn-secondary" onclick="closeManagerSummary()">ביטול</button>
             </div>
           </div>
-          <div id="mgrSumBody"><div class="empty-state">בחרי תקופה וטענו את הדוח...</div></div>
+
+          <!-- Scrollable body -->
+          <div id="mgrSumBody" style="padding:20px;overflow-y:auto;flex:1">
+            <div class="empty-state" style="padding:40px 20px;text-align:center">
+              <div style="font-size:3rem;margin-bottom:8px">📋</div>
+              <p style="margin:0">בחרי תקופה ולחצי על <strong>"🔄 הפק דוח"</strong> כדי ליצור את הסיכום.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -6970,20 +6999,33 @@ function openManagerSummary() {
   const modal = document.getElementById('mgrSumModal');
   if (!modal) return;
   modal.style.display = 'flex';
-  // Default: current week
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sun
-  const sunday = new Date(today); sunday.setDate(today.getDate() - dow);
-  const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
-  document.getElementById('mgrSumStart').value = sunday.toISOString().slice(0,10);
-  document.getElementById('mgrSumEnd').value = saturday.toISOString().slice(0,10);
+  // Default to current week — but DON'T auto-render. User clicks "הפק דוח" when ready.
   document.getElementById('mgrSumPeriod').value = 'week';
-  renderManagerSummary();
+  _mgrSumApplyPeriod();
+  // Reset body to instructions
+  const body = document.getElementById('mgrSumBody');
+  if (body) {
+    body.innerHTML = `<div class="empty-state" style="padding:40px 20px;text-align:center">
+      <div style="font-size:3rem;margin-bottom:8px">📋</div>
+      <p style="margin:0">בחרי תקופה ולחצי על <strong>"🔄 הפק דוח"</strong> כדי ליצור את הסיכום.</p>
+    </div>`;
+  }
 }
 
 function closeManagerSummary() {
   const modal = document.getElementById('mgrSumModal');
   if (modal) modal.style.display = 'none';
+}
+
+// User picked a preset → fill dates accordingly (silently)
+function onMgrSumPeriodChange() {
+  _mgrSumApplyPeriod();
+}
+
+// User manually edited a date → switch to "custom" so dates aren't overwritten
+function onMgrSumDateChange() {
+  const sel = document.getElementById('mgrSumPeriod');
+  if (sel) sel.value = 'custom';
 }
 
 function _mgrSumApplyPeriod() {
@@ -6992,20 +7034,31 @@ function _mgrSumApplyPeriod() {
   const startEl = document.getElementById('mgrSumStart');
   const endEl = document.getElementById('mgrSumEnd');
   if (!startEl || !endEl) return;
+  const today = new Date();
   if (periodSel.value === 'week') {
-    const today = new Date();
     const dow = today.getDay();
     const sun = new Date(today); sun.setDate(today.getDate() - dow);
     const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
     startEl.value = sun.toISOString().slice(0,10);
     endEl.value = sat.toISOString().slice(0,10);
+  } else if (periodSel.value === 'lastweek') {
+    const dow = today.getDay();
+    const sun = new Date(today); sun.setDate(today.getDate() - dow - 7);
+    const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+    startEl.value = sun.toISOString().slice(0,10);
+    endEl.value = sat.toISOString().slice(0,10);
   } else if (periodSel.value === 'month') {
-    const today = new Date();
     const first = new Date(today.getFullYear(), today.getMonth(), 1);
     const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     startEl.value = first.toISOString().slice(0,10);
     endEl.value = last.toISOString().slice(0,10);
+  } else if (periodSel.value === 'lastmonth') {
+    const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const last = new Date(today.getFullYear(), today.getMonth(), 0);
+    startEl.value = first.toISOString().slice(0,10);
+    endEl.value = last.toISOString().slice(0,10);
   }
+  // For 'custom' → leave dates as-is so user can edit
 }
 
 // Heuristic: detect sentences that signal "needs attention"
@@ -7018,15 +7071,19 @@ function _flagAttention(text) {
 async function renderManagerSummary() {
   const body = document.getElementById('mgrSumBody');
   if (!body) return;
-  // Auto-fill period dates if a preset was picked
-  const periodVal = document.getElementById('mgrSumPeriod')?.value;
-  if (periodVal === 'week' || periodVal === 'month') _mgrSumApplyPeriod();
 
+  const periodVal = document.getElementById('mgrSumPeriod')?.value || 'custom';
   const start = document.getElementById('mgrSumStart')?.value;
   const end   = document.getElementById('mgrSumEnd')?.value;
-  if (!start || !end) { body.innerHTML = '<div class="empty-state">יש לבחור תאריכים</div>'; return; }
-  body.innerHTML = '<div class="empty-state">טוען דיווחים...</div>';
 
+  if (!start || !end) { body.innerHTML = '<div class="empty-state" style="padding:30px;color:#dc2626">יש לבחור תאריך התחלה ותאריך סיום</div>'; return; }
+  if (start > end) { body.innerHTML = '<div class="empty-state" style="padding:30px;color:#dc2626">תאריך ההתחלה חייב להיות לפני תאריך הסיום</div>'; return; }
+
+  const genBtn = document.getElementById('mgrSumGenBtn');
+  if (genBtn) { genBtn.disabled = true; genBtn.textContent = '⏳ טוען...'; }
+  body.innerHTML = '<div class="empty-state" style="padding:40px"><div style="font-size:2rem">⏳</div><p>טוען דיווחים...</p></div>';
+
+  const _resetBtn = () => { if (genBtn) { genBtn.disabled = false; genBtn.textContent = '🔄 הפק דוח'; } };
   let snap;
   try {
     snap = await db.collection('pluga_weekly_reports')
@@ -7035,7 +7092,8 @@ async function renderManagerSummary() {
       .get();
   } catch(e) {
     console.error('[mgrSum]', e);
-    body.innerHTML = '<div class="empty-state">שגיאה בטעינה: ' + (e.message||e) + '</div>';
+    body.innerHTML = '<div class="empty-state" style="padding:30px;color:#dc2626"><div style="font-size:2rem">⚠️</div><p>שגיאה בטעינה: ' + (e.message||e) + '</p></div>';
+    _resetBtn();
     return;
   }
 
@@ -7044,7 +7102,8 @@ async function renderManagerSummary() {
   reports.sort((a,b) => (a.weekStart||'').localeCompare(b.weekStart||''));
 
   if (!reports.length) {
-    body.innerHTML = `<div class="empty-state" style="padding:30px"><div class="icon">📭</div><p>אין דיווחים בטווח ${fmtDate(start)} – ${fmtDate(end)}</p></div>`;
+    body.innerHTML = `<div class="empty-state" style="padding:40px"><div style="font-size:3rem">📭</div><p>אין דיווחים בטווח <strong>${fmtDate(start)} – ${fmtDate(end)}</strong></p><p style="font-size:0.85rem;color:#94a3b8;margin-top:8px">נסי לבחור טווח אחר.</p></div>`;
+    _resetBtn();
     return;
   }
 
@@ -7170,6 +7229,7 @@ async function renderManagerSummary() {
   html += '</div>';
 
   body.innerHTML = html;
+  _resetBtn();
 }
 
 // Open activity report generator modal (period picker + auto-load)
