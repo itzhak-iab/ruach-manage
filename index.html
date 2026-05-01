@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r14</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r15</div>
   </aside>
 
   <!-- Main Content -->
@@ -1317,6 +1317,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <button class="btn btn-primary" onclick="runOrgMigration()" style="background:#d97706">🔄 הריץ הגירה (תייג רשומות ישנות ב-orgId)</button>
           <button class="btn btn-secondary" onclick="showOrgsList()">📋 רשימת ארגונים</button>
           <button class="btn btn-secondary" onclick="createNewOrg()">➕ צור ארגון חדש</button>
+          <button class="btn btn-secondary" id="saViewAllBtn" onclick="toggleSuperAdminViewAll()">🔍 הצגת כל הארגונים</button>
         </div>
         <div id="superAdminOutput" style="margin-top:12px"></div>
       </div>
@@ -1438,6 +1439,40 @@ function _orgQuery(collectionName) {
   return db.collection(collectionName).where('orgId','==', currentOrgId);
 }
 
+// Client-side org filter — checks if a record belongs to the currently active org.
+// Records with no orgId (legacy) match the DEFAULT_ORG_ID for backward compat.
+function _orgMatch(data) {
+  if (!data) return false;
+  if (_superAdminViewAllOrgs) return true; // super-admin override
+  const recOrg = data.orgId || DEFAULT_ORG_ID;
+  return recOrg === currentOrgId;
+}
+
+// Apply filter to a Firestore snapshot — returns array of {id, ...data} matching org.
+function _filterSnap(snap) {
+  const out = [];
+  snap.forEach(doc => {
+    const d = doc.data();
+    if (_orgMatch(d)) out.push({ id: doc.id, ...d });
+  });
+  return out;
+}
+
+let _superAdminViewAllOrgs = false; // toggle: show all orgs (super-admin debugging)
+
+function toggleSuperAdminViewAll() {
+  _superAdminViewAllOrgs = !_superAdminViewAllOrgs;
+  const btn = document.getElementById('saViewAllBtn');
+  if (btn) btn.textContent = _superAdminViewAllOrgs ? '👁️ רואה הכול (לחצי לחזור לארגון שלך)' : '🔍 הצגת כל הארגונים';
+  toast(_superAdminViewAllOrgs ? 'מציג נתונים מכל הארגונים' : 'חזרתי לתצוגת ארגון שלך');
+  // Reload all data
+  if (typeof loadFinance === 'function') loadFinance();
+  if (typeof loadProjects === 'function') loadProjects();
+  if (typeof loadTasks === 'function') loadTasks();
+  if (typeof loadDonors === 'function') loadDonors();
+  if (typeof loadTeam === 'function') loadTeam();
+}
+
 function isSuperAdmin() {
   return currentUser && SUPER_ADMINS.includes(currentUser.email);
 }
@@ -1508,31 +1543,76 @@ async function showOrgsList() {
 
 // Create a new organization + invite admin (super-admin only)
 async function createNewOrg() {
-  if (!isSuperAdmin()) return;
-  const name = prompt('שם הארגון החדש:'); if (!name) return;
-  const orgId = prompt('מזהה ייחודי (למשל org-myamuta — באנגלית):', 'org-' + Date.now()); if (!orgId) return;
-  const adminEmail = prompt('אימייל המנהל הראשון (Gmail):'); if (!adminEmail) return;
-  const regNum = prompt('מספר עמותה / ע.ר. (אופציונלי):') || '';
+  if (!isSuperAdmin()) { alert('רק סופר-אדמין יכול ליצור ארגון.'); return; }
+  const name = (prompt('שם הארגון החדש:') || '').trim();
+  if (!name) return;
+  const defaultId = 'org-' + name.toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,20) + '-' + Date.now().toString().slice(-4);
+  const orgIdRaw = (prompt('מזהה ייחודי באנגלית (org-xxxxx):', defaultId) || '').trim();
+  if (!orgIdRaw) return;
+  // Validate orgId — Firestore doc IDs must not contain slash/period etc
+  if (!/^[a-zA-Z0-9_-]+$/.test(orgIdRaw)) {
+    alert('מזהה לא תקין. השתמש באותיות באנגלית, מספרים, מקפים וקווים תחתונים בלבד (ללא רווחים, ללא נקודות).');
+    return;
+  }
+  const orgId = orgIdRaw;
+  const adminEmailRaw = (prompt('אימייל המנהל הראשון (Gmail):') || '').trim().toLowerCase();
+  if (!adminEmailRaw) return;
+  if (!/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(adminEmailRaw)) {
+    alert('כתובת אימייל לא תקינה.');
+    return;
+  }
+  const regNum = (prompt('מספר עמותה / ע.ר. (אופציונלי):') || '').trim();
+
   try {
-    // Create org doc
-    await db.collection('orgs').doc(orgId).set({
-      name, registrationNumber: regNum,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: currentUser.email
-    });
-    // Add admin to team with orgId
-    await db.collection('team').doc(adminEmail.trim().toLowerCase()).set({
-      email: adminEmail.trim().toLowerCase(),
-      name: name + ' — מנהל',
-      role: 'admin',
-      orgId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // Step 1: Check if orgId already exists
+    const existing = await db.collection('orgs').doc(orgId).get();
+    if (existing.exists) {
+      alert(`מזהה "${orgId}" כבר קיים. בחר מזהה אחר.`);
+      return;
+    }
+
+    // Step 2: Create org doc
+    try {
+      await db.collection('orgs').doc(orgId).set({
+        name,
+        registrationNumber: regNum,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: currentUser.email
+      });
+    } catch(e) {
+      console.error('[createNewOrg] org doc write failed:', e);
+      alert('שגיאה ביצירת מסמך הארגון:\n' + (e.message || e.code || e));
+      return;
+    }
+
+    // Step 3: Create admin team doc
+    try {
+      const existingTeam = await db.collection('team').doc(adminEmailRaw).get();
+      if (existingTeam.exists) {
+        const existingOrg = existingTeam.data().orgId || DEFAULT_ORG_ID;
+        if (existingOrg !== orgId) {
+          if (!confirm(`האימייל ${adminEmailRaw} כבר רשום בארגון "${existingOrg}". להעביר אותו לארגון החדש?`)) return;
+        }
+      }
+      await db.collection('team').doc(adminEmailRaw).set({
+        email: adminEmailRaw,
+        name: name + ' — מנהל',
+        role: 'admin',
+        orgId,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch(e) {
+      console.error('[createNewOrg] team doc write failed:', e);
+      alert('הארגון נוצר אבל שיוך המנהל נכשל:\n' + (e.message || e.code || e) + '\n\nניתן להוסיף את המנהל ידנית מתוך ניהול צוות.');
+      return;
+    }
+
     toast('ארגון נוצר ✓');
-    alert(`ארגון "${name}" נוצר בהצלחה.\n\nמזהה: ${orgId}\nמנהל: ${adminEmail}\n\nכעת ${adminEmail} יכול להיכנס למערכת ויראה רק את הנתונים של "${name}".`);
+    alert(`ארגון "${name}" נוצר בהצלחה ✓\n\nמזהה: ${orgId}\nמנהל ראשון: ${adminEmailRaw}\n\nכעת ${adminEmailRaw} יכול להיכנס למערכת ויראה רק את הנתונים של "${name}".`);
     showOrgsList();
   } catch(e) {
-    alert('שגיאה: ' + e.message);
+    console.error('[createNewOrg]', e);
+    alert('שגיאה כללית: ' + (e.message || e.code || e));
   }
 }
 
@@ -1833,7 +1913,7 @@ function switchSection(id, el, opts) {
           // Team not loaded yet — fetch now
           const snap = await db.collection('team').get();
           teamCache = [];
-          snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+          snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) teamCache.push({email:doc.id, ...d}); });
           if (typeof populateAssignees === 'function') populateAssignees();
         }
         if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect();
@@ -1847,7 +1927,7 @@ function switchSection(id, el, opts) {
         if (!Array.isArray(teamCache) || !teamCache.length) {
           const snap = await db.collection('team').get();
           teamCache = [];
-          snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+          snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) teamCache.push({email:doc.id, ...d}); });
         }
         if (typeof populateExpenseApproverSelect === 'function') populateExpenseApproverSelect();
         const d = document.getElementById('expDate');
@@ -2066,6 +2146,7 @@ async function loadFinance() {
   const rows = [];
   snap.forEach(doc => {
     const d = doc.data();
+    if (!_orgMatch(d)) return; // Phase 2: skip records from other orgs
     if (d.type === 'expense' && d.isSalary) totalSalary += d.amount || 0;
     if (d.type === 'income') totalInc += d.amount || 0;
     else totalExp += d.amount || 0;
@@ -2856,7 +2937,7 @@ async function loadExpenseRequests() {
   try {
     const snap = await db.collection('expenseRequests').orderBy('createdAt','desc').get();
     expenseRequestsCache = [];
-    snap.forEach(doc => expenseRequestsCache.push({id:doc.id, ...doc.data()}));
+    snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) expenseRequestsCache.push({id:doc.id, ...d}); });
   } catch(e) { console.warn('[EXP] load failed', e); expenseRequestsCache = []; }
   renderExpenseRequests();
 }
@@ -3226,6 +3307,7 @@ async function loadReports() {
   const now = new Date();
   snap.forEach(doc => {
     const d = doc.data();
+    if (!_orgMatch(d)) return;
     rows.push({id: doc.id, ...d});
     if (d.date && d.date.startsWith(now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0'))) thisMonth++;
   });
@@ -3917,7 +3999,7 @@ async function loadPlugaReports() {
       snap = await db.collection('pluga_weekly_reports').where('createdBy','==',currentUser.email).orderBy('weekStart','desc').limit(50).get();
     }
     _plugaCache = [];
-    snap.forEach(doc => _plugaCache.push({id: doc.id, ...doc.data()}));
+    snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) _plugaCache.push({id: doc.id, ...d}); });
     renderPlugaTable();
     if (canViewAllPluga()) {
       const sel = document.getElementById('plgFilterUser');
@@ -4086,7 +4168,7 @@ function printPlugaReport(id) {
 async function loadDonors() {
   const snap = await db.collection('donors').orderBy('createdAt','desc').get();
   const rows = [];
-  snap.forEach(doc => rows.push({id: doc.id, ...doc.data()}));
+  snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) rows.push({id: doc.id, ...d}); });
   document.getElementById('dash-donors').textContent = rows.length;
   const tbody = document.getElementById('donTableBody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין תורמים</td></tr>'; return; }
@@ -4155,7 +4237,7 @@ async function populateProjectLeaderSelect() {
     try {
       const snap = await db.collection('team').get();
       teamCache = [];
-      snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+      snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) teamCache.push({email:doc.id, ...d}); });
       console.log('[populateProjectLeaderSelect] loaded', teamCache.length, 'team members');
     } catch(e) { console.warn('populateProjectLeaderSelect: failed to load team:', e); }
   }
@@ -4170,7 +4252,7 @@ async function loadProjects() {
   const snap = await db.collection('projects').orderBy('createdAt','desc').get();
   projectsCache = [];
   let activeCount = 0;
-  snap.forEach(doc => { const d = doc.data(); projectsCache.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
+  snap.forEach(doc => { const d = doc.data(); if (!_orgMatch(d)) return; projectsCache.push({id:doc.id,...d}); if(d.status==='active') activeCount++; });
   document.getElementById('dash-projects').textContent = activeCount;
   populateProjectLeaderSelect();
   // Refresh the financial-transparency "forward budget" panel since it aggregates projects
@@ -4606,7 +4688,7 @@ function expBadge(label, dateStr) {
 async function loadVehicles() {
   const snap = await db.collection('vehicles').orderBy('createdAt','desc').get();
   vehiclesCache = [];
-  snap.forEach(doc => vehiclesCache.push({id: doc.id, ...doc.data()}));
+  snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) vehiclesCache.push({id: doc.id, ...d}); });
 
   // KPI: count
   document.getElementById('veh-count').textContent = vehiclesCache.length;
@@ -4820,6 +4902,7 @@ async function loadVehicleEvents() {
   const thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   snap.forEach(doc => {
     const d = doc.data();
+    if (!_orgMatch(d)) return;
     rows.push({id: doc.id, ...d});
     if (d.date && d.date.startsWith(thisMonth)) monthCost += (d.cost || 0);
   });
@@ -4828,6 +4911,7 @@ async function loadVehicleEvents() {
     const tripSnap = await db.collection('trips').get();
     tripSnap.forEach(doc => {
       const t = doc.data();
+      if (!_orgMatch(t)) return;
       if (t.startAt && t.startAt.startsWith(thisMonth)) monthCost += (t.fuelCost||0) + (t.extraCost||0);
     });
   } catch(e) { console.warn('Trips month cost calc failed:', e); }
@@ -5088,7 +5172,7 @@ async function loadVehicleFaults() {
   try {
     const snap = await db.collection('vehicleFaults').orderBy('createdAt','desc').limit(50).get();
     vehicleFaultsCache = [];
-    snap.forEach(doc => vehicleFaultsCache.push({id:doc.id, ...doc.data()}));
+    snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) vehicleFaultsCache.push({id:doc.id, ...d}); });
   } catch(e) { console.warn('[FAULT] load failed', e); vehicleFaultsCache = []; }
   renderVehicleFaults();
 }
@@ -5262,7 +5346,7 @@ async function loadTeam() {
   if (userRole !== 'admin') return;
   const snap = await db.collection('team').get();
   const rows = [];
-  snap.forEach(doc => rows.push({id:doc.id,...doc.data()}));
+  snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) rows.push({id:doc.id,...d}); });
   const tbody = document.getElementById('teamTableBody');
   tbody.innerHTML = rows.map(r => {
     const badgeCls = ({admin:'badge-admin',team:'badge-team','ram-plugati':'badge-ram','resilience-lead':'badge-resilience','educational-director':'badge-edudir','grooms-rams-mentor':'badge-grooms',viewer:'badge-viewer'})[r.role] || 'badge-viewer';
@@ -5461,7 +5545,7 @@ async function loadTeamForTasks() {
   try {
     const snap = await db.collection('team').get();
     teamCache = [];
-    snap.forEach(doc => teamCache.push({email:doc.id, ...doc.data()}));
+    snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) teamCache.push({email:doc.id, ...d}); });
     populateAssignees();
     // Also refresh project leader dropdown — it depends on teamCache
     try { if (typeof populateProjectLeaderSelect === 'function') populateProjectLeaderSelect(); } catch(e) {}
@@ -5500,7 +5584,7 @@ async function loadTasks() {
   try {
     const snap = await db.collection('tasks').orderBy('dueDate','asc').get();
     tasksCache = [];
-    snap.forEach(doc => tasksCache.push({id: doc.id, ...doc.data()}));
+    snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) tasksCache.push({id: doc.id, ...d}); });
     renderTasks();
     updateTaskKPIs();
   } catch(e) {
