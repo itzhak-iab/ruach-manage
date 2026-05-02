@@ -62,6 +62,7 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
 .sidebar-user img{width:32px;height:32px;border-radius:50%}
 .sidebar-user .name{font-size:0.85rem;font-weight:600;color:var(--dark)}
 .sidebar-user .role{font-size:0.7rem;color:var(--muted)}
+.nav-group-label{padding:14px 18px 4px;font-size:0.7rem;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;margin:2px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.18s;font-size:0.9rem;color:var(--dark);font-weight:500;min-height:44px}
 .nav-item:hover{background:var(--primary-soft);color:var(--primary-dark)}
 .nav-item.active{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(249,115,22,0.25)}
@@ -341,16 +342,23 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
         <div class="role" id="userRole"></div>
       </div>
     </div>
-    <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד</span></div>
+    <div class="nav-group-label">סקירה</div>
+    <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד מנהלים</span></div>
     <div class="nav-item" onclick="switchSection('me',this)"><span class="icon">👤</span> <span data-i18n="nav.me">האזור האישי שלי</span></div>
-    <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
+
+    <div class="nav-group-label">אסטרטגיה</div>
     <div class="nav-item" onclick="switchSection('workplan',this)"><span class="icon">🗺️</span> <span data-i18n="nav.workplan">תוכנית עבודה שנתית</span></div>
+    <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
     <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
+    <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
+
+    <div class="nav-group-label">תפעול יומי</div>
+    <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">✅</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
     <div class="nav-item" onclick="switchSection('expenses',this)"><span class="icon">🧾</span> <span data-i18n="nav.expenses">החזרי הוצאות</span></div>
-    <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
-    <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">📋</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
     <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
+
+    <div class="nav-group-label admin-only" id="navGroupAdmin" style="display:none">ניהול</div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> <span data-i18n="nav.team">ניהול צוות</span></div>
     <div class="nav-item" onclick="switchSection('settings',this)" id="navSettings" style="display:none"><span class="icon">⚙️</span> <span data-i18n="nav.settings">הגדרות ארגון</span></div>
     <div style="border-top:1px solid rgba(255,255,255,0.15);margin:10px 0;padding:10px 0;display:flex;gap:4px;justify-content:center">
@@ -358,7 +366,7 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r19</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r20</div>
   </aside>
 
   <!-- Main Content -->
@@ -379,7 +387,16 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
         <div class="kpi clickable" onclick="drillDown('reports','this-month')" title="לחצי לדיווחי החודש"><div class="icon">📋</div><div class="label" data-i18n="kpi.reports_month">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
         <div class="kpi clickable" onclick="drillDown('tasks','overdue')" title="לחצי למשימות באיחור"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
-      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg,#f0f9ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
+      <!-- ATTENTION REQUIRED WIDGET — for CEO / board: pulls from open approvals, overdue tasks, vehicle faults -->
+      <div class="card" id="attentionWidget" style="border-right:4px solid var(--warning);background:#fffbeb">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          <h3 style="margin:0;color:#92400e">⚠️ דורש תשומת לב כעת</h3>
+          <button class="btn btn-sm btn-secondary" onclick="loadAttentionWidget()">🔄 רענן</button>
+        </div>
+        <div id="attentionWidgetBody"><div class="empty-state" style="padding:20px">טוען...</div></div>
+      </div>
+
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg,#fff1e6 0%,#ccfbf1 100%);border-right:4px solid var(--primary)">
         <div>
           <h3 style="margin:0 0 4px">📊 דוח פעילות מסכם</h3>
           <p style="margin:0;color:#475569;font-size:0.9rem">הפק דוח חודשי או שנתי המאחד הכנסות, הוצאות ודיווחי עובדים</p>
@@ -1889,6 +1906,8 @@ function showApp(user) {
     document.getElementById('navTeam').style.display = '';
     const navSet = document.getElementById('navSettings');
     if (navSet) navSet.style.display = '';
+    const navGrp = document.getElementById('navGroupAdmin');
+    if (navGrp) navGrp.style.display = '';
     document.getElementById('tkTemplatesCard').style.display = '';
     document.getElementById('dash-diagnostics-card').style.display = '';
     runDiagnostics();
@@ -1905,6 +1924,8 @@ function showApp(user) {
   }
   // Repopulate area dropdowns to use this org's custom areas (or defaults)
   try { if (typeof repopulateAllAreaDropdowns === 'function') repopulateAllAreaDropdowns(); } catch(e) {}
+  // Load CEO/board attention widget (after caches populate)
+  setTimeout(() => { try { loadAttentionWidget(); } catch(e) {} }, 1500);
   if (userRole === 'viewer') {
     document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
   }
@@ -1944,6 +1965,131 @@ function toast(msg, type='success') {
   t.textContent = msg;
   t.className = 'toast show toast-' + type;
   setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ============================================================
+// ===== ATTENTION WIDGET — CEO/board snapshot of open items
+// ============================================================
+async function loadAttentionWidget() {
+  const body = document.getElementById('attentionWidgetBody');
+  if (!body) return;
+  body.innerHTML = '<div class="empty-state" style="padding:20px">טוען...</div>';
+  const items = [];
+  try {
+    // Pending expense reimbursements
+    const expSnap = await db.collection('expenseRequests').get();
+    let pending = 0;
+    expSnap.forEach(d => {
+      const r = d.data();
+      if (!_orgMatch(r)) return;
+      if (r.status === 'pending') pending++;
+    });
+    if (pending > 0) {
+      items.push({
+        icon:'🧾', label:`${pending} בקשות החזר ממתינות לאישור`,
+        action:'expenses', priority:1, color:'#d97706'
+      });
+    }
+
+    // Overdue tasks
+    const overdueTasks = (tasksCache||[]).filter(t => {
+      if (t.status === 'done' || t.status === 'cancelled') return false;
+      return daysDelta(t.dueDate) < 0;
+    });
+    if (overdueTasks.length > 0) {
+      items.push({
+        icon:'⏰', label:`${overdueTasks.length} משימות באיחור`,
+        action:'tasks-overdue', priority:1, color:'#dc2626'
+      });
+    }
+
+    // Tasks due in next 3 days
+    const soonDue = (tasksCache||[]).filter(t => {
+      if (t.status === 'done' || t.status === 'cancelled') return false;
+      const d = daysDelta(t.dueDate);
+      return d >= 0 && d <= 3;
+    });
+    if (soonDue.length > 0) {
+      items.push({
+        icon:'📅', label:`${soonDue.length} משימות מתקרבות ליעד (3 ימים)`,
+        action:'tasks-soon', priority:2, color:'#ea580c'
+      });
+    }
+
+    // Open vehicle faults
+    try {
+      const fSnap = await db.collection('vehicleFaults').get();
+      let openFaults = 0;
+      fSnap.forEach(d => {
+        const r = d.data();
+        if (!_orgMatch(r)) return;
+        if (r.status !== 'resolved' && r.status !== 'closed') openFaults++;
+      });
+      if (openFaults > 0) {
+        items.push({
+          icon:'🚗', label:`${openFaults} תקלות רכב פתוחות`,
+          action:'vehicles', priority:2, color:'#ea580c'
+        });
+      }
+    } catch(e) {}
+
+    // Missing weekly reports — for contract employees, expected weekly
+    if (Array.isArray(_plugaCache) && _plugaCache.length > 0) {
+      const today = new Date();
+      const lastWeekStart = new Date(today);
+      lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+      const lwsStr = lastWeekStart.toISOString().slice(0,10);
+      const reportingThisWeek = _plugaCache.filter(r => r.weekStart === lwsStr);
+      const contractEmployees = (teamCache||[]).filter(t => CONTRACT_ROLES.includes(t.role));
+      const missing = contractEmployees.filter(emp => !reportingThisWeek.find(r => r.createdBy === emp.email || r.employeeEmail === emp.email));
+      if (missing.length > 0 && contractEmployees.length > 0) {
+        items.push({
+          icon:'📋', label:`${missing.length} עובדים בחוזה לא הגישו דיווח שבועי לשבוע ${fmtDate(lwsStr)}`,
+          action:'reports', priority:2, color:'#9333ea'
+        });
+      }
+    }
+
+    // Funding gap projects
+    if (Array.isArray(projectsCache) && projectsCache.length > 0) {
+      let gapProjects = 0;
+      projectsCache.forEach(p => {
+        if (p.status === 'done') return;
+        const planned = p.budget || 0;
+        const raised = ((p.fundingSources||[]).reduce((s,f) => s + (f.amount||0), 0));
+        if (planned > 0 && raised < planned) gapProjects++;
+      });
+      if (gapProjects > 0) {
+        items.push({
+          icon:'💸', label:`${gapProjects} פרויקטים פעילים עם פער מימון`,
+          action:'finance', priority:3, color:'#0891b2'
+        });
+      }
+    }
+  } catch(e) {
+    console.warn('[attentionWidget]', e);
+  }
+
+  if (!items.length) {
+    body.innerHTML = '<div style="padding:14px 4px;color:#16a34a;font-weight:500">✓ אין פריטים פתוחים שדורשים תשומת לב כעת. עבודה נקייה!</div>';
+    return;
+  }
+  items.sort((a,b) => a.priority - b.priority);
+  body.innerHTML = items.map(it => `
+    <div onclick="attentionAction('${it.action}')" style="background:#fff;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border);border-right:3px solid ${it.color};cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.18s" onmouseover="this.style.transform='translateX(-3px)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:1.5rem">${it.icon}</div>
+      <div style="flex:1;font-weight:500;color:var(--dark)">${it.label}</div>
+      <div style="color:${it.color};font-weight:600;font-size:0.9rem">›</div>
+    </div>`).join('');
+}
+
+function attentionAction(action) {
+  if (action === 'expenses') drillDown('expenses', 'pending-my-approval');
+  else if (action === 'tasks-overdue') drillDown('tasks','overdue');
+  else if (action === 'tasks-soon') switchSectionByName('tasks');
+  else if (action === 'vehicles') switchSectionByName('vehicles');
+  else if (action === 'reports') switchSectionByName('reports');
+  else if (action === 'finance') drillDown('finance','all');
 }
 
 // ===== DRILL-DOWN HELPERS =====
@@ -2068,6 +2214,10 @@ function switchSection(id, el, opts) {
   if (id === 'tasks' && typeof CONTRACT_ROLES !== 'undefined' && CONTRACT_ROLES.includes(userRole)) {
     const f = document.getElementById('tkFilterAssignee');
     if (f && !f.value) { f.value = 'me'; if (typeof renderTasks === 'function') renderTasks(); }
+  }
+  // Dashboard: refresh attention widget
+  if (id === 'dashboard') {
+    setTimeout(() => { try { if (typeof loadAttentionWidget === 'function') loadAttentionWidget(); } catch(e) {} }, 200);
   }
   // Workplan: load year data + render
   if (id === 'workplan') {
@@ -2358,16 +2508,17 @@ async function loadFinance() {
       <button class="btn btn-sm btn-secondary" onclick="filterFinance('all')">✕ הסר סינון</button>
     </div>`;
   }
-  // Inject banner above the table card if not already there
+  // Inject banner above the table card if not already there.
+  // Look for ALL existing banners (defensive — past bug stacked them) and remove them.
   const finCard = tbody.closest('.card');
   if (finCard) {
-    const old = finCard.querySelector('.fin-filter-banner');
-    if (old) old.remove();
+    finCard.querySelectorAll('.fin-filter-banner').forEach(el => el.remove());
     if (banner) {
-      const b = document.createElement('div');
-      b.className = 'fin-filter-banner';
-      b.innerHTML = banner;
-      finCard.insertBefore(b.firstElementChild, finCard.firstChild);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'fin-filter-banner';
+      wrapper.innerHTML = banner;
+      // Insert wrapper itself (not firstElementChild — that was the bug)
+      finCard.insertBefore(wrapper, finCard.firstChild);
     }
   }
   if (!displayRows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות מתאימות</td></tr>'; return; }
