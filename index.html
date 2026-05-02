@@ -81,6 +81,10 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
 .kpi{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);text-align:center;border:1px solid var(--border);transition:transform 0.18s,box-shadow 0.18s}
 .kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.kpi.clickable{cursor:pointer;position:relative}
+.kpi.clickable::after{content:'›';position:absolute;top:8px;left:10px;color:var(--muted);opacity:0.4;font-size:1.2rem;transition:opacity 0.2s,transform 0.2s}
+.kpi.clickable:hover::after{opacity:1;color:var(--primary);transform:translateX(-2px)}
+.kpi.clickable:hover{border-color:var(--primary)}
 .kpi .icon{font-size:1.6rem;margin-bottom:6px}
 .kpi .label{font-size:0.8rem;color:var(--muted);margin-bottom:6px;font-weight:500}
 .kpi .value{font-size:1.6rem;font-weight:700;color:var(--primary);letter-spacing:-0.02em}
@@ -354,7 +358,7 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r18</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r19</div>
   </aside>
 
   <!-- Main Content -->
@@ -367,13 +371,13 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
         <p data-i18n="page.dashboard.sub">סקירה כללית של פעילות העמותה</p>
       </div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="icon">💰</div><div class="label" data-i18n="kpi.income">סך הכנסות</div><div class="value" id="dash-income">₪0</div></div>
-        <div class="kpi"><div class="icon">📤</div><div class="label" data-i18n="kpi.expense">סך הוצאות</div><div class="value" id="dash-expense">₪0</div></div>
-        <div class="kpi"><div class="icon">📊</div><div class="label" data-i18n="kpi.balance">יתרה</div><div class="value" id="dash-balance">₪0</div></div>
-        <div class="kpi"><div class="icon">❤️</div><div class="label" data-i18n="kpi.donors">תורמים</div><div class="value" id="dash-donors">0</div></div>
-        <div class="kpi"><div class="icon">🎯</div><div class="label" data-i18n="kpi.projects_active">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
-        <div class="kpi"><div class="icon">📋</div><div class="label" data-i18n="kpi.reports_month">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
-        <div class="kpi"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('finance','income')" title="לחצי לפירוט הכנסות"><div class="icon">💰</div><div class="label" data-i18n="kpi.income">סך הכנסות</div><div class="value" id="dash-income">₪0</div></div>
+        <div class="kpi clickable" onclick="drillDown('finance','expense')" title="לחצי לפירוט הוצאות"><div class="icon">📤</div><div class="label" data-i18n="kpi.expense">סך הוצאות</div><div class="value" id="dash-expense">₪0</div></div>
+        <div class="kpi clickable" onclick="drillDown('finance')" title="לחצי לפירוט פיננסי"><div class="icon">📊</div><div class="label" data-i18n="kpi.balance">יתרה</div><div class="value" id="dash-balance">₪0</div></div>
+        <div class="kpi clickable" onclick="drillDown('donors')" title="לחצי לרשימת תורמים"><div class="icon">❤️</div><div class="label" data-i18n="kpi.donors">תורמים</div><div class="value" id="dash-donors">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('projects','active')" title="לחצי לפרויקטים פעילים"><div class="icon">🎯</div><div class="label" data-i18n="kpi.projects_active">פרויקטים פעילים</div><div class="value" id="dash-projects">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('reports','this-month')" title="לחצי לדיווחי החודש"><div class="icon">📋</div><div class="label" data-i18n="kpi.reports_month">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('tasks','overdue')" title="לחצי למשימות באיחור"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg,#f0f9ff 0%,#fef3c7 100%);border-right:4px solid var(--primary)">
         <div>
@@ -415,10 +419,10 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
 
       <!-- Personal KPIs -->
       <div class="kpi-grid">
-        <div class="kpi"><div class="icon">📌</div><div class="label">המשימות הפתוחות שלי</div><div class="value" id="me-open-tasks">0</div></div>
-        <div class="kpi"><div class="icon">⚠️</div><div class="label">באיחור</div><div class="value" id="me-overdue" style="color:var(--danger)">0</div></div>
-        <div class="kpi"><div class="icon">⏳</div><div class="label">ממתין לאישור שלי</div><div class="value" id="me-approvals" style="color:var(--warning)">0</div></div>
-        <div class="kpi"><div class="icon">📅</div><div class="label">שעות החודש</div><div class="value" id="me-hours-month">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('tasks','my-open')" title="לחצי לרשימה"><div class="icon">📌</div><div class="label">המשימות הפתוחות שלי</div><div class="value" id="me-open-tasks">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('tasks','my-overdue')" title="לחצי למשימות באיחור"><div class="icon">⚠️</div><div class="label">באיחור</div><div class="value" id="me-overdue" style="color:var(--danger)">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('expenses','pending-my-approval')" title="לחצי להחזרים ממתינים"><div class="icon">⏳</div><div class="label">ממתין לאישור שלי</div><div class="value" id="me-approvals" style="color:var(--warning)">0</div></div>
+        <div class="kpi clickable" onclick="drillDown('reports','my-month')" title="לחצי לדיווחים שלי החודש"><div class="icon">📅</div><div class="label">שעות החודש</div><div class="value" id="me-hours-month">0</div></div>
       </div>
 
       <!-- Quick actions -->
@@ -479,12 +483,12 @@ body{font-family:'Heebo','Segoe UI',Arial,sans-serif;background:var(--light);col
         <p>ניהול הכנסות והוצאות העמותה</p>
       </div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="icon">📥</div><div class="label">סך הכנסות</div><div class="value" id="fin-income">₪0</div></div>
-        <div class="kpi"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="fin-expense">₪0</div></div>
-        <div class="kpi"><div class="icon">💵</div><div class="label">יתרה</div><div class="value" id="fin-balance">₪0</div></div>
-        <div class="kpi"><div class="icon">💼</div><div class="label">סך תשלומי שכר</div><div class="value" id="fin-salary">₪0</div></div>
-        <div class="kpi"><div class="icon">🎯</div><div class="label">תקציב מתוכנן לפרויקטים</div><div class="value" id="fin-planned">₪0</div></div>
-        <div class="kpi"><div class="icon">📊</div><div class="label">פער קדימה (עדיין דרוש)</div><div class="value" id="fin-gap" style="color:#c53030">₪0</div></div>
+        <div class="kpi clickable" onclick="filterFinance('income')" title="לחצי לפירוט הכנסות"><div class="icon">📥</div><div class="label">סך הכנסות</div><div class="value" id="fin-income">₪0</div></div>
+        <div class="kpi clickable" onclick="filterFinance('expense')" title="לחצי לפירוט הוצאות"><div class="icon">📤</div><div class="label">סך הוצאות</div><div class="value" id="fin-expense">₪0</div></div>
+        <div class="kpi clickable" onclick="filterFinance('all')" title="לחצי לכל הרשומות"><div class="icon">💵</div><div class="label">יתרה</div><div class="value" id="fin-balance">₪0</div></div>
+        <div class="kpi clickable" onclick="filterFinance('salary');scrollToCard('finSalaryCard')" title="לחצי לפירוט שכר"><div class="icon">💼</div><div class="label">סך תשלומי שכר</div><div class="value" id="fin-salary">₪0</div></div>
+        <div class="kpi clickable" onclick="scrollToCard('finForwardCard')" title="לחצי לתקציב פרויקטים"><div class="icon">🎯</div><div class="label">תקציב מתוכנן לפרויקטים</div><div class="value" id="fin-planned">₪0</div></div>
+        <div class="kpi clickable" onclick="scrollToCard('finForwardCard')" title="לחצי לפער מימון"><div class="icon">📊</div><div class="label">פער קדימה (עדיין דרוש)</div><div class="value" id="fin-gap" style="color:#c53030">₪0</div></div>
       </div>
 
       <!-- Salary breakdown -->
@@ -1942,6 +1946,72 @@ function toast(msg, type='success') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+// ===== DRILL-DOWN HELPERS =====
+// Smooth-scroll to a card within the current section
+function scrollToCard(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  setTimeout(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Brief highlight pulse
+    el.style.transition = 'box-shadow 0.4s';
+    el.style.boxShadow = '0 0 0 4px rgba(249,115,22,0.4)';
+    setTimeout(() => { el.style.boxShadow = ''; }, 1200);
+  }, 150);
+}
+
+// Filter finance table by type (income/expense/salary/all). Sets a filter and re-renders.
+let _financeFilterType = 'all';
+function filterFinance(type) {
+  _financeFilterType = type || 'all';
+  // Switch to finance section if not already there
+  switchSectionByName('finance');
+  setTimeout(() => {
+    if (typeof loadFinance === 'function') loadFinance();
+  }, 200);
+}
+
+// Master drill-down: navigate to section and optionally apply a filter
+function drillDown(section, filter) {
+  switchSectionByName(section);
+  // Apply the filter after section is shown
+  setTimeout(() => {
+    if (section === 'tasks') {
+      const fa = document.getElementById('tkFilterAssignee');
+      const fs = document.getElementById('tkFilterStatus');
+      if (filter === 'overdue') {
+        if (fs) fs.value = 'open'; // show open tasks only — overdue are subset
+        // Apply overdue filter via a flag
+        _taskOverdueOnly = true;
+      } else if (filter === 'my-open') {
+        if (fa) fa.value = 'me';
+        if (fs) fs.value = 'open';
+        _taskOverdueOnly = false;
+      } else if (filter === 'my-overdue') {
+        if (fa) fa.value = 'me';
+        _taskOverdueOnly = true;
+      } else {
+        _taskOverdueOnly = false;
+      }
+      if (typeof renderTasks === 'function') renderTasks();
+    } else if (section === 'finance') {
+      _financeFilterType = filter || 'all';
+      if (typeof loadFinance === 'function') loadFinance();
+    } else if (section === 'projects' && filter === 'active') {
+      // Projects section already shows all; active are at top by default
+    } else if (section === 'reports' && filter === 'this-month') {
+      // Daily reports section — already shows last 50, no filter needed
+      scrollToCard('dailyHistoryCard');
+    } else if (section === 'reports' && filter === 'my-month') {
+      scrollToCard('dailyHistoryCard');
+    } else if (section === 'expenses' && filter === 'pending-my-approval') {
+      scrollToCard('expensesPendingCard');
+    }
+  }, 300);
+}
+
+let _taskOverdueOnly = false;
+
 // ===== NAVIGATION =====
 const SECTION_TITLES = {
   dashboard: 'דשבורד',
@@ -2272,10 +2342,36 @@ async function loadFinance() {
   try { renderSalaryBreakdown(rows); } catch(e) { console.warn('[salary breakdown]', e); }
 
   const tbody = document.getElementById('finTableBody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות</td></tr>'; return; }
-  // Expose cache for edit flow
+  // Expose cache for edit flow (full unfiltered set)
   financeCache = rows;
-  tbody.innerHTML = rows.map(r => {
+  // Apply drill-down filter: show only the type the user clicked from KPI
+  let displayRows = rows;
+  if (_financeFilterType === 'income') displayRows = rows.filter(r => r.type === 'income');
+  else if (_financeFilterType === 'expense') displayRows = rows.filter(r => r.type === 'expense');
+  else if (_financeFilterType === 'salary') displayRows = rows.filter(r => r.type === 'expense' && r.isSalary);
+  // Add filter banner if active
+  let banner = '';
+  if (_financeFilterType !== 'all') {
+    const labelMap = { income:'הכנסות בלבד', expense:'הוצאות בלבד', salary:'תשלומי שכר בלבד' };
+    banner = `<div style="background:var(--primary-soft);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid #fed7aa">
+      <span style="color:var(--primary-dark);font-weight:600">📊 מציג: ${labelMap[_financeFilterType]||_financeFilterType} (${displayRows.length} רשומות)</span>
+      <button class="btn btn-sm btn-secondary" onclick="filterFinance('all')">✕ הסר סינון</button>
+    </div>`;
+  }
+  // Inject banner above the table card if not already there
+  const finCard = tbody.closest('.card');
+  if (finCard) {
+    const old = finCard.querySelector('.fin-filter-banner');
+    if (old) old.remove();
+    if (banner) {
+      const b = document.createElement('div');
+      b.className = 'fin-filter-banner';
+      b.innerHTML = banner;
+      finCard.insertBefore(b.firstElementChild, finCard.firstChild);
+    }
+  }
+  if (!displayRows.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">אין רשומות מתאימות</td></tr>'; return; }
+  tbody.innerHTML = displayRows.map(r => {
     const typeLabel = r.type === 'income' ? '<span style="color:var(--primary)">הכנסה</span>' : '<span style="color:var(--accent)">הוצאה</span>';
     const cls = r.type === 'income' ? 'amount-positive' : 'amount-negative';
     const canEdit = userRole === 'admin' || userRole === 'team';
@@ -5916,6 +6012,12 @@ function filterTasks() {
       if (!t.assignees || !t.assignees.includes(currentUser.email)) return false;
     } else if (assignee) {
       if (!t.assignees || !t.assignees.includes(assignee)) return false;
+    }
+    // Drill-down: overdue only
+    if (_taskOverdueOnly) {
+      if (t.status === 'done' || t.status === 'cancelled') return false;
+      const delta = daysDelta(t.dueDate);
+      if (delta >= 0) return false;
     }
     return true;
   });
