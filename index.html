@@ -357,17 +357,19 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
     <div class="nav-item active" onclick="switchSection('dashboard',this)"><span class="icon">📊</span> <span data-i18n="nav.dashboard">דשבורד מנהלים</span></div>
     <div class="nav-item" onclick="switchSection('me',this)"><span class="icon">👤</span> <span data-i18n="nav.me">האזור האישי שלי</span></div>
 
-    <div class="nav-group-label">אסטרטגיה</div>
-    <div class="nav-item" onclick="switchSection('workplan',this)"><span class="icon">🗺️</span> <span data-i18n="nav.workplan">תוכנית עבודה שנתית</span></div>
+    <div class="nav-group-label">פיננסים וגיוס</div>
     <div class="nav-item" onclick="switchSection('finance',this)"><span class="icon">💰</span> <span data-i18n="nav.finance">שקיפות פיננסית</span></div>
-    <div class="nav-item" onclick="switchSection('projects',this)"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
     <div class="nav-item" onclick="switchSection('donors',this)"><span class="icon">❤️</span> <span data-i18n="nav.donors">ניהול תורמים</span></div>
 
     <div class="nav-group-label">תפעול יומי</div>
     <div class="nav-item" onclick="switchSection('tasks',this)"><span class="icon">✅</span> <span data-i18n="nav.tasks">יומן ומשימות</span></div>
     <div class="nav-item" onclick="switchSection('reports',this)"><span class="icon">📋</span> <span data-i18n="nav.reports">דיווחי עובדים</span></div>
     <div class="nav-item" onclick="switchSection('expenses',this)"><span class="icon">🧾</span> <span data-i18n="nav.expenses">החזרי הוצאות</span></div>
-    <div class="nav-item" onclick="switchSection('vehicles',this)"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">ניהול רכבים</span></div>
+
+    <!-- Hidden but still accessible via program detail -->
+    <div class="nav-item" onclick="switchSection('workplan',this)" id="navWorkplan" style="display:none"><span class="icon">🗺️</span> <span data-i18n="nav.workplan">תוכנית עבודה</span></div>
+    <div class="nav-item" onclick="switchSection('projects',this)" id="navProjects" style="display:none"><span class="icon">🎯</span> <span data-i18n="nav.projects">פרויקטים</span></div>
+    <div class="nav-item" onclick="switchSection('vehicles',this)" id="navVehicles" style="display:none"><span class="icon">🚗</span> <span data-i18n="nav.vehicles">רכבים</span></div>
 
     <div class="nav-group-label admin-only" id="navGroupAdmin" style="display:none">ניהול</div>
     <div class="nav-item" onclick="switchSection('team',this)" id="navTeam" style="display:none"><span class="icon">👥</span> <span data-i18n="nav.team">ניהול צוות</span></div>
@@ -377,7 +379,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.05-r22</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.05-r23</div>
   </aside>
 
   <!-- Main Content -->
@@ -604,7 +606,14 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
                 <input type="checkbox" id="finReceiptIssued" style="width:auto;margin:0"> הונפקה קבלה לתורם
               </label>
-              <input type="text" id="finReceiptNumber" placeholder="מספר קבלה (אופציונלי)">
+              <input type="text" id="finReceiptNumber" placeholder="מספר קבלה">
+            </div>
+          </div>
+          <div class="form-row" style="background:var(--gold-soft);padding:10px 12px;border-radius:var(--radius-sm);border:1px solid #e6d49a;margin-bottom:0">
+            <div class="form-field" style="flex:1;grid-column:1/-1">
+              <label>🧾 צרפו קובץ קבלה / חשבונית <span class="req">*</span></label>
+              <input type="file" id="finIncomeReceiptFiles" multiple accept="image/*,application/pdf">
+              <small style="color:#92400e;display:block;margin-top:4px">חובה: או מספר קבלה למעלה, או קובץ קבלה כאן.</small>
             </div>
           </div>
         </div>
@@ -2143,7 +2152,25 @@ function renderProgramDetail() {
   const label = getOrgAreaLabel(k);
 
   document.getElementById('progDetailTitle').textContent = label;
-  document.getElementById('progDetailLeader').textContent = `מוביל/ת: ${info.leader || '—'} · ${info.description || ''}`;
+  const leaderEl = document.getElementById('progDetailLeader');
+  const editBtn = (userRole === 'admin') ? `<button class="btn btn-secondary btn-sm" onclick="openProgramEdit('${k}')" style="margin-right:10px">✏️ ערוך פרטי תוכנית</button>` : '';
+  leaderEl.innerHTML = `מוביל/ת: <strong>${info.leader || '—'}</strong> · ${info.description || ''} ${editBtn}`;
+
+  // Quick action buttons
+  const quickActions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <button class="btn btn-primary" onclick="quickAddExpenseToProgram('${k}')">+ החזר הוצאות לתוכנית</button>
+    <button class="btn btn-secondary" onclick="quickAddIncomeToProgram('${k}')">+ הזנת הכנסה</button>
+    <button class="btn btn-secondary" onclick="quickAddTaskToProgram('${k}')">+ משימה חדשה</button>
+  </div>`;
+  // Insert/update the quick actions row before the KPIs
+  let qa = document.getElementById('progDetailQuickActions');
+  if (!qa) {
+    qa = document.createElement('div');
+    qa.id = 'progDetailQuickActions';
+    const kpis = document.getElementById('progDetailKpis');
+    kpis.parentNode.insertBefore(qa, kpis);
+  }
+  qa.innerHTML = quickActions;
 
   // KPIs
   const tasks = (tasksCache||[]).filter(t => t.area === k);
@@ -2239,6 +2266,125 @@ function renderProgramDetail() {
     document.getElementById('progDetailFinance').innerHTML = '<table class="data-table"><thead><tr><th>סוג</th><th>תאריך</th><th>סכום</th><th>פירוט</th></tr></thead><tbody>' +
       recent.map(r => `<tr><td>${r.type==='income'?'הכנסה':'הוצאה'}</td><td>${fmtDate(r.date||r.purchaseDate)}</td><td class="${r.type==='income'?'amount-positive':'amount-negative'}">₪${(r.amount||0).toLocaleString()}</td><td>${r.description||r.source||'—'}</td></tr>`).join('') + '</tbody></table>';
   }
+}
+
+// ============================================================
+// ===== PROGRAM EDIT (admin) =================================
+// ============================================================
+function openProgramEdit(key) {
+  if (userRole !== 'admin') return;
+  const info = getProgramInfo(key);
+  const label = getOrgAreaLabel(key);
+  const html = `
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/-1"><label>שם התוכנית</label><input type="text" id="pe_label" value="${label}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>מוביל/ת התוכנית</label><input type="text" id="pe_leader" value="${info.leader||''}"></div>
+      <div class="form-field"><label>תקציב שנתי (₪)</label><input type="number" id="pe_budget" value="${info.annualBudget||0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>סטטוס</label>
+        <select id="pe_status">
+          <option value="active"${info.status==='active'?' selected':''}>פעיל</option>
+          <option value="planning"${info.status==='planning'?' selected':''}>בתכנון / בהתהוות</option>
+          <option value="paused"${info.status==='paused'?' selected':''}>מושהה</option>
+          <option value="done"${info.status==='done'?' selected':''}>הושלם</option>
+        </select>
+      </div>
+      <div class="form-field"><label>תווית סטטוס מותאמת</label><input type="text" id="pe_statusLabel" value="${info.statusLabel||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field" style="grid-column:1/-1"><label>תיאור התוכנית</label><textarea id="pe_description" rows="3">${info.description||''}</textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary" onclick="closeProgramEdit()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveProgramEdit('${key}')">💾 שמור שינויים</button>
+    </div>
+  `;
+  let modal = document.getElementById('progEditModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'progEditModal';
+    modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+    modal.onclick = (e) => { if (e.target === modal) closeProgramEdit(); };
+    modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius);max-width:700px;width:100%;margin-top:30px;padding:24px;border-top:4px solid var(--gold)"><h3 style="margin:0 0 14px;color:var(--primary)">✏️ עריכת תוכנית</h3><div id="progEditBody"></div></div>`;
+    document.body.appendChild(modal);
+  } else {
+    modal.style.display = 'flex';
+  }
+  document.getElementById('progEditBody').innerHTML = html;
+}
+
+function closeProgramEdit() {
+  const m = document.getElementById('progEditModal');
+  if (m) m.style.display = 'none';
+}
+
+async function saveProgramEdit(key) {
+  if (userRole !== 'admin') return;
+  const newLabel = document.getElementById('pe_label').value.trim();
+  const updates = {
+    leader: document.getElementById('pe_leader').value.trim(),
+    annualBudget: parseInt(document.getElementById('pe_budget').value) || 0,
+    status: document.getElementById('pe_status').value,
+    statusLabel: document.getElementById('pe_statusLabel').value.trim(),
+    description: document.getElementById('pe_description').value.trim()
+  };
+  // Save into currentOrgInfo.programs[key]
+  if (!currentOrgInfo) currentOrgInfo = {};
+  if (!currentOrgInfo.programs) currentOrgInfo.programs = {};
+  currentOrgInfo.programs[key] = Object.assign({}, currentOrgInfo.programs[key] || {}, updates);
+  // Also update label in areas if changed
+  if (!currentOrgInfo.areas || !currentOrgInfo.areas.length) currentOrgInfo.areas = _defaultAreas();
+  const aIdx = currentOrgInfo.areas.findIndex(a => a.key === key);
+  if (aIdx >= 0 && newLabel && newLabel !== currentOrgInfo.areas[aIdx].label) {
+    currentOrgInfo.areas[aIdx].label = newLabel;
+  }
+  try {
+    await db.collection('orgs').doc(currentOrgId).set({
+      programs: currentOrgInfo.programs,
+      areas: currentOrgInfo.areas,
+      updatedBy: currentUser.email,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    toast('התוכנית עודכנה ✓');
+    closeProgramEdit();
+    renderProgramDetail();
+    renderProgramCards();
+    repopulateAllAreaDropdowns();
+  } catch(e) {
+    console.error('[saveProgramEdit]', e);
+    toast('שגיאה בשמירה: ' + (e.message||e), 'error');
+  }
+}
+
+// Quick-add buttons that pre-fill program area in form fields
+function quickAddExpenseToProgram(key) {
+  switchSectionByName('expenses');
+  setTimeout(() => {
+    const cat = document.getElementById('expCategory');
+    if (cat) cat.value = key;
+    scrollToCard('expAddCard') || scrollToCard('sec-expenses');
+  }, 200);
+}
+function quickAddIncomeToProgram(key) {
+  switchSectionByName('finance');
+  setTimeout(() => {
+    const t = document.getElementById('finType');
+    if (t) { t.value = 'income'; toggleFinType(); }
+    const p = document.getElementById('finPurpose');
+    if (p) p.value = key;
+    scrollToCard('finAddCard');
+  }, 200);
+}
+function quickAddTaskToProgram(key) {
+  switchSectionByName('tasks');
+  setTimeout(() => {
+    const a = document.getElementById('tkArea');
+    if (a) a.value = key;
+    scrollToCard('tkAddCard') || document.getElementById('tkTitle')?.focus();
+  }, 200);
 }
 
 // ============================================================
@@ -2954,7 +3100,18 @@ async function addFinRecord() {
       record.date = date;
       record.receiptIssued = document.getElementById('finReceiptIssued').checked;
       const receiptNumber = document.getElementById('finReceiptNumber').value.trim();
+      // Require evidence: either checkbox+receipt# OR file attachment
+      const incReceiptInput = document.getElementById('finIncomeReceiptFiles');
+      const hasIncFile = incReceiptInput && incReceiptInput.files && incReceiptInput.files.length;
+      if (!record.receiptIssued && !receiptNumber && !hasIncFile) {
+        toast('חובה לציין מספר קבלה או לצרף קובץ קבלה','error');
+        btn.disabled=false; btn.textContent='+ הוסף'; return;
+      }
       if (receiptNumber) record.receiptNumber = receiptNumber;
+      if (hasIncFile) {
+        btn.textContent = 'מעלה קבצים...';
+        record.receiptFiles = await uploadFilesTo(incReceiptInput.files, 'receipts');
+      }
     } else {
       const purchaseDate = document.getElementById('finPurchaseDate').value;
       const paymentDate = document.getElementById('finPaymentDate').value;
@@ -2981,10 +3138,16 @@ async function addFinRecord() {
 
       const quoteInput = document.getElementById('finQuoteFiles');
       const receiptInput = document.getElementById('finReceiptFiles');
-      if ((quoteInput.files && quoteInput.files.length) || (receiptInput.files && receiptInput.files.length)) {
+      const hasReceiptFile = receiptInput && receiptInput.files && receiptInput.files.length;
+      // Require receipt/invoice for non-salary expenses
+      if (!isSal && !hasReceiptFile) {
+        toast('חובה לצרף קבלה או חשבונית להוצאה','error');
+        btn.disabled=false; btn.textContent='+ הוסף'; return;
+      }
+      if ((quoteInput.files && quoteInput.files.length) || hasReceiptFile) {
         btn.textContent = 'מעלה קבצים...';
         if (quoteInput.files.length) record.quoteFiles = await uploadFilesTo(quoteInput.files, 'quotes');
-        if (receiptInput.files.length) record.receiptFiles = await uploadFilesTo(receiptInput.files, 'receipts');
+        if (hasReceiptFile) record.receiptFiles = await uploadFilesTo(receiptInput.files, 'receipts');
       }
     }
 
