@@ -127,6 +127,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 
 .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:0.74rem;font-weight:600;letter-spacing:0.01em}
 .area-badge{display:inline-block;padding:3px 10px;border-radius:var(--radius-pill);font-size:0.74rem;font-weight:600;background:var(--gold-soft);color:var(--gold-dark);border:1px solid #e6d49a}
+.program-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-top-color:var(--gold)!important;border-color:rgba(200,168,76,0.5)}
 .badge-admin{background:#ffeef0;color:#e74c3c}
 .badge-team{background:#e8f8f0;color:#27ae60}
 .badge-ram{background:#fff7e6;color:#d97706}
@@ -376,7 +377,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.01-r21</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.05-r22</div>
   </aside>
 
   <!-- Main Content -->
@@ -397,6 +398,15 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <div class="kpi clickable" onclick="drillDown('reports','this-month')" title="לחצי לדיווחי החודש"><div class="icon">📋</div><div class="label" data-i18n="kpi.reports_month">דיווחים החודש</div><div class="value" id="dash-reports">0</div></div>
         <div class="kpi clickable" onclick="drillDown('tasks','overdue')" title="לחצי למשימות באיחור"><div class="icon">⚠️</div><div class="label">משימות באיחור</div><div class="value" id="dash-tasks-overdue" style="color:var(--danger)">0</div></div>
       </div>
+      <!-- PROGRAMS GRID — main feature of the dashboard: cards for each of the 7 programs -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          <h3 style="margin:0">🏛️ תוכניות העמותה</h3>
+          <small style="color:var(--muted)">לחצו על כרטיס לצלילה לתוכנית</small>
+        </div>
+        <div id="programsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px"></div>
+      </div>
+
       <!-- ATTENTION REQUIRED WIDGET — for CEO / board: pulls from open approvals, overdue tasks, vehicle faults -->
       <div class="card" id="attentionWidget" style="border-right:4px solid var(--warning);background:#fffbeb">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
@@ -653,6 +663,59 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
     <!-- ============================================================ -->
     <!-- ANNUAL WORK PLAN                                             -->
     <!-- ============================================================ -->
+    <!-- ============================================================ -->
+    <!-- PROGRAM DETAIL — drill-down view per program (area)            -->
+    <!-- ============================================================ -->
+    <div class="section" id="sec-program">
+      <div class="page-header">
+        <button class="btn btn-secondary btn-sm" onclick="switchSectionByName('dashboard')" style="margin-bottom:8px">← חזרה לדשבורד</button>
+        <h1 id="progDetailTitle">תוכנית</h1>
+        <p id="progDetailLeader" style="color:var(--muted)"></p>
+      </div>
+
+      <!-- Top KPIs -->
+      <div class="kpi-grid" id="progDetailKpis"></div>
+
+      <!-- Goals + KPIs (read from workplan) -->
+      <div class="card">
+        <h3>🎯 יעדים ומדדי תוצאה</h3>
+        <div id="progDetailGoals"></div>
+      </div>
+
+      <!-- Budget summary -->
+      <div class="card">
+        <h3>💰 תקציב וביצוע</h3>
+        <div id="progDetailBudget"></div>
+      </div>
+
+      <!-- Tasks filtered to this program -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">✅ משימות פתוחות בתוכנית</h3>
+          <button class="btn btn-secondary btn-sm" onclick="switchSectionByName('tasks')">לכל המשימות →</button>
+        </div>
+        <div id="progDetailTasks"></div>
+      </div>
+
+      <!-- Employees + leaders -->
+      <div class="card">
+        <h3>👥 עובדים ומובילי תוכנית</h3>
+        <div id="progDetailEmployees"></div>
+      </div>
+
+      <!-- Vehicles assigned -->
+      <div class="card">
+        <h3>🚗 רכבים משויכים</h3>
+        <div id="progDetailVehicles"></div>
+      </div>
+
+      <!-- Recent activity (finance + reports for this area) -->
+      <div class="card">
+        <h3>📊 פעילות פיננסית אחרונה</h3>
+        <div id="progDetailFinance"></div>
+      </div>
+    </div>
+
     <div class="section" id="sec-workplan">
       <div class="page-header">
         <h1 data-i18n="page.workplan.title">🗺️ תוכנית עבודה שנתית</h1>
@@ -1514,25 +1577,80 @@ let userRole = null;
 // Their keys are used across projects, finance, donations, employee reports.
 // Legacy keys (torah, prep, welfare, study, alumni, general, admin, office, vehicle)
 // are kept for backward compatibility with existing records that used them.
-const AREA_KEYS = ['ruach-hashmonait','lev-david','beit-neeman','welfare-fund','torah-empowerment','shaar-yetzia'];
+const AREA_KEYS = ['ruach-hashmonait','lev-david','torah-empowerment','beit-neeman','shaar-yetzia','welfare-fund','admin-general'];
 const PURPOSES = {
-  // === Canonical 6 areas ===
-  'ruach-hashmonait':  'רוח חשמונאית — ליווי תורני חינוכי',
-  'lev-david':         'לב דוד — הכנה לשירות משמעותי',
-  'beit-neeman':       'בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה',
-  'welfare-fund':      'קרן הרווחה והסיוע לחייל ולחטיבה',
-  'torah-empowerment': 'העצמת לימוד התורה בחטיבה',
-  'shaar-yetzia':      'שער יציאה — חשמונאים לעתיד ישראל',
+  // === Canonical 7 programs (matches official 2026 budget) ===
+  'ruach-hashmonait':  'רוח חשמונאית',
+  'lev-david':         'לב דוד',
+  'torah-empowerment': 'והגית בו',
+  'beit-neeman':       'בית בישראל',
+  'shaar-yetzia':      'חשמונאים לעתיד ישראל',
+  'welfare-fund':      'קרן הרווחה והסיוע',
+  'admin-general':     'מנהלה וכלליות',
   // === Legacy keys — kept so existing records render correctly ===
-  torah:   'רוח חשמונאית — ליווי תורני חינוכי',        // old alias for ruach-hashmonait
-  prep:    'לב דוד — הכנה לשירות משמעותי',              // old alias for lev-david
-  welfare: 'קרן הרווחה והסיוע לחייל ולחטיבה',            // old alias for welfare-fund
-  study:   'העצמת לימוד התורה בחטיבה',                   // old alias for torah-empowerment
-  alumni:  'שער יציאה — חשמונאים לעתיד ישראל',          // old alias for shaar-yetzia
+  torah:   'רוח חשמונאית',
+  prep:    'לב דוד',
+  welfare: 'קרן הרווחה והסיוע',
+  study:   'והגית בו',
+  alumni:  'חשמונאים לעתיד ישראל',
   general: 'כללי',
   admin:   'מנהלה',
   vehicle: 'רכב ותחבורה',
   office:  'משרד וציוד'
+};
+
+// Program metadata — leader, budget, status. Mirrors the official 2026 budget plan.
+// Used by the Program Cards on the dashboard and the drill-down view.
+const DEFAULT_PROGRAM_INFO = {
+  'ruach-hashmonait': {
+    leader: 'הרב רוטמן',
+    description: 'הליווי הרוחני-חינוכי ללוחם והמפקד החרדי',
+    annualBudget: 2316000,
+    status: 'active',
+    statusLabel: 'פעיל · מסתמן מימון ייעודי'
+  },
+  'lev-david': {
+    leader: 'הרב רוטמן',
+    description: 'מסלולי הכנה קדם-צבאיים (בשיתוף עמותת שחר)',
+    annualBudget: 864000,
+    status: 'active',
+    statusLabel: 'מסלול ראשון פעיל'
+  },
+  'torah-empowerment': {
+    leader: 'יעקב קנירש ואהרון פרובר',
+    description: 'חיזוק והעצמת לימוד התורה בקרב חיילי ובוגרי החטיבה',
+    annualBudget: 624000,
+    status: 'planning',
+    statusLabel: 'בהתהוות'
+  },
+  'beit-neeman': {
+    leader: 'מלכה אייזנמן',
+    description: 'שידוכים, ליווי חתנים, מעטפת למשפחות, קהילת נשות החטיבה',
+    annualBudget: 504000,
+    status: 'active',
+    statusLabel: 'פעיל / בהתהוות'
+  },
+  'shaar-yetzia': {
+    leader: 'שי צפדיה',
+    description: '"שער היציאה" — הכנה לאזרחות ולתעסוקה, קהילות בוגרים',
+    annualBudget: 360000,
+    status: 'planning',
+    statusLabel: 'בהתהוות'
+  },
+  'welfare-fund': {
+    leader: 'מני גפני',
+    description: 'מענה לכלל צרכי החטיבה — חייל בודד, משפחות במצוקה, ערבי יחידה',
+    annualBudget: 600000,
+    status: 'active',
+    statusLabel: 'פעיל / בהתהוות'
+  },
+  'admin-general': {
+    leader: 'מנכ״ל',
+    description: 'הנהלה, כספים, מזכירות, גיוס משאבים, מדידה — עד 15% מהתקציב',
+    annualBudget: 732000,
+    status: 'active',
+    statusLabel: 'תפעולי'
+  }
 };
 // Build a standard <option> list of the 6 canonical areas. Used by every project/area dropdown.
 function areaOptionsHTML(selected) {
@@ -1915,8 +2033,11 @@ function showApp(user) {
   }
   // Repopulate area dropdowns to use this org's custom areas (or defaults)
   try { if (typeof repopulateAllAreaDropdowns === 'function') repopulateAllAreaDropdowns(); } catch(e) {}
-  // Load CEO/board attention widget (after caches populate)
-  setTimeout(() => { try { loadAttentionWidget(); } catch(e) {} }, 1500);
+  // Load CEO/board attention widget + program cards (after caches populate)
+  setTimeout(() => {
+    try { loadAttentionWidget(); } catch(e) {}
+    try { renderProgramCards(); } catch(e) {}
+  }, 1500);
   if (userRole === 'viewer') {
     document.querySelectorAll('#finAddCard,#donorAddCard,#projAddCard,#tkAddCard').forEach(el => el.style.display = 'none');
   }
@@ -1956,6 +2077,168 @@ function toast(msg, type='success') {
   t.textContent = msg;
   t.className = 'toast show toast-' + type;
   setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ============================================================
+// ===== PROGRAMS GRID — dashboard cards for each program
+// ============================================================
+
+function getProgramInfo(key) {
+  // Allow override from currentOrgInfo.programs[key], fallback to defaults
+  const orgPrograms = currentOrgInfo?.programs || {};
+  return Object.assign({}, DEFAULT_PROGRAM_INFO[key] || {}, orgPrograms[key] || {});
+}
+
+function renderProgramCards() {
+  const grid = document.getElementById('programsGrid');
+  if (!grid) return;
+  const keys = getOrgAreaKeys();
+  grid.innerHTML = keys.map(k => {
+    const info = getProgramInfo(k);
+    const label = getOrgAreaLabel(k);
+    // Aggregate stats
+    const tasks = (tasksCache||[]).filter(t => t.area === k && t.status !== 'done' && t.status !== 'cancelled');
+    const employees = (teamCache||[]).filter(t => (t.programs||[]).includes(k) || t.primaryProgram === k);
+    const projCount = (projectsCache||[]).filter(p => p.area === k && p.status !== 'done').length;
+    // Status color
+    const statusColor = info.status === 'active' ? 'var(--success)' : (info.status === 'planning' ? 'var(--warning)' : 'var(--muted)');
+    return `<div class="card program-card" onclick="openProgram('${k}')" style="cursor:pointer;padding:18px;margin-bottom:0;border-top:4px solid var(--primary);transition:var(--transition);position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+        <h4 style="margin:0;color:var(--primary);font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:1.15rem;flex:1">${label}</h4>
+        <span style="background:var(--gold-soft);color:var(--gold-dark);padding:2px 10px;border-radius:var(--radius-pill);font-size:0.72rem;font-weight:600;white-space:nowrap">${info.statusLabel || 'פעיל'}</span>
+      </div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;font-weight:500">👤 ${info.leader || '—'}</div>
+      ${info.description ? `<div style="font-size:0.85rem;color:var(--dark);margin-bottom:12px;line-height:1.5">${info.description}</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--primary);font-family:'Frank Ruhl Libre',serif">₪${(info.annualBudget||0).toLocaleString()}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">תקציב שנתי</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--primary);font-family:'Frank Ruhl Libre',serif">${tasks.length}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">משימות פתוחות</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--primary);font-family:'Frank Ruhl Libre',serif">${projCount}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">פרויקטים</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;text-align:center;color:var(--gold);font-size:0.85rem;font-weight:600">צללו פנימה ›</div>
+    </div>`;
+  }).join('');
+}
+
+let _currentProgramKey = null;
+
+function openProgram(key) {
+  _currentProgramKey = key;
+  switchSectionByName('program');
+  setTimeout(() => renderProgramDetail(), 100);
+}
+
+function renderProgramDetail() {
+  if (!_currentProgramKey) return;
+  const k = _currentProgramKey;
+  const info = getProgramInfo(k);
+  const label = getOrgAreaLabel(k);
+
+  document.getElementById('progDetailTitle').textContent = label;
+  document.getElementById('progDetailLeader').textContent = `מוביל/ת: ${info.leader || '—'} · ${info.description || ''}`;
+
+  // KPIs
+  const tasks = (tasksCache||[]).filter(t => t.area === k);
+  const openTasks = tasks.filter(t => t.status !== 'done' && t.status !== 'cancelled');
+  const overdueTasks = openTasks.filter(t => daysDelta(t.dueDate) < 0);
+  const employees = (teamCache||[]).filter(t => (t.programs||[]).includes(k) || t.primaryProgram === k);
+  const finanRecords = (financeCache||[]).filter(r => r.purpose === k);
+  const totalSpent = finanRecords.filter(r => r.type === 'expense').reduce((s,r) => s + (r.amount||0), 0);
+  const totalRaised = finanRecords.filter(r => r.type === 'income').reduce((s,r) => s + (r.amount||0), 0);
+
+  document.getElementById('progDetailKpis').innerHTML = `
+    <div class="kpi"><div class="icon">💰</div><div class="label">תקציב שנתי</div><div class="value">₪${(info.annualBudget||0).toLocaleString()}</div></div>
+    <div class="kpi"><div class="icon">📥</div><div class="label">גויס לתוכנית</div><div class="value">₪${totalRaised.toLocaleString()}</div></div>
+    <div class="kpi"><div class="icon">📤</div><div class="label">הוצא בפועל</div><div class="value">₪${totalSpent.toLocaleString()}</div></div>
+    <div class="kpi"><div class="icon">✅</div><div class="label">משימות פתוחות</div><div class="value">${openTasks.length}</div></div>
+    <div class="kpi"><div class="icon">⚠️</div><div class="label">באיחור</div><div class="value" style="color:var(--danger)">${overdueTasks.length}</div></div>
+    <div class="kpi"><div class="icon">👥</div><div class="label">עובדים</div><div class="value">${employees.length}</div></div>
+  `;
+
+  // Goals + KPIs from workplan
+  const wpAreas = workplanCache?.areas?.[k] || {};
+  let goalsHtml = `<div style="background:var(--primary-soft);padding:12px;border-radius:var(--radius);margin-bottom:12px"><strong>${DEFAULT_AREA_GOALS[k]||''}</strong></div>`;
+  if (wpAreas.goals) goalsHtml += `<div style="margin-bottom:12px;white-space:pre-wrap;line-height:1.6">${wpAreas.goals}</div>`;
+  if (wpAreas.kpis && wpAreas.kpis.length) {
+    goalsHtml += '<h4 style="margin:14px 0 8px;color:var(--primary)">📊 מדדי תוצאה</h4>';
+    wpAreas.kpis.forEach(kp => {
+      const pct = kp.target ? Math.min(100, Math.round((kp.current||0)/kp.target*100)) : 0;
+      goalsHtml += `<div style="margin-bottom:8px;background:#f8fafc;padding:10px;border-radius:var(--radius-sm)">
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:4px"><strong>${kp.metric||''}</strong><span style="color:var(--muted)">${(kp.current||0).toLocaleString()} / ${(kp.target||0).toLocaleString()} ${kp.unit||''}</span></div>
+        <div style="background:var(--border);height:8px;border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--primary),var(--gold))"></div></div>
+      </div>`;
+    });
+  } else {
+    goalsHtml += '<p style="color:var(--muted);font-style:italic;font-size:0.88rem">אין מדדים מוגדרים. הגדירו ב<a href="#workplan" style="color:var(--gold)">תוכנית עבודה שנתית</a>.</p>';
+  }
+  goalsHtml += `<div style="margin-top:12px;text-align:right"><button class="btn btn-secondary btn-sm" onclick="switchSectionByName('workplan')">✏️ עריכה בתוכנית עבודה</button></div>`;
+  document.getElementById('progDetailGoals').innerHTML = goalsHtml;
+
+  // Budget summary
+  const gap = (info.annualBudget||0) - totalRaised;
+  const spentPct = info.annualBudget ? Math.round(totalSpent / info.annualBudget * 100) : 0;
+  document.getElementById('progDetailBudget').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+      <div style="background:#f0fdf4;padding:12px;border-radius:var(--radius-sm);border-right:3px solid var(--success)"><div style="color:var(--muted);font-size:0.78rem">גויס</div><div style="font-size:1.2rem;font-weight:700">₪${totalRaised.toLocaleString()}</div></div>
+      <div style="background:#fffbeb;padding:12px;border-radius:var(--radius-sm);border-right:3px solid var(--warning)"><div style="color:var(--muted);font-size:0.78rem">פער למימון</div><div style="font-size:1.2rem;font-weight:700;color:${gap>0?'var(--danger)':'var(--success)'}">₪${Math.max(0,gap).toLocaleString()}</div></div>
+      <div style="background:var(--primary-soft);padding:12px;border-radius:var(--radius-sm);border-right:3px solid var(--primary)"><div style="color:var(--muted);font-size:0.78rem">% מנוצל</div><div style="font-size:1.2rem;font-weight:700">${spentPct}%</div></div>
+    </div>
+    <div style="background:var(--border);height:12px;border-radius:6px;overflow:hidden;margin-bottom:6px"><div style="width:${spentPct}%;height:100%;background:linear-gradient(90deg,var(--primary),var(--gold))"></div></div>
+    <small style="color:var(--muted)">תקציב שנתי מתוכנן: ₪${(info.annualBudget||0).toLocaleString()}</small>
+  `;
+
+  // Tasks
+  if (openTasks.length === 0) {
+    document.getElementById('progDetailTasks').innerHTML = '<div class="empty-state" style="padding:14px">אין משימות פתוחות בתוכנית הזו</div>';
+  } else {
+    document.getElementById('progDetailTasks').innerHTML = '<table class="data-table"><thead><tr><th>משימה</th><th>אחראי</th><th>יעד</th><th>עדיפות</th></tr></thead><tbody>' +
+      openTasks.slice(0,10).map(t => {
+        const assignees = (t.assigneeNames||t.assignees||[]).join(', ') || '—';
+        const overdue = daysDelta(t.dueDate) < 0;
+        return `<tr style="cursor:pointer" onclick="openTaskDetails('${t.id}')"><td><strong>${t.title}</strong></td><td>${assignees}</td><td${overdue?' style="color:var(--danger);font-weight:600"':''}>${fmtDate(t.dueDate)}</td><td><span class="task-badge badge-${t.priority||'medium'}">${TASK_PRIORITIES[t.priority]||''}</span></td></tr>`;
+      }).join('') + '</tbody></table>' +
+      (openTasks.length > 10 ? `<small style="color:var(--muted)">מציג 10 מתוך ${openTasks.length} משימות פתוחות</small>` : '');
+  }
+
+  // Employees
+  if (employees.length === 0) {
+    document.getElementById('progDetailEmployees').innerHTML = `<div class="empty-state" style="padding:14px">אין עובדים משויכים לתוכנית הזו עדיין. <a href="#team" onclick="switchSectionByName('team');return false" style="color:var(--gold)">לעבור לניהול צוות →</a></div>`;
+  } else {
+    document.getElementById('progDetailEmployees').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' +
+      employees.map(e => `<div style="background:var(--primary-soft);padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-weight:600">${e.name||e.email}</div>
+        <div style="font-size:0.78rem;color:var(--muted)">${ROLES[e.role]||e.role||'—'}</div>
+      </div>`).join('') + '</div>';
+  }
+
+  // Vehicles
+  const vehicles = (vehiclesCache||[]).filter(v => v.area === k || (v.programs||[]).includes(k));
+  if (vehicles.length === 0) {
+    document.getElementById('progDetailVehicles').innerHTML = '<div class="empty-state" style="padding:14px">אין רכבים משויכים לתוכנית הזו</div>';
+  } else {
+    document.getElementById('progDetailVehicles').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' +
+      vehicles.map(v => `<div style="background:#fff;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-weight:600">${v.make||''} ${v.model||''}</div>
+        <div style="font-family:monospace;font-size:0.85rem;color:var(--muted)">${v.plate||'—'}</div>
+      </div>`).join('') + '</div>';
+  }
+
+  // Finance recent
+  const recent = finanRecords.slice().sort((a,b) => (b.purchaseDate||b.date||'').localeCompare(a.purchaseDate||a.date||'')).slice(0,8);
+  if (recent.length === 0) {
+    document.getElementById('progDetailFinance').innerHTML = '<div class="empty-state" style="padding:14px">אין רשומות פיננסיות לתוכנית עדיין</div>';
+  } else {
+    document.getElementById('progDetailFinance').innerHTML = '<table class="data-table"><thead><tr><th>סוג</th><th>תאריך</th><th>סכום</th><th>פירוט</th></tr></thead><tbody>' +
+      recent.map(r => `<tr><td>${r.type==='income'?'הכנסה':'הוצאה'}</td><td>${fmtDate(r.date||r.purchaseDate)}</td><td class="${r.type==='income'?'amount-positive':'amount-negative'}">₪${(r.amount||0).toLocaleString()}</td><td>${r.description||r.source||'—'}</td></tr>`).join('') + '</tbody></table>';
+  }
 }
 
 // ============================================================
@@ -2162,7 +2445,8 @@ const SECTION_TITLES = {
   vehicles: 'ניהול רכבים',
   team: 'ניהול צוות',
   workplan: 'תוכנית עבודה שנתית',
-  settings: 'הגדרות ארגון'
+  settings: 'הגדרות ארגון',
+  program: 'תוכנית'
 };
 let _navHistory = ['dashboard'];
 let _suppressHistoryPush = false;
@@ -2206,9 +2490,16 @@ function switchSection(id, el, opts) {
     const f = document.getElementById('tkFilterAssignee');
     if (f && !f.value) { f.value = 'me'; if (typeof renderTasks === 'function') renderTasks(); }
   }
-  // Dashboard: refresh attention widget
+  // Dashboard: refresh attention widget + program cards
   if (id === 'dashboard') {
-    setTimeout(() => { try { if (typeof loadAttentionWidget === 'function') loadAttentionWidget(); } catch(e) {} }, 200);
+    setTimeout(() => {
+      try { if (typeof loadAttentionWidget === 'function') loadAttentionWidget(); } catch(e) {}
+      try { if (typeof renderProgramCards === 'function') renderProgramCards(); } catch(e) {}
+    }, 200);
+  }
+  // Program detail
+  if (id === 'program') {
+    setTimeout(() => { try { renderProgramDetail(); } catch(e) {} }, 100);
   }
   // Workplan: load year data + render
   if (id === 'workplan') {
@@ -2887,12 +3178,13 @@ let workplanCache = null;
 let workplanYear = new Date().getFullYear();
 
 const DEFAULT_AREA_GOALS = {
-  'ruach-hashmonait': 'ליווי תורני-חינוכי לחיילי החטיבה — שמירה על זהות, ערכים ואורח חיים',
-  'lev-david':         'הכנה איכותית ומשמעותית לשירות צבאי — הכנה מנטלית, פיזית ורוחנית',
-  'beit-neeman':       'ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה',
-  'welfare-fund':      'סיוע מקיף לחיילים בודדים, חבילות חג, ציוד וליווי רגשי',
-  'torah-empowerment': 'הרחבת לימוד התורה בחטיבה — שיעורים, גישה טכנולוגית, ספרי קודש',
-  'shaar-yetzia':      'הכנה לקריירה אזרחית, הכשרות מקצועיות וקהילת בוגרים'
+  'ruach-hashmonait': 'ליווי רוחני-חינוכי אישי בבא"ח, גדוד וסיירת. שיעורים באמונה, ליווי חינוכי מסגרתי ושיקוף תמונת מצב למערכת',
+  'lev-david':         'מסלולי הכנה קדם-צבאיים: 3 מחזורי הכנה מרוכזת + 2 מחזורי מכינה חצי-שנתית. בניית עתודת לוחמים ומנהיגות',
+  'torah-empowerment': 'מבצעי לימוד חטיבתיים, ערבי "סיום מסכת", הפעלת כולל סופ"ש. הפצת דבר מלכות וכתיבת תכני "רוח חשמונאית"',
+  'beit-neeman':       'ליווי חתנים וכלות, מפגשי קהילת נשות החטיבה, מערך תמיכה ליולדות, חוסן משפחתי',
+  'shaar-yetzia':      'תוכנית "שער היציאה", הכנה לאזרחות ולתעסוקה, קהילות בוגרים נושאיות ומסגרתיות',
+  'welfare-fund':      'מענה לכלל צרכי החטיבה — חייל בודד, משפחות במצוקה, ערבי יחידה, ציוד וכו׳',
+  'admin-general':     'הנהלה ומטה, גיוס משאבים, מדידה, הוצאות קבועות (משרד, רו"ח, ייעוץ משפטי, ביטוחים)'
 };
 
 const QUARTER_LABELS = { Q1:'רבעון 1 — ינו׳-מר׳', Q2:'רבעון 2 — אפר׳-יונ׳', Q3:'רבעון 3 — יול׳-ספט׳', Q4:'רבעון 4 — אוק׳-דצמ׳' };
