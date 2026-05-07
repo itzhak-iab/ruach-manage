@@ -387,7 +387,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
     </div>
     <div id="fxBadge" style="text-align:center;font-size:0.75rem;color:rgba(255,255,255,0.7);padding:6px 8px;background:rgba(255,255,255,0.06);border-radius:6px;margin:4px 12px 0"></div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r45</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r46</div>
   </aside>
 
   <!-- Main Content -->
@@ -1572,7 +1572,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r45 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r46 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -1788,7 +1788,7 @@ const CONTRACT_ROLES = ['ram-plugati','resilience-lead','educational-director','
 // ============================================================
 // ===== CURRENCY — ILS ↔ USD live conversion ===============
 // ============================================================
-let _usdToIls = 3.55; // fallback rate (mid-2026 baseline; refreshed live)
+let _usdToIls = 2.90; // fallback rate (mid-2026 baseline; refreshed live)
 let _fxFetchedAt = null;
 let _fxIsManualOverride = false;
 let _fxSource = 'fallback';
@@ -1815,11 +1815,13 @@ async function loadUsdRate(force) {
   if (_fxIsManualOverride) { updateFxBadge(); return; }
   const today = new Date().toISOString().slice(0,10);
   if (!force && _fxFetchedAt === today && _fxSource === 'live') return;
-  // Try multiple endpoints — one might be blocked at the user's network/extension
+  // Try multiple endpoints — one might be blocked at the user's network/extension.
+  // Order matters: open.er-api.com gives full precision (e.g. 2.904242), exchangerate-api
+  // rounds to one decimal (2.9), so we prefer the precise one.
   const endpoints = [
-    { url:'https://api.exchangerate-api.com/v4/latest/USD', pick:d=>d?.rates?.ILS },
     { url:'https://open.er-api.com/v6/latest/USD',           pick:d=>d?.rates?.ILS },
-    { url:'https://api.frankfurter.app/latest?from=USD&to=ILS', pick:d=>d?.rates?.ILS }
+    { url:'https://api.frankfurter.app/latest?from=USD&to=ILS', pick:d=>d?.rates?.ILS },
+    { url:'https://api.exchangerate-api.com/v4/latest/USD', pick:d=>d?.rates?.ILS }
   ];
   for (const ep of endpoints) {
     try {
@@ -1877,26 +1879,39 @@ function openFxRateDialog() {
   const sourceLabel = _fxIsManualOverride ? 'ידני (override)' :
                       _fxSource === 'live' ? `חי — מ-${_fxFetchedAt||'היום'}` :
                       _fxSource === 'cache' ? 'מטמון' : 'ברירת מחדל';
-  const html = `
-    <p style="margin:0 0 10px"><strong>שער נוכחי:</strong> 1$ = ${current}₪ <small style="color:var(--muted)">(${sourceLabel})</small></p>
+  const isAdmin = userRole === 'admin';
+  const adminControls = isAdmin ? `
+    <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)">
+    <h4 style="margin:0 0 8px;color:var(--primary);font-size:0.95rem">⚙️ הגדרות מנהל</h4>
     <div class="form-row">
       <div class="form-field" style="grid-column:1/-1">
         <label>הגדר שער ידני (₪ ל-$)</label>
-        <input type="number" step="0.0001" id="fxOverrideInput" value="${current}" placeholder="למשל: 3.55">
-        <small style="color:var(--muted)">השאר ריק והקש "אוטומטי" כדי לחזור לשער חי</small>
+        <input type="number" step="0.0001" id="fxOverrideInput" value="${current}" placeholder="למשל: 2.91">
+        <small style="color:var(--muted)">בחר "💾 שמור" לקבע שער ידני, "🔄 אוטומטי" לחזור לשער חי</small>
       </div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-      <button class="btn btn-secondary" onclick="document.getElementById('fxRateModal').remove()">ביטול</button>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="setManualFxRate(0); document.getElementById('fxRateModal').remove()">🔄 חזור לאוטומטי</button>
-      <button class="btn btn-primary" onclick="setManualFxRate(parseFloat(document.getElementById('fxOverrideInput').value)); document.getElementById('fxRateModal').remove()">💾 שמור</button>
+      <button class="btn btn-primary" onclick="setManualFxRate(parseFloat(document.getElementById('fxOverrideInput').value)); document.getElementById('fxRateModal').remove()">💾 שמור שער ידני</button>
     </div>
+  ` : '';
+  const html = `
+    <p style="margin:0 0 10px;font-size:1.05rem"><strong>שער נוכחי:</strong> 1$ = ${current}₪</p>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:0.85rem">מקור: ${sourceLabel}</p>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:0.85rem">השער מתעדכן אוטומטית ממקורות ציבוריים אחת ביום. אם המקור החי לא זמין, נעשה שימוש במטמון מקומי.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="document.getElementById('fxRateModal').remove()">סגור</button>
+      <button class="btn btn-secondary" onclick="(async()=>{await loadUsdRate(true);document.getElementById('fxRateModal').remove();openFxRateDialog();})()">🔄 רענן עכשיו</button>
+    </div>
+    ${adminControls}
   `;
+  const existing = document.getElementById('fxRateModal');
+  if (existing) existing.remove();
   const modal = document.createElement('div');
   modal.id = 'fxRateModal';
   modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10001;align-items:center;justify-content:center;padding:20px';
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-  modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius);max-width:480px;width:100%;padding:24px;border-top:4px solid var(--gold)"><h3 style="margin:0 0 14px;color:var(--primary)">💱 שער חליפין USD ⇆ ILS</h3>${html}</div>`;
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius);max-width:520px;width:100%;padding:24px;border-top:4px solid var(--gold)"><h3 style="margin:0 0 14px;color:var(--primary)">💱 שער חליפין USD ⇆ ILS</h3>${html}</div>`;
   document.body.appendChild(modal);
 }
 
@@ -1904,15 +1919,14 @@ function updateFxBadge() {
   const el = document.getElementById('fxBadge');
   if (!el) return;
   const r = _usdToIls.toFixed(2);
-  const isAdmin = userRole === 'admin';
   const tag = _fxIsManualOverride ? '✏️' : (_fxSource === 'live' ? '🟢' : (_fxSource === 'cache' ? '🟡' : '⚠️'));
   el.innerHTML = `${tag} 1$ ≈ ${r}₪`;
-  el.title = _fxIsManualOverride ? 'שער מוגדר ידנית' :
-             _fxSource === 'live' ? `שער חי — עודכן ${_fxFetchedAt||''}` :
-             _fxSource === 'cache' ? 'שער מהמטמון (לא הצליח להתעדכן היום)' :
-             'ברירת מחדל — לא נטען שער חי';
-  el.style.cursor = isAdmin ? 'pointer' : 'default';
-  el.onclick = isAdmin ? openFxRateDialog : null;
+  el.title = _fxIsManualOverride ? 'שער מוגדר ידנית — לחץ לעריכה' :
+             _fxSource === 'live' ? `שער חי — עודכן ${_fxFetchedAt||''} (לחץ לרענון)` :
+             _fxSource === 'cache' ? 'שער מהמטמון — לחץ לרענון' :
+             'ברירת מחדל — לחץ לרענון';
+  el.style.cursor = 'pointer';
+  el.onclick = openFxRateDialog;
 }
 
 // Re-render any UI that shows USD conversions, after the rate updates
