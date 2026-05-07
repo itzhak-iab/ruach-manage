@@ -387,7 +387,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
     </div>
     <div id="fxBadge" style="text-align:center;font-size:0.75rem;color:rgba(255,255,255,0.7);padding:6px 8px;background:rgba(255,255,255,0.06);border-radius:6px;margin:4px 12px 0"></div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r46</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r47</div>
   </aside>
 
   <!-- Main Content -->
@@ -1378,50 +1378,26 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <h1 data-i18n="page.team.title">ניהול צוות</h1>
         <p>הרשאות גישה למערכת</p>
       </div>
-      <!-- Permission legend — explains what each tier means -->
-      <div class="card" style="background:var(--primary-soft);border-right:4px solid var(--primary)">
-        <h3 style="margin:0 0 10px">🔑 מה זה אומר — רמות הרשאה</h3>
-        <table class="data-table" style="margin:0">
-          <thead><tr><th>רמה</th><th>רואה</th><th>עורך</th><th>שיוך לתוכניות?</th></tr></thead>
-          <tbody>
-            <tr><td><strong>🔓 מנהל</strong></td><td>הכל</td><td>הכל + מנהל צוות + הגדרות</td><td>לא רלוונטי</td></tr>
-            <tr><td><strong>✏️ חבר צוות / עובד / מתנדב / תפקיד חוזה</strong></td><td>הכל</td><td><strong>רק</strong> תוכניות שמשויך אליהן</td><td>חובה</td></tr>
-            <tr><td><strong>👁️ צופה (תורם / שותף / כללי)</strong></td><td>הכל</td><td>אף-אחד (read-only)</td><td>לא רלוונטי</td></tr>
-          </tbody>
-        </table>
-        <p style="margin:10px 0 0;font-size:0.85rem;color:var(--muted)">תפקידי החוזה (ר"מ פלוגתי, מוביל חוסן וכו׳) הם חברי צוות שגם מגישים דוח שבועי לפי החוזה.</p>
-      </div>
-
       <div class="card">
         <h3>הוסף חבר צוות / שותף / תורם</h3>
         <div class="form-row">
           <div class="form-field"><label>אימייל Google</label><input type="email" id="teamEmail" placeholder="user@gmail.com" dir="ltr"></div>
           <div class="form-field"><label>שם</label><input type="text" id="teamName" placeholder="שם מלא"></div>
-          <div class="form-field"><label>תפקיד</label>
-            <select id="teamRole" onchange="onTeamRoleChange()">
-              <optgroup label="🔓 גישה מלאה">
-                <option value="admin">מנהל</option>
-              </optgroup>
-              <optgroup label="✏️ חבר צוות (עורך תוכניות שמשויך אליהן)">
-                <option value="team">חבר צוות / מנהל בכיר</option>
-                <option value="employee">עובד</option>
-                <option value="volunteer">מתנדב</option>
-                <option value="ram-plugati">ר"מ פלוגתי (מגיש דוח שבועי)</option>
-                <option value="resilience-lead">מוביל תוכנית חוסן ואמונה (מגיש דוח שבועי)</option>
-                <option value="educational-director">מנהל חינוכי (מגיש דוח שבועי)</option>
-                <option value="grooms-rams-mentor">מוביל תחום חתנים ומדריך ר"מים (מגיש דוח שבועי)</option>
-              </optgroup>
-              <optgroup label="👁️ צפייה בלבד (read-only)">
-                <option value="donor-viewer">תורם — רואה הכל ללא עריכה</option>
-                <option value="partner-viewer">שותף — רואה הכל ללא עריכה</option>
-                <option value="viewer">צופה כללי</option>
-              </optgroup>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>תפקיד <small style="color:var(--muted);font-weight:400">(טקסט חופשי)</small></label><input type="text" id="teamTitle" placeholder='למשל: מנכ"ל, מנהל תפעול, ר"מ פלוגתי, מוביל תוכנית'></div>
+          <div class="form-field"><label>הרשאה</label>
+            <select id="teamPermission" onchange="onTeamPermissionChange()">
+              <option value="view-only">👁️ צפייה בלבד</option>
+              <option value="edit-specific" selected>✏️ עריכת תוכניות מסוימות</option>
+              <option value="edit-all">✏️ עריכת כל התוכניות</option>
+              <option value="admin">🔓 מנהל מערכת (גישה מלאה + ניהול צוות)</option>
             </select>
           </div>
         </div>
         <div class="form-row" id="teamProgsRow">
           <div class="form-field" style="grid-column:1/-1">
-            <label>שיוך לתוכניות <span id="teamProgsHint" style="color:var(--muted);font-weight:400;font-size:0.85rem"></span></label>
+            <label>תוכניות לעריכה <span id="teamProgsHint" style="color:var(--muted);font-weight:400;font-size:0.85rem"></span></label>
             <div id="teamProgsWrap" style="background:var(--primary-soft);padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border)">
               <label style="display:inline-flex;align-items:center;gap:6px;margin-left:14px;cursor:pointer;font-weight:600">
                 <input type="checkbox" id="teamProgAll" onchange="toggleAllTeamPrograms()" style="width:16px;height:16px"> כל התוכניות
@@ -1435,8 +1411,8 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
       <div class="card">
         <h3>חברי צוות</h3>
         <table class="data-table">
-          <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>פעולות</th></tr></thead>
-          <tbody id="teamTableBody"><tr><td colspan="4" class="empty-state">טוען...</td></tr></tbody>
+          <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>הרשאה</th><th>פעולות</th></tr></thead>
+          <tbody id="teamTableBody"><tr><td colspan="5" class="empty-state">טוען...</td></tr></tbody>
         </table>
       </div>
 
@@ -1572,7 +1548,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r46 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r47 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -1751,37 +1727,49 @@ const ROLES = {
   viewer:'צופה כללי'
 };
 
-// Permission tier per role — maps every role to one of: 'admin' | 'team-edit' | 'view-all'
-// admin: full access · team-edit: read all + edit assigned programs · view-all: read-only across all
+// Permission tier per role — maps every legacy role to one of:
+//   'admin' | 'edit-all' | 'edit-specific' | 'view-only'
+// admin: full access · edit-all: edit any program · edit-specific: edit assigned programs only · view-only: read-only
 const ROLE_PERMISSIONS = {
   admin: 'admin',
-  team: 'team-edit',
-  employee: 'team-edit',
-  volunteer: 'team-edit',
-  'ram-plugati': 'team-edit',
-  'resilience-lead': 'team-edit',
-  'educational-director': 'team-edit',
-  'grooms-rams-mentor': 'team-edit',
-  'partner-viewer': 'view-all',
-  'donor-viewer': 'view-all',
-  viewer: 'view-all'
+  team: 'edit-all',           // legacy "team / senior staff"
+  employee: 'edit-specific',
+  volunteer: 'edit-specific',
+  'ram-plugati': 'edit-specific',
+  'resilience-lead': 'edit-specific',
+  'educational-director': 'edit-specific',
+  'grooms-rams-mentor': 'edit-specific',
+  'partner-viewer': 'view-only',
+  'donor-viewer': 'view-only',
+  viewer: 'view-only'
 };
+
+// Map legacy role string → permission tier (used for users without explicit `permission` field)
+function _legacyRoleToPermission(r) {
+  return ROLE_PERMISSIONS[r] || 'view-only';
+}
+
+// Get current user's effective permission tier — prefers new `permission` field, falls back to derived from legacy role
+function _userPermission() {
+  const me = (typeof teamCache !== 'undefined' ? teamCache : []).find(t => t.email === currentUser?.email);
+  if (me?.permission) return me.permission;
+  return _legacyRoleToPermission(userRole);
+}
 
 // Helper: check if current user can edit a given program
 function canEditProgram(progKey) {
-  const perm = ROLE_PERMISSIONS[userRole] || 'view-all';
-  if (perm === 'admin') return true;
-  if (perm === 'view-all') return false;
-  // team-edit: only assigned programs
-  const me = (teamCache||[]).find(t => t.email === currentUser?.email);
+  const perm = _userPermission();
+  if (perm === 'admin' || perm === 'edit-all') return true;
+  if (perm === 'view-only') return false;
+  // edit-specific: only assigned programs
+  const me = (typeof teamCache !== 'undefined' ? teamCache : []).find(t => t.email === currentUser?.email);
   const assigned = (me?.programs)||[];
   return assigned.includes(progKey);
 }
 
 // Quick check for any edit permission (used to hide global "+" buttons for viewers)
 function canEditAny() {
-  const perm = ROLE_PERMISSIONS[userRole] || 'view-all';
-  return perm !== 'view-all';
+  return _userPermission() !== 'view-only';
 }
 const CONTRACT_ROLES = ['ram-plugati','resilience-lead','educational-director','grooms-rams-mentor'];
 
@@ -2433,6 +2421,9 @@ auth.onAuthStateChanged(async user => {
     } else {
       const td = teamDoc.data();
       userRole = td.role;
+      // Capture display title (free-text "תפקיד") and explicit permission, with legacy fallbacks
+      window.userRoleTitle = td.roleTitle || ROLES[td.role] || td.role || '';
+      window.userPermission = td.permission || _legacyRoleToPermission(td.role);
       // Set the user's org. Legacy users without orgId default to DEFAULT_ORG_ID and get backfilled.
       currentOrgId = td.orgId || DEFAULT_ORG_ID;
       // Update photo/name silently + backfill orgId if missing
@@ -2465,7 +2456,7 @@ function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('userName').textContent = user.displayName || user.email;
-  document.getElementById('userRole').textContent = ROLES[userRole] || userRole;
+  document.getElementById('userRole').textContent = window.userRoleTitle || ROLES[userRole] || userRole;
   document.getElementById('userPhoto').src = user.photoURL || '';
   // Refresh FX badge now that userRole is known (admin gets click-to-edit cursor)
   try { updateFxBadge(); } catch(e) {}
@@ -4011,7 +4002,7 @@ function switchSection(id, el, opts) {
   if (id === 'team') {
     setTimeout(() => {
       try { renderTeamProgramsList(); } catch(e) {}
-      try { onTeamRoleChange(); } catch(e) {}
+      try { onTeamPermissionChange(); } catch(e) {}
     }, 100);
   }
   // Settings: load form values from currentOrgInfo
@@ -7779,9 +7770,29 @@ async function loadTeam() {
   snap.forEach(doc => { const d = doc.data(); if (_orgMatch(d)) rows.push({id:doc.id,...d}); });
   const tbody = document.getElementById('teamTableBody');
   tbody.innerHTML = rows.map(r => {
-    const badgeCls = ({admin:'badge-admin',team:'badge-team','ram-plugati':'badge-ram','resilience-lead':'badge-resilience','educational-director':'badge-edudir','grooms-rams-mentor':'badge-grooms',viewer:'badge-viewer'})[r.role] || 'badge-viewer';
-    return `<tr><td>${r.name||'—'}</td><td dir="ltr">${r.email||r.id}</td><td><span class="badge ${badgeCls}">${ROLES[r.role]||r.role}</span></td><td>${r.email!==currentUser.email?'<button class="btn btn-danger btn-sm" onclick="delDoc(\'team\',\''+r.id+'\')">הסר</button>':'(אתה)'}</td></tr>`;
-  }).join('');
+    const title = r.roleTitle || ROLES[r.role] || '—';
+    const perm = r.permission || _legacyRoleToPermission(r.role);
+    const progCount = (r.programs||[]).length;
+    const permBadgeData = {
+      'admin':         { lbl:'🔓 מנהל מערכת',          color:'#dc2626' },
+      'edit-all':      { lbl:'✏️ עריכת כל התוכניות',  color:'#0891b2' },
+      'edit-specific': { lbl:`✏️ ${progCount} תוכניות`, color:'#16a34a' },
+      'view-only':     { lbl:'👁️ צפייה בלבד',          color:'#6b7280' }
+    }[perm] || { lbl:perm, color:'#6b7280' };
+    const progList = (perm === 'edit-specific' && progCount > 0)
+      ? `<br><small style="color:var(--muted);font-weight:400">${(r.programs||[]).map(k => getOrgAreaLabel(k)).join(' · ')}</small>`
+      : '';
+    const action = r.email !== currentUser.email
+      ? `<button class="btn btn-danger btn-sm" onclick="delDoc('team','${r.id}')">הסר</button>`
+      : '<small style="color:var(--muted)">(אתה)</small>';
+    return `<tr>
+      <td>${r.name||'—'}</td>
+      <td dir="ltr">${r.email||r.id}</td>
+      <td>${title}</td>
+      <td><span style="background:${permBadgeData.color};color:#fff;padding:3px 10px;border-radius:6px;font-size:0.78rem;font-weight:600;display:inline-block">${permBadgeData.lbl}</span>${progList}</td>
+      <td>${action}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="empty-state">לא נמצאו חברי צוות</td></tr>';
 }
 
 // Build the program checkbox list in the add-team form
@@ -7802,58 +7813,71 @@ function toggleAllTeamPrograms() {
   document.querySelectorAll('.team-prog-cb').forEach(cb => { cb.checked = all; cb.disabled = all; });
 }
 
-// When role changes, update the program assignment UI hint based on permission tier
-function onTeamRoleChange() {
-  const role = document.getElementById('teamRole')?.value || 'team';
-  const tier = ROLE_PERMISSIONS[role] || 'view-all';
+// When permission changes, show/hide the program-assignment list and update the hint text
+function onTeamPermissionChange() {
+  const perm = document.getElementById('teamPermission')?.value || 'edit-specific';
   const hint = document.getElementById('teamProgsHint');
   const row = document.getElementById('teamProgsRow');
-  const allCb = document.getElementById('teamProgAll');
   if (!hint || !row) return;
-  if (tier === 'admin') {
-    hint.textContent = ' — מנהל רואה ועורך הכל ללא קשר לשיוך';
-    row.style.opacity = '0.5';
-    if (allCb) { allCb.checked = true; toggleAllTeamPrograms(); }
-  } else if (tier === 'view-all') {
-    hint.textContent = ' — צופה רואה הכל ללא קשר לשיוך (השדה למטה אופציונלי)';
-    row.style.opacity = '0.7';
+  if (perm === 'admin') {
+    hint.textContent = ' — מנהל גישה מלאה, ללא צורך לשייך תוכניות';
+    row.style.display = 'none';
+  } else if (perm === 'edit-all') {
+    hint.textContent = ' — משתמש זה יוכל לערוך את כל התוכניות, ללא צורך לבחור';
+    row.style.display = 'none';
+  } else if (perm === 'view-only') {
+    hint.textContent = ' — צפייה בלבד בכל המערכת, ללא צורך לבחור תוכניות';
+    row.style.display = 'none';
   } else {
-    // team-edit
-    hint.innerHTML = ' — <strong style="color:var(--gold-dark)">חובה לבחור</strong> — חבר צוות יכול לערוך רק תוכניות אלו';
-    row.style.opacity = '1';
+    // edit-specific
+    hint.innerHTML = ' — <strong style="color:var(--gold-dark)">חובה לבחור</strong> אילו תוכניות ניתן לערוך';
+    row.style.display = '';
   }
 }
 
 async function addTeamMember() {
   const email = document.getElementById('teamEmail').value.trim().toLowerCase();
   const name = document.getElementById('teamName').value.trim();
-  const role = document.getElementById('teamRole').value;
+  const roleTitle = document.getElementById('teamTitle').value.trim();
+  const permission = document.getElementById('teamPermission').value || 'edit-specific';
   if (!email) { toast('יש להזין אימייל','error'); return; }
-  const tier = ROLE_PERMISSIONS[role] || 'view-all';
-  // Collect program assignments
-  const allChecked = document.getElementById('teamProgAll')?.checked;
-  const programs = allChecked
-    ? getOrgAreaKeys().slice() // all programs
-    : Array.from(document.querySelectorAll('.team-prog-cb:checked')).map(cb => cb.value);
-  // Enforce: team-edit role MUST have at least one program assigned
-  if (tier === 'team-edit' && programs.length === 0) {
-    toast('חבר צוות חייב להיות משויך לפחות לתוכנית אחת','error');
-    document.getElementById('teamProgsWrap')?.scrollIntoView({behavior:'smooth'});
-    return;
+  if (!roleTitle) { toast('יש להזין תפקיד','error'); document.getElementById('teamTitle')?.focus(); return; }
+  // Collect program assignments only when relevant
+  let programs = [];
+  if (permission === 'edit-specific') {
+    const allChecked = document.getElementById('teamProgAll')?.checked;
+    programs = allChecked
+      ? getOrgAreaKeys().slice()
+      : Array.from(document.querySelectorAll('.team-prog-cb:checked')).map(cb => cb.value);
+    if (programs.length === 0) {
+      toast('יש לבחור לפחות תוכנית אחת לעריכה','error');
+      document.getElementById('teamProgsWrap')?.scrollIntoView({behavior:'smooth'});
+      return;
+    }
   }
+  // Map permission → legacy `role` field for backward compat with all the existing
+  // userRole === 'admin' || userRole === 'team' style checks throughout the codebase
+  const legacyRole = ({
+    'admin':         'admin',
+    'edit-all':      'team',
+    'edit-specific': 'employee',
+    'view-only':     'viewer'
+  })[permission] || 'viewer';
   try {
     await db.collection('team').doc(email).set({
-      name, email, role,
-      programs,                 // explicit program assignments
+      name, email,
+      roleTitle, permission, programs,
+      role: legacyRole,
       orgId: currentOrgId,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    console.log('[SAVE OK] team doc:', email);
+    console.log('[SAVE OK] team doc:', email, '| permission:', permission, '| programs:', programs.length);
     document.getElementById('teamEmail').value = '';
     document.getElementById('teamName').value = '';
+    document.getElementById('teamTitle').value = '';
     document.querySelectorAll('.team-prog-cb').forEach(cb => { cb.checked = false; cb.disabled = false; });
     const all = document.getElementById('teamProgAll'); if (all) all.checked = false;
-    toast(`נוסף ${name||email} (${programs.length} תוכניות) ✓`);
+    toast(`נוסף ${name||email} ✓`);
     loadTeam();
   } catch(e) {
     console.error('[SAVE FAIL] team:', e);
