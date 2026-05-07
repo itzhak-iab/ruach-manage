@@ -386,7 +386,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
       <button type="button" id="i18n-en-btn" onclick="setAppLang('en')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;cursor:pointer;font-size:0.82rem">🇬🇧 English</button>
     </div>
     <div class="nav-item logout" onclick="signOutUser()"><span class="icon">🚪</span> <span data-i18n="nav.logout">התנתק</span></div>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r41</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.5);margin-top:8px">v2026.05.07-r42</div>
   </aside>
 
   <!-- Main Content -->
@@ -575,7 +575,14 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
           <div class="form-field"><label>סוג</label>
             <select id="finType" onchange="toggleFinType()"><option value="income">הכנסה</option><option value="expense">הוצאה</option></select>
           </div>
-          <div class="form-field"><label>סכום (₪)</label><input type="number" id="finAmount" placeholder="0"></div>
+          <div class="form-field" style="flex:2">
+            <label>סכום</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div style="flex:1"><input type="number" id="finAmount" placeholder="₪ שקלים" oninput="onFinAmountChange('ils')" style="width:100%"></div>
+              <span style="color:var(--muted)">⇄</span>
+              <div style="flex:1"><input type="number" id="finAmountUsd" placeholder="$ דולרים" oninput="onFinAmountChange('usd')" style="width:100%"></div>
+            </div>
+          </div>
           <div class="form-field" id="finSourceField"><label>מקור</label><input type="text" id="finSource" placeholder="שם התורם / מקור"></div>
           <div class="form-field"><label>מטרה</label>
             <select id="finPurpose">
@@ -944,16 +951,8 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
           <div class="form-field"><label>טלפון</label><input type="tel" id="donPhone" placeholder="05X-XXXXXXX" dir="ltr"></div>
           <div class="form-field"><label>אימייל</label><input type="email" id="donEmail" placeholder="email@example.com" dir="ltr"></div>
           <div class="form-field"><label>סכום תרומה (₪)</label><input type="number" id="donAmount" placeholder="0"></div>
-          <div class="form-field"><label>מטרה</label>
-            <select id="donPurpose">
-              <option value="ruach-hashmonait">רוח חשמונאית — ליווי תורני חינוכי</option>
-              <option value="lev-david">לב דוד — הכנה לשירות משמעותי</option>
-              <option value="beit-neeman">בית נאמן — ליווי חתנים וחיזוק התא המשפחתי של לוחמי ומפקדי החטיבה</option>
-              <option value="welfare-fund">קרן הרווחה והסיוע לחייל ולחטיבה</option>
-              <option value="torah-empowerment">העצמת לימוד התורה בחטיבה</option>
-              <option value="shaar-yetzia">שער יציאה — חשמונאים לעתיד ישראל</option>
-              <option value="general">כללי</option>
-            </select>
+          <div class="form-field"><label>מטרה / תוכנית</label>
+            <select id="donPurpose"><option value="general">כללי</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -1558,7 +1557,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r41 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r42 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -4883,11 +4882,48 @@ function checkPublicRoute() {
 }
 
 // ===== FINANCE EDIT =====
+// Live ILS↔USD sync for finance edit modal
+function onFeAmountChange(source) {
+  const ilsEl = document.getElementById('fe_amount');
+  const usdEl = document.getElementById('fe_amount_usd');
+  if (!ilsEl || !usdEl) return;
+  if (source === 'ils') {
+    const ils = Number(ilsEl.value)||0;
+    usdEl.value = ilsToUsd(ils);
+  } else {
+    const usd = Number(usdEl.value)||0;
+    ilsEl.value = usdToIls(usd);
+  }
+}
+
+// Same for the main "Add finance record" form
+function onFinAmountChange(source) {
+  const ilsEl = document.getElementById('finAmount');
+  const usdEl = document.getElementById('finAmountUsd');
+  if (!ilsEl || !usdEl) return;
+  if (source === 'ils') {
+    const ils = Number(ilsEl.value)||0;
+    usdEl.value = ilsToUsd(ils);
+  } else {
+    const usd = Number(usdEl.value)||0;
+    ilsEl.value = usdToIls(usd);
+  }
+}
+
 function openFinanceEdit(id) {
   const r = (financeCache||[]).find(x => x.id === id);
   if (!r) return;
   const body = document.getElementById('finEditBody');
-  const purposeOpts = Object.entries(PURPOSES).map(([k,v])=>`<option value="${k}"${r.purpose===k?' selected':''}>${v}</option>`).join('');
+  // Build purpose options from current org's areas + utility categories — no legacy duplicates.
+  // If existing record uses a legacy key, include it once for backward compat.
+  const orgKeys = getOrgAreaKeys();
+  const utilityKeys = ['general']; // 'admin', 'vehicle', 'office' are operational, kept only if record uses them
+  const validKeys = [...orgKeys, ...utilityKeys];
+  // Make sure the record's current purpose is selectable even if it's a legacy alias
+  if (r.purpose && !validKeys.includes(r.purpose) && PURPOSES[r.purpose]) {
+    validKeys.push(r.purpose);
+  }
+  const purposeOpts = validKeys.map(k => `<option value="${k}"${r.purpose===k?' selected':''}>${PURPOSES[k]||getOrgAreaLabel(k)||k}</option>`).join('');
   const typeHe = r.type === 'income' ? 'הכנסה' : 'הוצאה';
   const dateField = r.type === 'income'
     ? `<div class="form-field"><label>תאריך</label><input type="date" id="fe_date" value="${r.date||''}"></div>`
@@ -4912,9 +4948,19 @@ function openFinanceEdit(id) {
       <strong>סוג:</strong> ${typeHe} · <strong>נוצר ע״י:</strong> ${creatorName}${r.updatedBy?` · <strong>עודכן לאחרונה ע״י:</strong> ${((teamCache||[]).find(t=>t.email===r.updatedBy)?.name)||r.updatedBy}`:''}
     </div>
     <div class="form-row">
-      <div class="form-field"><label>סכום (₪)</label><input type="number" id="fe_amount" value="${r.amount||0}"></div>
+      <div class="form-field" style="grid-column:1/-1;background:var(--gold-soft);padding:10px 12px;border-radius:var(--radius-sm)">
+        <label style="font-weight:600">סכום</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px"><small style="color:var(--muted);display:block;margin-bottom:2px">בשקלים (₪)</small><input type="number" id="fe_amount" value="${r.amount||0}" oninput="onFeAmountChange('ils')" style="width:100%"></div>
+          <div style="font-size:1.4rem;color:var(--muted)">⇄</div>
+          <div style="flex:1;min-width:140px"><small style="color:var(--muted);display:block;margin-bottom:2px">בדולרים ($)</small><input type="number" id="fe_amount_usd" value="${ilsToUsd(r.amount||0)}" oninput="onFeAmountChange('usd')" style="width:100%"></div>
+        </div>
+        <small style="color:var(--muted);display:block;margin-top:4px">שער חליפין: 1$ ≈ ${_usdToIls.toFixed(2)}₪ · נשמר תמיד בשקלים</small>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-field"><label>${r.type==='income'?'מקור':'ספק'}</label><input type="text" id="fe_source" value="${(r.source||'').replace(/"/g,'&quot;')}"></div>
-      <div class="form-field"><label>מטרה</label><select id="fe_purpose">${purposeOpts}</select></div>
+      <div class="form-field"><label>מטרה / תוכנית</label><select id="fe_purpose">${purposeOpts}</select></div>
       ${dateField}
     </div>
     ${descField}
