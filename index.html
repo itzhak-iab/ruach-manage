@@ -8,11 +8,15 @@
 <meta http-equiv="Expires" content="0">
 <title>NGO Core — מערכת ניהול לעמותות</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1a8a9a">
+<meta name="theme-color" content="#15a4b8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="חשמונאים">
+<meta name="apple-mobile-web-app-title" content="NGO Core">
 <link rel="apple-touch-icon" href="icon-192.png">
+<!-- Security headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="index, follow">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -79,10 +83,14 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 .landing-nav .nav-links a{color:var(--ngo-fg-soft);text-decoration:none;font-weight:500;font-size:0.88rem;cursor:pointer;transition:color 0.15s ease;letter-spacing:-0.01em}
 .landing-nav .nav-links a:hover{color:var(--ngo-fg)}
 
-/* Hero — centered Apple style with massive typography */
-.landing-hero{padding:96px 0 80px;text-align:center;position:relative}
-.landing-hero .hero-logo{display:block;margin:0 auto 38px;height:160px;width:auto;animation:heroFloat 4s ease-in-out infinite}
-@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+/* Hero — centered Apple style with massive typography + video loop */
+.landing-hero{padding:80px 0 70px;text-align:center;position:relative}
+.hero-logo-wrap{display:flex;justify-content:center;align-items:center;margin:0 auto 42px;position:relative;width:100%}
+.hero-logo-wrap video{width:auto;height:340px;max-width:100%;object-fit:contain;border-radius:0;filter:drop-shadow(0 30px 60px rgba(21,164,184,0.18)) drop-shadow(0 18px 36px rgba(193,154,74,0.12))}
+.hero-logo-wrap .hero-logo-fallback{display:none;height:340px;width:auto;max-width:100%;animation:heroFloat 4s ease-in-out infinite}
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+/* Leaf accent — used as a subtle decoration */
+.leaf-mark{display:inline-block;height:1em;width:auto;vertical-align:middle;margin:0 4px}
 .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(193,154,74,0.1);color:var(--ngo-gold-deep);padding:5px 14px;border-radius:100px;font-size:0.78rem;font-weight:600;letter-spacing:0.02em;margin-bottom:26px}
 .hero-badge::before{content:"";display:inline-block;width:6px;height:6px;background:var(--ngo-gold);border-radius:50%}
 .landing-hero h1{font-size:4rem;line-height:1.05;font-weight:700;color:var(--ngo-fg);letter-spacing:-0.035em;margin:0 0 22px;font-family:inherit;max-width:880px;margin-left:auto;margin-right:auto}
@@ -157,6 +165,20 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 
 /* Section bands — subtle alternating */
 .section-band-soft{background:var(--ngo-bg-soft);margin:0 -28px;padding-left:28px;padding-right:28px;border-radius:0}
+
+/* Contact form */
+.contact-form{max-width:640px;margin:0 auto}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.contact-form .ff{margin-bottom:14px}
+.contact-form label{display:block;font-size:0.86rem;color:var(--ngo-fg);font-weight:500;margin-bottom:6px;letter-spacing:-0.005em}
+.contact-form label .req{color:var(--ngo-gold);font-weight:700}
+.contact-form input,.contact-form textarea{width:100%;padding:13px 16px;border:1px solid rgba(0,0,0,0.1);border-radius:12px;font-size:0.96rem;font-family:inherit;background:#fff;color:var(--ngo-fg);transition:all 0.2s cubic-bezier(0.4,0,0.2,1);outline:0;letter-spacing:-0.005em}
+.contact-form input:focus,.contact-form textarea:focus{border-color:var(--ngo-teal);box-shadow:0 0 0 4px rgba(21,164,184,0.1)}
+.contact-form textarea{resize:vertical;min-height:80px;line-height:1.5}
+.contact-form button.cta{margin-top:8px;display:flex;margin-left:auto;margin-right:auto}
+.contact-status{margin-top:14px;text-align:center;font-size:0.9rem;min-height:1.2em}
+.contact-status.success{color:var(--ngo-teal-deep);font-weight:600}
+.contact-status.error{color:#dc2626;font-weight:600}
 
 /* Onboarding overlay — Apple-style modal */
 .onboarding-overlay{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;background:linear-gradient(180deg,#fafafa 0%,#f0f8fa 100%)}
@@ -453,7 +475,13 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 
       <!-- Hero — Apple-style centered with massive logo + tagline -->
       <section class="landing-hero" id="top">
-        <img id="ngoLogoHero" class="hero-logo" src="" alt="NGO Core">
+        <div class="hero-logo-wrap">
+          <video autoplay muted loop playsinline preload="auto" poster="" id="heroLogoVideo" aria-label="NGO Core animated logo" onerror="document.getElementById('heroLogoVideo').style.display='none';document.getElementById('heroLogoFallback').style.display='block'">
+            <source src="https://ngocore.io/logo-loop.mp4" type="video/mp4">
+            <source src="/logo-loop.mp4" type="video/mp4">
+          </video>
+          <img id="heroLogoFallback" class="hero-logo-fallback" src="" alt="NGO Core">
+        </div>
         <span class="hero-badge">בטא · חינם בשלב זה</span>
         <h1>הניהול של עמותה אמיתית.<br><span class="accent">בלי גליונות. בלי כאב ראש.</span></h1>
         <p class="lede">NGO Core מאחד תוכניות, תקציב, שותפים ושקיפות לתורמים — במערכת אחת. תוך חמש דקות, העמותה שלך מוכנה להציג את האימפקט שלה לתורמים האמיתיים.</p>
@@ -535,6 +563,25 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
           <div class="step"><div class="step-num">2</div><h3>מקים את הארגון</h3><p>שם העמותה, מספר ע.ר., לוגו. דקה — ואתה בפנים.</p></div>
           <div class="step"><div class="step-num">3</div><h3>מתחיל לנהל</h3><p>תוכניות, תקציב, צוות. הזמן את שאר הצוות — וחיים.</p></div>
         </div>
+      </section>
+
+      <!-- Contact form — leave details so we can follow up -->
+      <section class="landing-section section-band-soft" id="contactSection">
+        <h2>רוצה לדבר?</h2>
+        <p class="sub">השאר פרטים ונחזור אליך עם הצעה מותאמת לארגון שלך. אין spam.</p>
+        <form class="contact-form" id="leadForm" onsubmit="submitLead(event)">
+          <div class="contact-grid">
+            <div class="ff"><label>שם מלא <span class="req">*</span></label><input type="text" id="leadName" required placeholder="ישראל ישראלי"></div>
+            <div class="ff"><label>אימייל <span class="req">*</span></label><input type="email" id="leadEmail" required placeholder="info@your-ngo.org.il" dir="ltr"></div>
+          </div>
+          <div class="contact-grid">
+            <div class="ff"><label>שם הארגון</label><input type="text" id="leadOrg" placeholder='למשל: עמותת "אור בנגב"'></div>
+            <div class="ff"><label>טלפון</label><input type="tel" id="leadPhone" placeholder="050-1234567" dir="ltr"></div>
+          </div>
+          <div class="ff"><label>הודעה <small style="color:var(--ngo-fg-soft);font-weight:400">(אופציונלי)</small></label><textarea id="leadMessage" rows="3" placeholder="ספרי בקצרה על הארגון שלך, מה מחפשים..."></textarea></div>
+          <button type="submit" class="cta cta-primary" id="leadSubmit">שלח →</button>
+          <p class="contact-status" id="leadStatus"></p>
+        </form>
       </section>
 
       <!-- Pricing -->
@@ -683,7 +730,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r65</div>
+      <div class="ngocore-version">v2026.05.07-r66</div>
     </div>
   </aside>
 
@@ -1878,7 +1925,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r65 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r66 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -2762,6 +2809,44 @@ function signOutUser() {
 }
 
 // ============================================================
+// ===== CONTACT FORM (landing page leads) ====================
+// ============================================================
+async function submitLead(ev) {
+  ev.preventDefault();
+  const btn = document.getElementById('leadSubmit');
+  const status = document.getElementById('leadStatus');
+  const name = document.getElementById('leadName').value.trim();
+  const email = document.getElementById('leadEmail').value.trim();
+  const org = document.getElementById('leadOrg').value.trim();
+  const phone = document.getElementById('leadPhone').value.trim();
+  const message = document.getElementById('leadMessage').value.trim();
+  if (!name || !email) { status.className='contact-status error'; status.textContent='שם ואימייל חובה'; return; }
+  btn.disabled = true; btn.textContent = '⏳ שולח...';
+  status.className = 'contact-status'; status.textContent = '';
+  try {
+    // Write to a public 'leads' collection in Firestore. Open writes are guarded by rate limits + hcaptcha can be added later.
+    await db.collection('leads').add({
+      name, email, org, phone, message,
+      source: 'landing',
+      userAgent: navigator.userAgent.slice(0, 200),
+      referrer: document.referrer || '',
+      ipDomain: location.hostname,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    status.className = 'contact-status success';
+    status.textContent = '✓ תודה! נחזור אליך תוך 24 שעות.';
+    btn.style.display = 'none';
+    // Clear form fields
+    document.getElementById('leadForm').reset();
+  } catch(e) {
+    console.error('[lead] failed:', e);
+    status.className = 'contact-status error';
+    status.textContent = 'שגיאה בשליחה. אפשר לכתוב לנו ישירות: hello@ngocore.io';
+    btn.disabled = false; btn.textContent = 'שלח →';
+  }
+}
+
+// ============================================================
 // ===== DEMO MODE — read-only preview, no auth ===============
 // ============================================================
 // Triggered from the landing page "צפה בדמו" button. Loads the live Hashmonaim org
@@ -2794,41 +2879,42 @@ function exitDemoMode() {
   location.href = location.pathname;
 }
 
-// Bootstrapped at page load — if demo flag is on, fake a session and load the demo org
+// Bootstrapped at page load — if demo flag is on, fake a session and load synthetic demo data
 async function bootstrapDemoMode() {
   if (!isDemoMode()) return false;
-  console.log('[demo] entering demo mode');
+  console.log('[demo] entering demo mode — synthetic data only, no real Firestore reads');
   // Fake a current user for demo
   window.currentUser = { email: 'demo@ngocore.io', displayName: 'משתמש דמו', photoURL: '' };
   window.userRole = 'viewer';
   window.userPermission = 'view-only';
   window.userRoleTitle = 'צופה (דמו)';
-  // Load the Hashmonaim demo org from Firestore (anyone can read public-anon orgs? — fall back to PROGRAM_INFO seed)
-  try {
-    const demoOrgId = 'hashmonaim';  // the seed org
-    const orgDoc = await db.collection('orgs').doc(demoOrgId).get();
-    if (orgDoc.exists) {
-      window.currentOrgId = demoOrgId;
-      window.currentOrgInfo = { id: demoOrgId, ...orgDoc.data() };
-    } else {
-      // Fallback: synthesize a demo org from the seed
-      window.currentOrgId = 'demo';
-      window.currentOrgInfo = { id:'demo', name:'עמותת הדמו (לדוגמה)', registrationNumber:'580000000', programs: (typeof DEFAULT_PROGRAM_INFO !== 'undefined' ? DEFAULT_PROGRAM_INFO : {}) };
-    }
-  } catch(e) {
-    console.warn('[demo] could not load Hashmonaim org, falling back to seed', e);
-    window.currentOrgId = 'demo';
-    window.currentOrgInfo = { id:'demo', name:'עמותת הדמו (לדוגמה)', programs: (typeof DEFAULT_PROGRAM_INFO !== 'undefined' ? DEFAULT_PROGRAM_INFO : {}) };
-  }
-  // Try to fetch some sample finance/tasks from Hashmonaim for richer display (best-effort)
-  try {
-    const finSnap = await db.collection('finance').where('orgId','==',window.currentOrgId).limit(20).get();
-    window.financeCache = []; finSnap.forEach(d => window.financeCache.push({id:d.id,...d.data()}));
-  } catch(e) { window.financeCache = []; }
-  try {
-    const tSnap = await db.collection('tasks').where('orgId','==',window.currentOrgId).limit(10).get();
-    window.tasksCache = []; tSnap.forEach(d => window.tasksCache.push({id:d.id,...d.data()}));
-  } catch(e) { window.tasksCache = []; }
+  // Build a SYNTHETIC demo org — no real Firestore reads. This protects real customer data.
+  // Use the seed PROGRAM_INFO (which is just illustrative defaults, not live data) + fabricated org info.
+  const seedPrograms = (typeof DEFAULT_PROGRAM_INFO !== 'undefined') ? JSON.parse(JSON.stringify(DEFAULT_PROGRAM_INFO)) : {};
+  window.currentOrgId = '__demo__';
+  window.currentOrgInfo = {
+    id:'__demo__',
+    name:'עמותת הדגמה — לדוגמה בלבד',
+    registrationNumber:'580-DEMO',
+    phone:'',
+    email:'demo@ngocore.io',
+    website:'',
+    purpose:'תוכן זה הוא הדגמה בלבד — לא נתונים אמיתיים',
+    primaryColor:'#15a4b8',
+    programs: seedPrograms,
+    areas: [
+      {key:'ruach-hashmonait',     label:'תוכנית דוגמה א׳',  description:'תיאור הדגמה'},
+      {key:'lev-david',            label:'תוכנית דוגמה ב׳',  description:'תיאור הדגמה'},
+      {key:'beit-neeman',          label:'תוכנית דוגמה ג׳',  description:'תיאור הדגמה'},
+      {key:'shaar-yetzia',         label:'תוכנית דוגמה ד׳',  description:'תיאור הדגמה'}
+    ]
+  };
+  // Empty caches — synthetic demo doesn't pretend to have live finance/tasks
+  window.financeCache = [];
+  window.tasksCache = [];
+  window.teamCache = [
+    { email:'demo@ngocore.io', name:'משתמש דמו', role:'viewer', roleTitle:'צופה (דמו)', orgId:'__demo__', programs:[] }
+  ];
   // Show the app
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -5381,10 +5467,13 @@ window.addEventListener('popstate', (e) => {
 window.addEventListener('DOMContentLoaded', () => {
   // Inject NGO Core logo into landing page elements
   try {
-    ['ngoLogoNav','ngoLogoHero','ngoLogoFoot','ngoLogoSidebar'].forEach(id => {
+    ['ngoLogoNav','heroLogoFallback','ngoLogoFoot','ngoLogoSidebar'].forEach(id => {
       const el = document.getElementById(id);
       if (el && typeof NGO_CORE_LOGO_URL !== 'undefined') el.src = NGO_CORE_LOGO_URL;
     });
+    // Set video poster (first frame) so it doesn't flash empty
+    const v = document.getElementById('heroLogoVideo');
+    if (v && typeof NGO_CORE_LOGO_URL !== 'undefined') v.poster = NGO_CORE_LOGO_URL;
   } catch(e) { console.warn('[logo]', e); }
   // Apply default org logo to the login screen + sidebar (will be re-applied with org-specific logo after login)
   try { applyOrgLogoToUI(); } catch(e) {}
