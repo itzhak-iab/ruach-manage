@@ -555,6 +555,11 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
             <p>מנהלים, עובדים, צופים. תורם רואה רק קריאה. עובד עורך רק את התוכנית שלו. מנהל רואה הכל.</p>
           </div>
           <div class="feat-card">
+            <div class="feat-icon">📝</div>
+            <h3>דיווחי עובדים שבועיים</h3>
+            <p>עובדים שעובדים תחת חוזה (ר״מ פלוגתי, מוביל חוסן וכו׳) מגישים דיווח שבועי קצר על הפעילות שלהם — והמנהל רואה סיכום מאוחד בלחיצה. סוף סוף יודעים מה קורה.</p>
+          </div>
+          <div class="feat-card">
             <div class="feat-icon">🔒</div>
             <h3>פרטיות מלאה לארגון</h3>
             <p>כל ארגון מבודד לחלוטין. אנחנו לא רואים את הנתונים שלך. גיבוי אוטומטי, ייצוא חופשי בכל רגע.</p>
@@ -738,7 +743,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r67</div>
+      <div class="ngocore-version">v2026.05.07-r68</div>
     </div>
   </aside>
 
@@ -1933,7 +1938,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r67 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r68 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -2870,6 +2875,12 @@ const _TOUR_STEPS = [
     body: 'כל החזר הוצאות, חשבונית, תרומה — נרשמים פעם אחת ומשויכים לתוכנית. גם "התחייבות" של תורם (טרם התקבלה) — אופציה זמינה.',
     target: '#sec-finance',
     section: 'finance'
+  },
+  {
+    title: '📝 דיווחי עובדים שבועיים',
+    body: 'עובדים תחת חוזה (ר״מ פלוגתי, מוביל חוסן וכו׳) מגישים דיווח שבועי קצר ישירות במערכת. אתה, כמנהל, מקבל סיכום מאוחד בלחיצה — סוף סוף יודעים מה כל אחד עשה השבוע.',
+    target: '#sec-pluga, #navPluga',
+    section: 'pluga'
   },
   {
     title: '📄 PDF מקצועי לתורמים',
