@@ -13,6 +13,50 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="NGO Core">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<!-- SEO meta -->
+<meta name="description" content="NGO Core — מערכת ניהול לעמותות בישראל. תוכניות, תקציב, שותפים, דיווחי עובדים, PDF לתורמים — במקום אחד. בעברית. חינם בשלב הביטא.">
+<meta name="keywords" content="ניהול עמותות, מערכת ניהול עמותה, תוכנת ניהול עמותות, NGO management, רישום ע&quot;ר, נהול תוכניות לעמותה, דיווחי עובדים, תקציב עמותה, שקיפות לתורמים">
+<meta name="author" content="NGO Core">
+<link rel="canonical" href="https://ngocore.io/">
+
+<!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="NGO Core — מערכת ניהול לעמותות">
+<meta property="og:description" content="כל הידע של העמותה. מסודר. נגיש. שייך לך. תוכניות, תקציב, שותפים — מערכת אחת בעברית.">
+<meta property="og:image" content="https://ngocore.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://ngocore.io/">
+<meta property="og:site_name" content="NGO Core">
+<meta property="og:locale" content="he_IL">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NGO Core — מערכת ניהול לעמותות">
+<meta name="twitter:description" content="כל הידע של העמותה במקום אחד. בעברית. חינם בשלב הביטא.">
+<meta name="twitter:image" content="https://ngocore.io/og-image.png">
+
+<!-- Structured data: SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"SoftwareApplication",
+  "name":"NGO Core",
+  "applicationCategory":"BusinessApplication",
+  "operatingSystem":"Web",
+  "url":"https://ngocore.io/",
+  "image":"https://ngocore.io/og-image.png",
+  "description":"מערכת ניהול לעמותות בישראל — תוכניות, תקציב, שותפים, דיווחי עובדים ושקיפות לתורמים במקום אחד.",
+  "offers":{"@type":"Offer","price":"0","priceCurrency":"ILS","description":"חינם בשלב הביטא"},
+  "inLanguage":"he-IL",
+  "audience":{"@type":"Audience","audienceType":"Non-profit organizations"}
+}
+</script>
+
 <!-- Security headers -->
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -83,12 +127,20 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 .landing-nav .nav-links a{color:var(--ngo-fg-soft);text-decoration:none;font-weight:500;font-size:0.88rem;cursor:pointer;transition:color 0.15s ease;letter-spacing:-0.01em}
 .landing-nav .nav-links a:hover{color:var(--ngo-fg)}
 
-/* Hero — Apple-style with massive logo */
-.landing-hero{padding:80px 0 70px;text-align:center;position:relative}
-.hero-logo-wrap{display:flex;justify-content:center;align-items:center;margin:0 auto 42px;position:relative;width:100%}
-.hero-logo-img{display:block;height:320px;width:auto;max-width:100%;object-fit:contain;animation:heroFloat 5s ease-in-out infinite;filter:drop-shadow(0 30px 60px rgba(21,164,184,0.15)) drop-shadow(0 18px 36px rgba(193,154,74,0.08))}
-@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+/* Hero — Apple-style split layout: text right, big animated logo on the side */
+.landing-hero{padding:60px 0 70px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:50px;align-items:center;position:relative;text-align:right}
+.landing-hero .hero-content{text-align:right}
+.hero-logo-wrap{display:flex;justify-content:center;align-items:center;position:relative;perspective:1200px}
+.hero-logo-img{display:block;height:480px;width:auto;max-width:100%;object-fit:contain;animation:heroBreathe 6s ease-in-out infinite;filter:drop-shadow(0 30px 60px rgba(21,164,184,0.20)) drop-shadow(0 18px 36px rgba(193,154,74,0.12))}
+@keyframes heroBreathe{
+  0%, 100% { transform: translateY(0) rotate(-2deg) scale(1); }
+  50%      { transform: translateY(-14px) rotate(2deg) scale(1.02); }
+}
 @media (prefers-reduced-motion: reduce){.hero-logo-img{animation:none}}
+.hero-content h1{margin-right:0}
+.hero-content .lede,.hero-content .cta-row,.hero-content .hero-microcopy{margin-right:0}
+.hero-content .cta-row{justify-content:flex-end;margin-bottom:18px}
+.hero-content .hero-badge{margin-bottom:22px}
 .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(193,154,74,0.1);color:var(--ngo-gold-deep);padding:5px 14px;border-radius:100px;font-size:0.78rem;font-weight:600;letter-spacing:0.02em;margin-bottom:26px}
 .hero-badge::before{content:"";display:inline-block;width:6px;height:6px;background:var(--ngo-gold);border-radius:50%}
 .landing-hero h1{font-size:4rem;line-height:1.05;font-weight:700;color:var(--ngo-fg);letter-spacing:-0.035em;margin:0 0 22px;font-family:inherit;max-width:880px;margin-left:auto;margin-right:auto}
@@ -183,10 +235,12 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 
 /* Mobile */
 @media (max-width:860px){
-  .landing-hero{padding:60px 0 40px}
-  .landing-hero h1{font-size:2.5rem;letter-spacing:-0.02em}
+  .landing-hero{grid-template-columns:1fr;padding:40px 0 30px;gap:30px;text-align:center}
+  .landing-hero .hero-content{text-align:center}
+  .landing-hero .hero-content .cta-row{justify-content:center}
+  .landing-hero h1{font-size:2.4rem;letter-spacing:-0.02em}
   .landing-hero .lede{font-size:1.1rem}
-  .landing-hero .hero-logo{height:120px}
+  .hero-logo-img{height:300px}
   .hero-mockup-wrap{margin-top:40px}
   .features-grid{grid-template-columns:1fr;gap:12px}
   .steps{grid-template-columns:1fr;gap:32px}
@@ -485,44 +539,46 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
 
     <div class="landing-wrap">
 
-      <!-- Hero — Apple-style centered with massive logo + tagline -->
+      <!-- Hero — split: content right, big animated logo on the side -->
       <section class="landing-hero" id="top">
+        <div class="hero-content">
+          <span class="hero-badge">בטא · חינם בשלב זה</span>
+          <h1>כל הידע של העמותה.<br><span class="accent">מסודר. נגיש. שייך לך.</span></h1>
+          <p class="lede">די לאקסלים שאף אחד לא מוצא. די לקבצים שבורחים עם עובדים שעוזבים. NGO Core שומר את כל הידע של העמותה במקום אחד — תוכניות, תקציב, שותפים, צוות, משימות, דיווחי עובדים — מסודר, גלוי לכל מי שצריך, ושייך לארגון לאורך זמן.</p>
+          <div class="cta-row">
+            <button class="cta cta-primary" onclick="signIn()">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+              התחל עם Google
+            </button>
+            <button class="cta cta-secondary" onclick="enterDemoMode()">צפה בדמו →</button>
+          </div>
+          <p class="hero-microcopy">חינם לארגון אחד בשלב הביטא · <strong>הרשמה מוקדמת = 50% הנחה לצמיתות</strong></p>
+        </div>
         <div class="hero-logo-wrap">
           <img id="heroLogoFallback" class="hero-logo-img" src="" alt="NGO Core">
         </div>
-        <span class="hero-badge">בטא · חינם בשלב זה</span>
-        <h1>כל הידע של העמותה.<br><span class="accent">מסודר. נגיש. שייך לך.</span></h1>
-        <p class="lede">די לאקסלים שאף אחד לא מוצא. די לקבצים שבורחים עם עובדים שעוזבים. NGO Core שומר את כל הידע של העמותה במקום אחד — תוכניות, תקציב, שותפים, צוות, משימות — מסודר, גלוי לכל מי שצריך, ושייך לארגון לאורך זמן.</p>
-        <div class="cta-row">
-          <button class="cta cta-primary" onclick="signIn()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
-            התחל עם Google
-          </button>
-          <button class="cta cta-secondary" onclick="enterDemoMode()">צפה בדמו →</button>
-        </div>
-        <p class="hero-microcopy">חינם לארגון אחד בשלב הביטא · <strong>הרשמה מוקדמת = 50% הנחה לצמיתות</strong></p>
 
-        <!-- Hero mockup: dashboard preview -->
-        <div class="hero-mockup-wrap">
-          <div class="hero-mockup">
-            <div class="mock-bar"><i></i><i></i><i></i></div>
-            <div style="font-size:0.78rem;color:var(--ngo-fg-soft);margin-bottom:12px;text-align:right">דאשבורד · רוח חשמונאית</div>
-            <div class="mock-kpi-row">
-              <div class="mock-kpi"><div class="mock-kpi-l">תקציב שנתי</div><div class="mock-kpi-v">₪2.3M</div></div>
-              <div class="mock-kpi"><div class="mock-kpi-l">גויס</div><div class="mock-kpi-v">₪1.8M</div></div>
-              <div class="mock-kpi"><div class="mock-kpi-l">% מכוסה</div><div class="mock-kpi-v">78%</div></div>
-            </div>
-            <div style="font-size:0.72rem;color:var(--ngo-fg-soft);margin:14px 0 8px;text-align:right">ביצוע לפי תוכנית</div>
-            <div class="mock-bars">
-              <div class="mock-bar-row"><span class="lbl">רוח חשמונאית</span><span class="track"><span class="fill" style="width:92%"></span></span><span class="pct">92%</span></div>
-              <div class="mock-bar-row"><span class="lbl">בית נאמן</span><span class="track"><span class="fill" style="width:64%"></span></span><span class="pct">64%</span></div>
-              <div class="mock-bar-row"><span class="lbl">לב דוד</span><span class="track"><span class="fill" style="width:78%"></span></span><span class="pct">78%</span></div>
-              <div class="mock-bar-row"><span class="lbl">מפעל התורה</span><span class="track"><span class="fill" style="width:45%"></span></span><span class="pct">45%</span></div>
-              <div class="mock-bar-row"><span class="lbl">שער יציאה</span><span class="track"><span class="fill" style="width:30%"></span></span><span class="pct">30%</span></div>
-            </div>
+      </section>
+
+      <!-- Hero mockup: dashboard preview (generic placeholder org) -->
+      <div class="hero-mockup-wrap">
+        <div class="hero-mockup">
+          <div class="mock-bar"><i></i><i></i><i></i></div>
+          <div style="font-size:0.78rem;color:var(--ngo-fg-soft);margin-bottom:12px;text-align:right">דאשבורד · עמותה לדוגמה</div>
+          <div class="mock-kpi-row">
+            <div class="mock-kpi"><div class="mock-kpi-l">תקציב שנתי</div><div class="mock-kpi-v">₪684K</div></div>
+            <div class="mock-kpi"><div class="mock-kpi-l">גויס</div><div class="mock-kpi-v">₪520K</div></div>
+            <div class="mock-kpi"><div class="mock-kpi-l">% מכוסה</div><div class="mock-kpi-v">76%</div></div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--ngo-fg-soft);margin:14px 0 8px;text-align:right">ביצוע לפי תוכנית</div>
+          <div class="mock-bars">
+            <div class="mock-bar-row"><span class="lbl">תוכנית חינוך</span><span class="track"><span class="fill" style="width:88%"></span></span><span class="pct">88%</span></div>
+            <div class="mock-bar-row"><span class="lbl">קרן רווחה</span><span class="track"><span class="fill" style="width:72%"></span></span><span class="pct">72%</span></div>
+            <div class="mock-bar-row"><span class="lbl">תוכנית התנדבות</span><span class="track"><span class="fill" style="width:40%"></span></span><span class="pct">40%</span></div>
+            <div class="mock-bar-row"><span class="lbl">קייטנת חופש</span><span class="track"><span class="fill" style="width:95%"></span></span><span class="pct">95%</span></div>
           </div>
         </div>
-      </section>
+      </div>
 
       <!-- Features -->
       <section class="landing-section section-band-soft" id="featuresSection">
@@ -743,7 +799,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r68</div>
+      <div class="ngocore-version">v2026.05.07-r69</div>
     </div>
   </aside>
 
@@ -1938,7 +1994,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r68 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r69 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -2848,14 +2904,14 @@ const _TOUR_STEPS = [
     body: 'הטבלה הזו היא לא PDF — אפשר לערוך כל תא, להוסיף שורות וגם עמודות מותאמות. השער דולר/שקל מתעדכן אוטומטית. כל שינוי נשמר מיידית בענן.',
     target: '.editable-budget, #sec-program .card',
     section: 'program',
-    progKey: 'beit-neeman'
+    progKey: 'demo-education'
   },
   {
     title: '🤝 שותפים והתחייבויות',
     body: 'כל קרן, ספונסר ותורם מנוהלים כאן. רואים את ההתחייבות, מה התקבל בפועל, ומה הפער. במטבע כפול — שקל ודולר.',
     target: '#sec-program .card',
     section: 'program',
-    progKey: 'beit-neeman',
+    progKey: 'demo-education',
     scrollTo: 0.4
   },
   {
@@ -2887,7 +2943,7 @@ const _TOUR_STEPS = [
     body: 'בלחיצה אחת מקבלים דף תוכנית מלא — עם הלוגו שלך, בעברית או באנגלית, כולל מודל לוגי וטבלאות. מוכן לשליחה לתורמים בארץ ובחו"ל.',
     target: 'button[onclick*="exportProgramToPDF"]',
     section: 'program',
-    progKey: 'beit-neeman',
+    progKey: 'demo-education',
     scrollTo: 1.0
   },
   {
@@ -3068,41 +3124,130 @@ function exitDemoMode() {
   location.href = location.pathname;
 }
 
-// Bootstrapped at page load — if demo flag is on, fake a session and load synthetic demo data
+// Bootstrapped at page load — if demo flag is on, fake a session and load CLEAN demo data
+// IMPORTANT: never expose real customer data via demo. Use generic placeholder programs only.
 async function bootstrapDemoMode() {
   if (!isDemoMode()) return false;
-  console.log('[demo] entering demo mode — synthetic data only, no real Firestore reads');
+  console.log('[demo] entering demo mode — clean placeholder data, no Hashmonaim/customer content');
   // Fake a current user for demo
   window.currentUser = { email: 'demo@ngocore.io', displayName: 'משתמש דמו', photoURL: '' };
-  window.userRole = 'viewer';
-  window.userPermission = 'view-only';
-  window.userRoleTitle = 'צופה (דמו)';
-  // Build a SYNTHETIC demo org — no real Firestore reads. This protects real customer data.
-  // Use the seed PROGRAM_INFO (which is just illustrative defaults, not live data) + fabricated org info.
-  const seedPrograms = (typeof DEFAULT_PROGRAM_INFO !== 'undefined') ? JSON.parse(JSON.stringify(DEFAULT_PROGRAM_INFO)) : {};
+  window.userRole = 'admin';                  // admin so the user can SEE all the edit buttons during the tour
+  window.userPermission = 'admin';
+  window.userRoleTitle = 'מנכ"לית (דמו)';
+  // CLEAN placeholder programs — generic content, nothing borrowed from a real org.
+  const demoPrograms = {
+    'demo-education': {
+      leader: 'דנה כהן',
+      description: 'תוכנית חינוכית לילדים בסיכון — שיעורי עזר, ליווי אישי, קהילות תמיכה',
+      annualBudget: 360000,
+      status: 'active',
+      statusLabel: 'פעיל',
+      vision: 'כל ילד מקבל הזדמנות הוגנת להצלחה — בלי קשר לרקע הכלכלי או החברתי של הוריו.',
+      targetAudiences: [
+        { name:'ילדים ובני נוער', description:'בני 8-18 ממשפחות בסיכון, באזורי פריפריה' },
+        { name:'הוריהם', description:'הורים שמחפשים תמיכה בליווי החינוכי של ילדיהם' }
+      ],
+      goals: ['ליווי 200 ילדים בשנה', 'הגדלת הצלחה בלימודים ב-30%', 'הקמת קהילת הורים פעילה'],
+      kpis: ['85% מהילדים מצביעים על שיפור', '40 הורים פעילים בקבוצת הורים', 'יחס מורה-תלמיד 1:3'],
+      meetings: [],
+      openQuestions: [],
+      testimonials: [],
+      costItems: [
+        { name:'רכזת חינוכית',    type:'salary',     paymentMode:'cash', monthlyAmount:8000, annualAmount:96000,  notes:'דוגמה — תפקיד בכיר' },
+        { name:'מורים מקצועיים',  type:'service',    paymentMode:'cash', monthlyAmount:18000,annualAmount:216000, notes:'12 מורים, 8 שעות שבועיות' },
+        { name:'חומרי לימוד',     type:'equipment',  paymentMode:'cash', monthlyAmount:4000, annualAmount:48000,  notes:'ספרים, כלי כתיבה, מחברות' }
+      ],
+      inputs: 'רכזת חינוכית, צוות מורים מקצועיים, חומרי לימוד, מקום מפגש',
+      activities: 'שיעורי עזר אישיים, סדנאות קבוצתיות, ימי טיולים, מפגשי הורים',
+      outputs: '200 ילדים מלווים שנתית, 80 שיעורי עזר חודשיים, 4 סדנאות הורים',
+      outcomes: 'שיפור 30% בציונים, ילדים מצביעים על תחושת ביטחון מוגברת',
+      impact: 'פתיחת אופקים חדשים לדור הבא ופריצת מעגל העוני החינוכי'
+    },
+    'demo-welfare': {
+      leader: 'אבי לוי',
+      description: 'תמיכה במשפחות במצוקה — סלי מזון, מענקי חירום, ליווי חברתי',
+      annualBudget: 240000,
+      status: 'active',
+      statusLabel: 'פעיל',
+      vision: 'אף משפחה לא תישאר ללא תמיכה בעת מצוקה.',
+      targetAudiences: [
+        { name:'משפחות במצוקה', description:'בעיקר משפחות עם ילדים שחוו אובדן הכנסה, מחלה או משבר' }
+      ],
+      goals: ['חלוקת 150 סלי מזון בחודש', 'מתן מענקי חירום ל-60 משפחות'],
+      kpis: ['100% מהפניות מקבלות מענה תוך 48 שעות', '90% שביעות רצון מהמוטבים'],
+      meetings: [],
+      openQuestions: [],
+      testimonials: [],
+      costItems: [
+        { name:'סלי מזון',         type:'operations', paymentMode:'cash', monthlyAmount:12000, annualAmount:144000, notes:'150 סלים × 80 ₪' },
+        { name:'מענקי חירום',      type:'grants',     paymentMode:'cash', monthlyAmount:8000,  annualAmount:96000,  notes:'5 משפחות × 1,600 ₪ בממוצע' }
+      ],
+      inputs: 'מתנדבים, ספקי מזון, צוות סוציאלי',
+      activities: 'אריזת סלים שבועית, חלוקה, ביקורי בית, ועדת מענקים',
+      outputs: '150 סלים חודשיים, 60 מענקים בשנה',
+      outcomes: 'ירידה בפניות לקרן הסיוע הלאומית, יציבות במשפחות המוטבות',
+      impact: 'רשת ביטחון מקומית למשפחות באזור'
+    },
+    'demo-volunteers': {
+      leader: 'יעל ברק',
+      description: 'תוכנית התנדבות לבני נוער — חינוך לערכי נתינה ופעילות קהילתית',
+      annualBudget: 84000,
+      status: 'planning',
+      statusLabel: 'בתכנון',
+      vision: 'דור צעיר שמעורב בקהילה, נוטל אחריות, ויודע לתת.',
+      targetAudiences: [{ name:'בני נוער 14-18', description:'תלמידי תיכון מהאזור' }],
+      goals: ['הכשרת 50 מתנדבים', 'ביצוע 1,000 שעות התנדבות שנתיות'],
+      kpis: ['70% המשך התנדבות לאחר שנה', '85% דיווח על השפעה חיובית'],
+      meetings: [],
+      openQuestions: [],
+      testimonials: [],
+      costItems: [
+        { name:'רכזת התנדבות',     type:'salary',     paymentMode:'cash', monthlyAmount:4000,  annualAmount:48000,  notes:'משרה חלקית' },
+        { name:'פעילויות וסדנאות', type:'operations', paymentMode:'cash', monthlyAmount:3000,  annualAmount:36000,  notes:'הדרכות, ימי גיבוש' }
+      ],
+      inputs: 'רכזת התנדבות, מנטורים, חומרי הדרכה',
+      activities: 'הכשרת מתנדבים, ימי התנדבות, מפגשי השראה',
+      outputs: '50 בני נוער מתנדבים, 1,000 שעות שירות שנתיות',
+      outcomes: 'בני נוער מעורבים בקהילה, פיתוח תחושת אחריות',
+      impact: 'דור צעיר שמוביל את הקהילה'
+    }
+  };
   window.currentOrgId = '__demo__';
   window.currentOrgInfo = {
     id:'__demo__',
-    name:'עמותת הדגמה — לדוגמה בלבד',
+    name:'עמותת "אור בקהילה" (דמו)',
     registrationNumber:'580-DEMO',
-    phone:'',
-    email:'demo@ngocore.io',
+    phone:'03-XXX-XXXX',
+    email:'info@or-bakehila.org.il',
     website:'',
-    purpose:'תוכן זה הוא הדגמה בלבד — לא נתונים אמיתיים',
+    purpose:'תוכן הדגמה — לא נתונים אמיתיים',
     primaryColor:'#15a4b8',
-    programs: seedPrograms,
+    programs: demoPrograms,
     areas: [
-      {key:'ruach-hashmonait',     label:'תוכנית דוגמה א׳',  description:'תיאור הדגמה'},
-      {key:'lev-david',            label:'תוכנית דוגמה ב׳',  description:'תיאור הדגמה'},
-      {key:'beit-neeman',          label:'תוכנית דוגמה ג׳',  description:'תיאור הדגמה'},
-      {key:'shaar-yetzia',         label:'תוכנית דוגמה ד׳',  description:'תיאור הדגמה'}
+      {key:'demo-education',  label:'תוכנית חינוך',     description:'ליווי ילדים בסיכון'},
+      {key:'demo-welfare',    label:'קרן רווחה',        description:'סיוע למשפחות במצוקה'},
+      {key:'demo-volunteers', label:'תוכנית התנדבות',   description:'חינוך לערכי נתינה'}
     ]
   };
-  // Empty caches — synthetic demo doesn't pretend to have live finance/tasks
-  window.financeCache = [];
-  window.tasksCache = [];
+  // Synthetic finance records for demo
+  const today = new Date().toISOString().slice(0,10);
+  window.financeCache = [
+    { id:'demo-f1', type:'income',  amount:50000, source:'קרן רוטשילד (דוגמה)', purpose:'demo-education', date:today, incomeStatus:'received', receiptIssued:true, receiptNumber:'1042', orgId:'__demo__' },
+    { id:'demo-f2', type:'income',  amount:30000, source:'תרומה פרטית (דוגמה)', purpose:'demo-welfare',   date:today, incomeStatus:'committed', orgId:'__demo__' },
+    { id:'demo-f3', type:'expense', amount:8000,  source:'חברת המזון בע"מ',     purpose:'demo-welfare',   purchaseDate:today, description:'סלי מזון לחודש מאי', orgId:'__demo__' },
+    { id:'demo-f4', type:'expense', amount:1200,  source:'ספרים ולומדה',         purpose:'demo-education', purchaseDate:today, description:'ספרי לימוד לקבוצה ב׳', orgId:'__demo__' }
+  ];
+  // Synthetic tasks
+  window.tasksCache = [
+    { id:'demo-t1', title:'בניית תוכנית עבודה רבעונית', area:'demo-education', assignees:['demo@ngocore.io'], assigneeNames:['דנה כהן'], status:'open',     priority:'high',   dueDate: today, orgId:'__demo__' },
+    { id:'demo-t2', title:'גיוס תורם חדש לקרן הרווחה',   area:'demo-welfare',   assignees:['demo@ngocore.io'], assigneeNames:['אבי לוי'], status:'in-progress',priority:'medium', dueDate: today, orgId:'__demo__' },
+    { id:'demo-t3', title:'הכנת מצגת לתורם',              area:'demo-education', assignees:['demo@ngocore.io'], assigneeNames:['דנה כהן'], status:'open',     priority:'medium', dueDate: today, orgId:'__demo__' }
+  ];
   window.teamCache = [
-    { email:'demo@ngocore.io', name:'משתמש דמו', role:'viewer', roleTitle:'צופה (דמו)', orgId:'__demo__', programs:[] }
+    { email:'demo@ngocore.io', name:'משתמש דמו (מנכ"ל)', role:'admin', roleTitle:'מנכ"ל', orgId:'__demo__', programs:[] },
+    { email:'demo-dana@ngocore.io', name:'דנה כהן',     role:'employee', roleTitle:'רכזת חינוך',   permission:'edit-specific', orgId:'__demo__', programs:['demo-education'] },
+    { email:'demo-avi@ngocore.io',  name:'אבי לוי',     role:'employee', roleTitle:'רכז רווחה',    permission:'edit-specific', orgId:'__demo__', programs:['demo-welfare'] },
+    { email:'demo-yael@ngocore.io', name:'יעל ברק',     role:'employee', roleTitle:'רכזת התנדבות', permission:'edit-specific', orgId:'__demo__', programs:['demo-volunteers'] }
   ];
   // Show the app
   document.getElementById('loginScreen').style.display = 'none';
