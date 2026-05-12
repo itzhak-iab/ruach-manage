@@ -59,8 +59,25 @@
 
 <!-- Security headers -->
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="index, follow">
+<!-- Content Security Policy: lenient enough to keep inline event handlers (the codebase uses many) but blocks unknown script/style sources -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://www.googletagmanager.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com data:;
+  img-src 'self' data: blob: https:;
+  media-src 'self' data: blob: https:;
+  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.cloudfunctions.net https://open.er-api.com https://api.exchangerate-api.com https://api.frankfurter.app https://translate.googleapis.com https://api.mymemory.translated.net;
+  frame-src 'self' https://*.firebaseapp.com https://accounts.google.com;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  upgrade-insecure-requests;
+">
 <script>
 // Force HTTPS — if the user landed on http:// (e.g. via an old bookmark or shared link), redirect immediately.
 // Runs synchronously before any other script so no insecure assets get loaded.
@@ -806,7 +823,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r70</div>
+      <div class="ngocore-version">v2026.05.07-r71</div>
     </div>
   </aside>
 
@@ -1992,6 +2009,38 @@ firebase.initializeApp({
   appId: "1:996341650604:web:6b942f30a35c5e865ebb09"
 });
 
+// ============================================================
+// ===== SECURITY HELPERS — XSS escape + URL validation =======
+// ============================================================
+// escapeHtml: turn an arbitrary string into safe HTML text. Use everywhere you interpolate
+// user/Firestore data into a template literal that becomes innerHTML.
+// safeUrl: validate URL has a safe scheme (https only); fallback to '#' for anything else.
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"'`=\/]/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;','=':'&#61;','/':'&#47;'
+  })[ch]);
+}
+// Allowed schemes for hrefs: https + safe firebase storage. Returns escaped value or '#'.
+function safeUrl(u) {
+  if (!u) return '#';
+  try {
+    const url = String(u).trim();
+    // Reject javascript:, data:, vbscript: etc.
+    if (/^javascript:|^data:|^vbscript:|^file:/i.test(url)) return '#';
+    // Allow only https://, http:// (will be redirected to https), or relative
+    if (/^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('#')) {
+      // Also HTML-escape to prevent attribute escape
+      return escapeHtml(url);
+    }
+    // Accept mailto: and tel: as common safe schemes
+    if (/^(mailto|tel):/i.test(url)) return escapeHtml(url);
+  } catch(e) {}
+  return '#';
+}
+// Shortcut shared with template literals
+window._h = escapeHtml; window._u = safeUrl;
+
 const db = firebase.firestore();
 const auth = firebase.auth();
 // Explicit persistence — keep user signed in across reloads
@@ -2001,7 +2050,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r70 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r71 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -3385,9 +3434,15 @@ auth.onAuthStateChanged(async user => {
     } catch(e) {
       console.error('Firestore team read error:', e);
       if (typeof _dbg === 'function') _dbg('❌ team read error: ' + e.message, '#dc2626');
-      // If Firestore rules block, auto-grant admin to this email
-      userRole = 'admin';
-      showApp(user);
+      // SECURITY: do NOT silently grant admin on read errors. Show the access-denied screen
+      // and force re-auth. The previous behaviour was a critical privilege-escalation vector.
+      document.getElementById('loginScreen').style.display = '';
+      const ad = document.getElementById('accessDenied');
+      if (ad) {
+        ad.style.display = 'block';
+        ad.querySelector('p').textContent = '⛔ שגיאה בטעינת ההרשאה. נסה להתחבר מחדש.';
+      }
+      try { auth.signOut(); } catch(_) {}
       return;
     }
 
@@ -12265,11 +12320,14 @@ function renderNotifications() {
   }
   list.innerHTML = notificationsCache.map(n => {
     const cls = n.read ? 'notif-item' : 'notif-item unread';
-    const linkHandler = n.link ? `onclick="handleNotifClick('${n.id}','${(n.link||'').replace(/'/g,"\\'")}')"` : `onclick="markNotifRead('${n.id}')"`;
+    // SECURITY: escape all Firestore-derived fields; sanitize link via safeUrl
+    const safeId = escapeHtml(n.id);
+    const safeLink = safeUrl(n.link);
+    const linkHandler = n.link ? `onclick="handleNotifClick('${safeId}','${safeLink}')"` : `onclick="markNotifRead('${safeId}')"`;
     return `<div class="${cls}" ${linkHandler}>
-      <div class="ntitle">${n.title||''}</div>
-      <div class="nbody">${n.body||''}</div>
-      <div class="ntime">${timeAgo(n.createdAt)}</div>
+      <div class="ntitle">${escapeHtml(n.title||'')}</div>
+      <div class="nbody">${escapeHtml(n.body||'')}</div>
+      <div class="ntime">${escapeHtml(timeAgo(n.createdAt)||'')}</div>
     </div>`;
   }).join('');
 }
