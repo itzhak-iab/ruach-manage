@@ -66,12 +66,13 @@
 <!-- Content Security Policy: lenient enough to keep inline event handlers (the codebase uses many) but blocks unknown script/style sources -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://www.googletagmanager.com;
+  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://www.googletagmanager.com https://browser.sentry-cdn.com;
+  worker-src 'self' blob:;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com data:;
   img-src 'self' data: blob: https:;
   media-src 'self' data: blob: https:;
-  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.cloudfunctions.net https://open.er-api.com https://api.exchangerate-api.com https://api.frankfurter.app https://translate.googleapis.com https://api.mymemory.translated.net;
+  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.cloudfunctions.net https://open.er-api.com https://api.exchangerate-api.com https://api.frankfurter.app https://translate.googleapis.com https://api.mymemory.translated.net https://*.ingest.sentry.io https://*.sentry.io;
   frame-src 'self' https://*.firebaseapp.com https://*.web.app https://accounts.google.com https://ngocore.io https://www.ngocore.io;
   object-src 'none';
   base-uri 'self';
@@ -85,6 +86,47 @@ if (location.protocol === 'http:' && location.hostname !== 'localhost' && !/^192
   location.replace('https://' + location.host + location.pathname + location.search + location.hash);
 }
 </script>
+<!-- Sentry error tracking (loaded conditionally — set window.SENTRY_DSN in localStorage to enable).
+     Free Sentry plan is generous (5K errors/month). Setup: sign up at sentry.io, create JS project,
+     paste DSN with: localStorage.setItem('SENTRY_DSN', 'https://...@o....ingest.sentry.io/...'). -->
+<script src="https://browser.sentry-cdn.com/7.119.0/bundle.min.js" integrity="sha384-akSDe7G7AEpinKAYY1eOWXkBdZ8dM1XmVZTjjveIH82w/eEAzELO0aogE+QF1f3X" crossorigin="anonymous"></script>
+<script>
+(function initSentry() {
+  try {
+    const dsn = localStorage.getItem('SENTRY_DSN') || (window.SENTRY_DSN || '');
+    if (!dsn || !window.Sentry) return;
+    Sentry.init({
+      dsn: dsn,
+      environment: location.host.includes('localhost') ? 'dev' : 'prod',
+      release: (document.documentElement.outerHTML.match(/v2026\.05\.07-r\d+/) || ['unknown'])[0],
+      sampleRate: 1.0,
+      tracesSampleRate: 0.05,
+      ignoreErrors: [
+        'auth/popup-closed-by-user',
+        'auth/cancelled-popup-request',
+        'Missing or insufficient permissions',
+        'Network request failed'
+      ],
+      beforeSend(event) {
+        // Drop events from extensions
+        if (event.exception?.values?.[0]?.stacktrace?.frames?.some(f => /chrome-extension|moz-extension/.test(f.filename||''))) return null;
+        return event;
+      }
+    });
+    console.info('[Sentry] enabled');
+  } catch(e) { console.warn('[Sentry] init failed:', e?.message); }
+})();
+// Always log uncaught errors to console with structure, even without Sentry,
+// so that production issues leave a breadcrumb the user can copy/paste.
+window.addEventListener('error', e => {
+  const msg = `[err] ${e.filename||'?'}:${e.lineno||'?'} → ${e.message||'?'}`;
+  console.error(msg, e.error);
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('[unhandled-promise]', e.reason?.code || '?', e.reason?.message || e.reason);
+});
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -823,7 +865,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r79</div>
+      <div class="ngocore-version">v2026.05.07-r80</div>
     </div>
   </aside>
 
@@ -2053,7 +2095,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r79 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r80 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -3542,13 +3584,18 @@ auth.onAuthStateChanged(async user => {
     showApp(user);
   } catch(e) {
     console.error('Auth flow error:', e);
-    if (typeof _dbg === 'function') _dbg('❌ Auth flow error: ' + e.message, '#dc2626');
-    // Fallback: show app anyway for the known admin email
-    if (user.email === 'i.barkai7@gmail.com') {
-      userRole = 'admin';
-      if (typeof _dbg === 'function') _dbg('🛟 Fallback: super-admin override', '#d97706');
-      showApp(user);
+    if (typeof _dbg === 'function') _dbg('❌ Auth flow error: ' + (e.message||''), '#dc2626');
+    // Hard fail: show a clean error UI instead of silently auto-granting admin
+    // (the previous hardcoded i.barkai7@gmail.com override was a security risk —
+    // any Firestore-read failure would have escalated privileges).
+    if (typeof showLoginError === 'function') {
+      showLoginError('שגיאה בטעינת חשבון',
+        'לא הצלחנו לטעון את פרטי המשתמש שלך. נסה לרענן. אם הבעיה נמשכת — פנה למנהל המערכת.');
+    } else {
+      alert('שגיאה בטעינת חשבון: ' + (e.message||'unknown'));
     }
+    // Force a sign-out so the user sees the login screen again rather than a broken state
+    try { auth.signOut(); } catch(_) {}
   }
 });
 
