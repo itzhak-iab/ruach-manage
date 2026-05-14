@@ -865,7 +865,7 @@ h1,h2,h3,h4{font-family:'Frank Ruhl Libre','David',serif;letter-spacing:-0.3px}
         <img id="ngoLogoSidebar" src="" alt="" style="height:22px;width:auto">
         <span>Powered by <strong>NGO Core</strong></span>
       </a>
-      <div class="ngocore-version">v2026.05.07-r81</div>
+      <div class="ngocore-version">v2026.05.07-r82</div>
     </div>
   </aside>
 
@@ -2102,7 +2102,7 @@ try {
 const storage = firebase.storage();
 let currentUser = null;
 let userRole = null;
-console.log('%c[ruach-manage] v2026.05.07-r81 loaded', 'color:#1a8a9a;font-weight:bold');
+console.log('%c[ruach-manage] v2026.05.07-r82 loaded', 'color:#1a8a9a;font-weight:bold');
 
 // ===== PURPOSE / AREA DICTIONARIES =====
 // The 6 canonical "areas" = the operational programs of the association.
@@ -2954,32 +2954,13 @@ function signIn() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
-  // Custom-domain detection: when the site runs on a domain that differs from Firebase's
-  // configured authDomain (e.g. ngocore.io vs ruach-hashmonait.firebaseapp.com), modern
-  // Chrome blocks the third-party-cookie-dependent auth iframe used by signInWithPopup,
-  // throwing auth/internal-error immediately. Redirect-based auth bypasses this entirely.
-  const authDomain = (firebase.app().options.authDomain || '').toLowerCase();
-  const host = location.host.toLowerCase();
-  const isCustomDomain = host !== 'localhost' && !host.startsWith('localhost:') && host !== authDomain && !host.endsWith('.' + authDomain);
-
-  if (isCustomDomain) {
-    _dbg('1️⃣ דומיין מותאם → signInWithRedirect (מנתב ל-Google)...', '#0891b2');
-    try { sessionStorage.setItem('_ngc_redirect_pending', '1'); } catch(_) {}
-    auth.signInWithRedirect(provider).catch(e => {
-      _signInInFlight = false;
-      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
-      console.error('[signIn-redirect]', e);
-      _dbg('❌ Redirect נכשל: ' + (e.code||'') + ' — ' + (e.message||'').slice(0,80), '#dc2626');
-      const code = e?.code || '';
-      if (code === 'auth/unauthorized-domain' || /requested action is invalid/i.test(e?.message||'')) {
-        showLoginError('הדומיין לא מאושר ב-Firebase', 'הוסף את הדומיין ל-Authorized domains ב-Firebase Console.');
-      } else {
-        showLoginError('שגיאת התחברות', e.message || code);
-      }
-    });
-    return;
-  }
-
+  // Popup-first auth flow:
+  // - Popup uses window.postMessage to transfer credentials, which works first-party
+  //   even when authDomain differs from current host.
+  // - signInWithRedirect was failing on custom domains because the post-redirect
+  //   credential transfer relies on a third-party iframe to authDomain, which Chrome
+  //   blocks since 2024. Popup bypasses this entirely.
+  // - If popup is blocked by browser (rare with user gesture), fall back to redirect.
   _dbg('1️⃣ פותחת popup...', '#0891b2');
 
   auth.signInWithPopup(provider)
